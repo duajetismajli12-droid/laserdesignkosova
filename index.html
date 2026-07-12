@@ -767,12 +767,35 @@
 </div>
 
 <script>
-    // Produktet ruhen në localStorage vetëm herën e parë, kështu që ndryshimet nga
-    // paneli i administrimit (shtim/redaktim/fshirje) mbeten edhe pas rifreskimit të faqes.
-    if (!localStorage.getItem('laserdesign_products')) {
-        localStorage.setItem('laserdesign_products', JSON.stringify(INITIAL_PRODUCTS));
+    // Produktet ruhen tani në një bazë të dhënash qendrore (Vercel KV), përmes /api/products,
+    // në vend të localStorage — kështu që ndryshimet nga paneli i administrimit shfaqen
+    // për të gjithë vizitorët, në çdo pajisje/browser, jo vetëm në atë ku u bë ndryshimi.
+    let PRODUCTS = [];
+
+    async function loadProductsFromServer() {
+        try {
+            const res = await fetch('/api/products');
+            if (!res.ok) throw new Error('Përgjigje jo e suksesshme nga serveri.');
+            PRODUCTS = await res.json();
+        } catch (err) {
+            console.error('Gabim gjatë marrjes së produkteve:', err);
+            alert('Nuk u arrit të lidhemi me serverin për produktet. Kontrollo internetin dhe rifresko faqen.');
+        }
     }
-    let PRODUCTS = JSON.parse(localStorage.getItem('laserdesign_products'));
+
+    async function saveProductsToServer() {
+        try {
+            const res = await fetch('/api/products', {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(PRODUCTS)
+            });
+            if (!res.ok) throw new Error('Përgjigje jo e suksesshme nga serveri.');
+        } catch (err) {
+            console.error('Gabim gjatë ruajtjes së produkteve:', err);
+            alert('Nuk u arrit të ruhen ndryshimet në server. Provo përsëri.');
+        }
+    }
 
     // Kuponët e zbritjes të disponueshëm. "percent" = përqindje, "fixed" = shumë fikse në €
     const COUPONS = {
@@ -858,8 +881,8 @@
     let OFFERS = JSON.parse(localStorage.getItem('laserdesign_offers'));
 
     // Fjalëkalimi i panelit të administrimit — NDËRROJENI këtë me diçka tuajën!
-    const ADMIN_PASSWORD = "duajeti26";
-
+     const ADMIN_PASSWORD = "duajeti26";
+     
     let state = {
         cart: [],
         orders: [],
@@ -967,7 +990,8 @@
             document.querySelector('.main-content').scrollTop = 0;
         },
 
-        initHome: function() {
+        initHome: async function() {
+            await loadProductsFromServer();
             this.renderCategories();
             this.renderBestSellers();
             this.renderNewestProducts();
@@ -1308,7 +1332,7 @@
             CustomCraft.loadProductTemplate(id);
         },
 
-        submitVote: function(productId, voteValue) {
+        submitVote: async function(productId, voteValue) {
             const prod = PRODUCTS.find(p => p.id === productId);
             if (!prod) return;
 
@@ -1341,7 +1365,7 @@
             const prodIndex = PRODUCTS.findIndex(p => p.id === productId);
             if (prodIndex !== -1) {
                 PRODUCTS[prodIndex].ratingsList.push(voteValue);
-                localStorage.setItem('laserdesign_products', JSON.stringify(PRODUCTS));
+                await saveProductsToServer();
                 
                 userVotes[productId] = currentVotesCount + 1;
                 localStorage.setItem('laserdesign_user_votes', JSON.stringify(userVotes));
@@ -2674,7 +2698,7 @@
             document.getElementById('admin-product-form-wrap').classList.add('hidden');
         },
 
-        saveProduct: function() {
+        saveProduct: async function() {
             const title = document.getElementById('pf-title').value.trim();
             const category = document.getElementById('pf-category').value;
             const image = document.getElementById('pf-image').value.trim();
@@ -2723,7 +2747,7 @@
                 });
             }
 
-            localStorage.setItem('laserdesign_products', JSON.stringify(PRODUCTS));
+            await saveProductsToServer();
             this.closeProductForm();
             this.renderProducts();
             App.renderProducts(PRODUCTS);
@@ -2732,10 +2756,10 @@
             alert("Produkti u ruajt me sukses!");
         },
 
-        deleteProduct: function(id) {
+        deleteProduct: async function(id) {
             if (!confirm("A jeni i sigurt që doni ta fshini këtë produkt?")) return;
             PRODUCTS = PRODUCTS.filter(p => p.id !== id);
-            localStorage.setItem('laserdesign_products', JSON.stringify(PRODUCTS));
+            await saveProductsToServer();
             this.renderProducts();
             App.renderProducts(PRODUCTS);
             App.renderNewestProducts();
@@ -2800,7 +2824,7 @@
             document.getElementById('admin-category-form-wrap').classList.add('hidden');
         },
 
-        saveCategory: function() {
+        saveCategory: async function() {
             const label = document.getElementById('cf-label').value.trim();
             const icon = document.getElementById('cf-icon').value.trim() || 'fa-solid fa-tag';
             const idValue = document.getElementById('cf-id').value;
@@ -2830,7 +2854,7 @@
                         PRODUCTS.forEach(p => {
                             if (p.category === oldValue) p.category = value;
                         });
-                        localStorage.setItem('laserdesign_products', JSON.stringify(PRODUCTS));
+                        await saveProductsToServer();
                     }
                 }
             } else {
