@@ -804,81 +804,63 @@
         "WELCOME5": { type: "fixed", value: 5 }
     };
 
-    // Kategoritë e produkteve. Këto janë vlerat fillestare; pas ndryshimeve nga paneli i
-    // administrimit (Kategoritë), vlerat e reja ruhen në localStorage dhe përdoren në vend
-    // të listës fillestare — si te faqja Kreu (filtrat) ashtu edhe te formulari i produktit.
-    const INITIAL_CATEGORIES = [
-        { id: 1, value: "shtëpi", label: "Shtëpi", icon: "fa-solid fa-house" },
-        { id: 2, value: "dhurata", label: "Dhurata", icon: "fa-solid fa-gift" },
-        { id: 3, value: "biznes", label: "Biznes", icon: "fa-solid fa-briefcase" },
-        { id: 4, value: "islamike", label: "Islamike", icon: "fa-solid fa-moon" }
-    ];
+    // Kategoritë ruhen tani në një bazë të dhënash qendrore (Vercel KV), përmes
+    // /api/categories, në vend të localStorage.
+    let CATEGORIES = [];
 
-    if (!localStorage.getItem('laserdesign_categories')) {
-        localStorage.setItem('laserdesign_categories', JSON.stringify(INITIAL_CATEGORIES));
-    }
-    let CATEGORIES = JSON.parse(localStorage.getItem('laserdesign_categories'));
-
-    // Ofertat speciale dhe lajmet e fundit që shfaqen te faqja "Oferta & Lajme".
-    // Këto janë vlerat fillestare; pas ndryshimeve nga paneli i administrimit, vlerat
-    // e reja ruhen në localStorage dhe përdoren në vend të listës fillestare.
-    const INITIAL_OFFERS = [
-        {
-            id: 1,
-            type: "ofertë",
-            tag: "-20%",
-            title: "Zbritje Verore 20%",
-            desc: "Përfitoni 20% zbritje në të gjitha porositë deri në fund të muajit. Përdoreni kodin gjatë pagesës.",
-            image: "https://images.unsplash.com/photo-1607083206968-13611e3d76db?w=500",
-            date: "Aktive deri më 31 Korrik",
-            couponCode: "LASER20"
-        },
-        {
-            id: 2,
-            type: "ofertë",
-            tag: "-10%",
-            title: "10% Zbritje për Klientët e Rinj",
-            desc: "Porosia juaj e parë me 10% më lirë. Vlen për të gjitha produktet dhe madhësitë.",
-            image: "https://images.unsplash.com/photo-1513171920216-2640b288471b?w=500",
-            date: "Ofertë e vazhdueshme",
-            couponCode: "LASER10"
-        },
-        {
-            id: 3,
-            type: "ofertë",
-            tag: "€5",
-            title: "€5 Zbritje Mirëseardhje",
-            desc: "Zbritje fikse prej €5 në çdo porosi mbi €20. Ideale për dhurata të vogla.",
-            image: "https://images.unsplash.com/photo-1549465220-1a8b9238cd48?w=500",
-            date: "Ofertë e vazhdueshme",
-            couponCode: "WELCOME5"
-        },
-        {
-            id: 4,
-            type: "lajm",
-            tag: "E RE",
-            title: "Personalizim Interaktiv në Aplikacion",
-            desc: "Tani mund të dizajnoni produktin tuaj direkt në aplikacion, me foto dhe tekst personal, para se ta porositni.",
-            image: "https://images.unsplash.com/photo-1516387938699-a93567ec168e?w=500",
-            date: "Njoftim i fundit",
-            couponCode: null
-        },
-        {
-            id: 5,
-            type: "lajm",
-            tag: "NJOFTIM",
-            title: "Koha e Dërgesës u Shkurtua",
-            desc: "Falë investimit në pajisje të reja lazer, tani shumica e porosive gatishen brenda 1-2 ditësh.",
-            image: "https://images.unsplash.com/photo-1581092160562-40aa08e78837?w=500",
-            date: "Njoftim i fundit",
-            couponCode: null
+    async function loadCategoriesFromServer() {
+        try {
+            const res = await fetch('/api/categories');
+            if (!res.ok) throw new Error('Përgjigje jo e suksesshme nga serveri.');
+            CATEGORIES = await res.json();
+        } catch (err) {
+            console.error('Gabim gjatë marrjes së kategorive:', err);
+            alert('Nuk u arrit të lidhemi me serverin për kategoritë. Kontrollo internetin dhe rifresko faqen.');
         }
-    ];
-
-    if (!localStorage.getItem('laserdesign_offers')) {
-        localStorage.setItem('laserdesign_offers', JSON.stringify(INITIAL_OFFERS));
     }
-    let OFFERS = JSON.parse(localStorage.getItem('laserdesign_offers'));
+
+    async function saveCategoriesToServer() {
+        try {
+            const res = await fetch('/api/categories', {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(CATEGORIES)
+            });
+            if (!res.ok) throw new Error('Përgjigje jo e suksesshme nga serveri.');
+        } catch (err) {
+            console.error('Gabim gjatë ruajtjes së kategorive:', err);
+            alert('Nuk u arrit të ruhen ndryshimet në server. Provo përsëri.');
+        }
+    }
+
+    // Ofertat speciale dhe lajmet ruhen tani në një bazë të dhënash qendrore (Vercel KV),
+    // përmes /api/offers, në vend të localStorage.
+    let OFFERS = [];
+
+    async function loadOffersFromServer() {
+        try {
+            const res = await fetch('/api/offers');
+            if (!res.ok) throw new Error('Përgjigje jo e suksesshme nga serveri.');
+            OFFERS = await res.json();
+        } catch (err) {
+            console.error('Gabim gjatë marrjes së ofertave:', err);
+            alert('Nuk u arrit të lidhemi me serverin për ofertat. Kontrollo internetin dhe rifresko faqen.');
+        }
+    }
+
+    async function saveOffersToServer() {
+        try {
+            const res = await fetch('/api/offers', {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(OFFERS)
+            });
+            if (!res.ok) throw new Error('Përgjigje jo e suksesshme nga serveri.');
+        } catch (err) {
+            console.error('Gabim gjatë ruajtjes së ofertave:', err);
+            alert('Nuk u arrit të ruhen ndryshimet në server. Provo përsëri.');
+        }
+    }
 
     // Fjalëkalimi i panelit të administrimit — NDËRROJENI këtë me diçka tuajën!
      const ADMIN_PASSWORD = "duajeti26";
@@ -991,7 +973,11 @@
         },
 
         initHome: async function() {
-            await loadProductsFromServer();
+            await Promise.all([
+                loadProductsFromServer(),
+                loadCategoriesFromServer(),
+                loadOffersFromServer()
+            ]);
             this.renderCategories();
             this.renderBestSellers();
             this.renderNewestProducts();
@@ -2862,7 +2848,7 @@
                 CATEGORIES.push({ id: newId, label, icon, value });
             }
 
-            localStorage.setItem('laserdesign_categories', JSON.stringify(CATEGORIES));
+            await saveCategoriesToServer();
             this.closeCategoryForm();
             this.renderCategories();
             App.renderCategories();
@@ -2872,7 +2858,7 @@
             alert("Kategoria u ruajt me sukses!");
         },
 
-        deleteCategory: function(id) {
+        deleteCategory: async function(id) {
             const cat = CATEGORIES.find(c => c.id === id);
             if (!cat) return;
 
@@ -2884,7 +2870,7 @@
             if (!confirm(warning)) return;
 
             CATEGORIES = CATEGORIES.filter(c => c.id !== id);
-            localStorage.setItem('laserdesign_categories', JSON.stringify(CATEGORIES));
+            await saveCategoriesToServer();
             this.renderCategories();
             App.renderCategories();
         },
@@ -3007,7 +2993,7 @@
             document.getElementById('admin-offer-form-wrap').classList.add('hidden');
         },
 
-        saveOffer: function() {
+        saveOffer: async function() {
             const type = document.getElementById('of-type').value;
             const tag = document.getElementById('of-tag').value.trim();
             const title = document.getElementById('of-title').value.trim();
@@ -3034,17 +3020,17 @@
                 OFFERS.push({ id: newId, ...offerData });
             }
 
-            localStorage.setItem('laserdesign_offers', JSON.stringify(OFFERS));
+            await saveOffersToServer();
             this.closeOfferForm();
             this.renderOffers();
             App.renderOffers();
             alert("Oferta/Lajmi u ruajt me sukses!");
         },
 
-        deleteOffer: function(id) {
+        deleteOffer: async function(id) {
             if (!confirm("A jeni i sigurt që doni ta fshini këtë ofertë/lajm?")) return;
             OFFERS = OFFERS.filter(o => o.id !== id);
-            localStorage.setItem('laserdesign_offers', JSON.stringify(OFFERS));
+            await saveOffersToServer();
             this.renderOffers();
             App.renderOffers();
         }
