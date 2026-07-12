@@ -1,0 +1,3037 @@
+<!DOCTYPE html>
+<html lang="sq">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>LaserDesign Kosova</title>
+
+    <!-- ---- PWA: e bën faqen "të instalueshme" si aplikacion në ekranin kryesor ---- -->
+    <link rel="manifest" href="manifest.json">
+    <meta name="theme-color" content="#0c0c0c">
+    <link rel="icon" href="icon-192.png" type="image/png">
+    <!-- iOS Safari: ikona dhe sjellja si app kur hapet nga ekrani kryesor (pa shirit adrese) -->
+    <link rel="apple-touch-icon" href="icon-192.png">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="LaserDesign">
+
+    <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <script src="products.js"></script>
+
+    <style>
+        html, body {
+            height: 100%;
+            /* height dinamike (llogarit shirit adresash të shfletuesit mobile) me fallback */
+            height: -webkit-fill-available;
+            overscroll-behavior: none;
+        }
+        html {
+            overflow: hidden;
+        }
+        body {
+            background: radial-gradient(circle at 50% 0%, #262626 0%, #161616 55%, #0c0c0c 100%);
+            margin: 0;
+            padding: 0;
+            width: 100%;
+            min-height: 100vh;
+            min-height: 100dvh;
+            min-height: -webkit-fill-available;
+            overflow: hidden;
+            position: fixed;
+            inset: 0;
+            overscroll-behavior-y: none;
+            touch-action: pan-y;
+        }
+        .app-container {
+            width: 100%;
+            height: 100vh;
+            height: 100dvh;
+            max-width: 414px; 
+            max-height: 900px;
+            margin: 0 auto;
+            position: relative;
+            display: flex;
+            flex-direction: column;
+            transition: max-width 0.2s ease, max-height 0.2s ease;
+        }
+        .main-content {
+            flex: 1;
+            overflow-y: auto;
+            overflow-x: hidden;
+            overscroll-behavior-y: contain;
+            -webkit-overflow-scrolling: touch;
+            padding: 20px;
+            padding-bottom: 90px;
+        }
+
+        /* ---- MOBILE (telefona <= 450px): ekran i plotë, pa boshllëqe, pa korniza, pa "pull-to-refresh" ---- */
+        @media (max-width: 450px) {
+            .app-container {
+                width: 100%;
+                max-width: 100%;
+                height: 100vh;
+                height: 100dvh;
+                max-height: 100vh;
+                max-height: 100dvh;
+                border: none !important;
+                border-radius: 0px !important;
+            }
+            .main-content {
+                padding-bottom: calc(90px + env(safe-area-inset-bottom));
+                padding-left: calc(20px + env(safe-area-inset-left));
+                padding-right: calc(20px + env(safe-area-inset-right));
+            }
+            #app-navbar {
+                padding-bottom: calc(0.75rem + env(safe-area-inset-bottom));
+            }
+        }
+
+        /* ---- TABLET (>= 640px): kartë e qendërzuar, pak më e gjerë ---- */
+        @media (min-width: 640px) {
+            .app-container {
+                max-width: 480px;
+                max-height: min(880px, 94vh);
+                box-shadow: 0 30px 80px -20px rgba(0, 0, 0, 0.65);
+            }
+            .main-content {
+                padding: 24px;
+                padding-bottom: 96px;
+            }
+        }
+
+        /* ---- DESKTOP / LAPTOP (>= 1024px): APP FULL-SCREEN & FULL-WIDTH — përdor gjithë hapësirën e ekranit ---- */
+        @media (min-width: 1024px) {
+            body {
+                background: #0c0c0c;
+            }
+            .app-container {
+                width: 100%;
+                height: 100vh;
+                height: 100dvh;
+                max-width: 100%;
+                max-height: 100%;
+                border: none !important;
+                border-radius: 0px !important;
+                box-shadow: none !important;
+            }
+            /* Përmbajtja shtrihet në gjithë gjerësinë, me padding proporcional (jo hapësirë "e vdekur") */
+            .main-content {
+                width: 100%;
+                max-width: 1400px;
+                margin: 0 auto;
+                padding-left: clamp(24px, 5vw, 90px);
+                padding-right: clamp(24px, 5vw, 90px);
+            }
+            #app-navbar {
+                left: 50%;
+                width: 100%;
+                max-width: 1400px;
+                transform: translateX(-50%);
+                padding-left: clamp(24px, 5vw, 90px);
+                padding-right: clamp(24px, 5vw, 90px);
+            }
+            /* Kreu (produktet) përdor gjithë hapësirën; ekranet e tjera (detaje, forma, shporta)
+               mbahen në një gjerësi të lexueshme, të qendërzuar, për pamje profesionale */
+            .screen {
+                max-width: 760px;
+                margin: 0 auto;
+            }
+            #scr-home {
+                max-width: 100%;
+            }
+        }
+
+        /* ---- EKRANE SHUMË TË GJERA (>= 1920px): kufizim i lehtë për lexueshmëri optimale ---- */
+        @media (min-width: 1920px) {
+            .main-content,
+            #app-navbar {
+                max-width: 1600px;
+            }
+        }
+
+        .main-content::-webkit-scrollbar { display: none; }
+        .no-scrollbar::-webkit-scrollbar { display: none; }
+
+        .cart-bounce {
+            animation: cartPop 0.4s ease-in-out;
+        }
+
+        @keyframes cartPop {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.3); color: #dca76a; }
+            100% { transform: scale(1); }
+        }
+    </style>
+</head>
+<body class="flex justify-center items-center min-h-screen antialiased">
+
+<div class="app-container relative bg-[#0c0c0c] text-white border-[6px] border-[#262626] rounded-[36px] shadow-2xl">
+
+    <div class="main-content">
+
+        <div id="scr-splash" class="screen flex flex-col justify-between h-full p-4 text-center bg-radial from-[#1e1e1e] to-[#0c0c0c]">
+            <div></div>
+            <div class="space-y-4 py-12">
+                <div class="inline-flex items-center justify-center w-28 h-28 rounded-full overflow-hidden border border-[#dca76a]/30 mb-2 shadow-lg shadow-[#dca76a]/10">
+                    <img src="logo.png" alt="LaserDesign Kosova" class="w-full h-full object-cover">
+                </div>
+                <h1 class="text-2xl font-black tracking-[4px]">LASERDESIGN</h1>
+                <h2 class="text-sm font-bold text-[#dca76a] tracking-[3px]">KOSOVA</h2>
+                <p class="text-xs text-gray-500 max-w-[200px] mx-auto uppercase tracking-wider leading-relaxed">Engraving Design In Wood</p>
+            </div>
+            <button onclick="App.initHome()" class="w-full bg-[#dca76a] hover:bg-[#c49257] text-black font-bold py-4 px-6 rounded-full flex items-center justify-center gap-2 transition-all shadow-lg shadow-[#dca76a]/20 cursor-pointer active:scale-[0.98]">
+                FILLONI TANI <i class="fa-solid fa-arrow-right text-sm"></i>
+            </button>
+        </div>
+
+        <div id="scr-home" class="screen hidden">
+            <div class="flex justify-between items-center mb-6">
+                <button onclick="App.navigate('scr-profile', 4)" class="text-xl text-gray-400 hover:text-white"><i class="fa-solid fa-bars-staggered"></i></button>
+                <div class="text-center font-bold text-sm tracking-wider">LASERDESIGN<span class="block text-[10px] text-[#dca76a] font-normal tracking-[2px]">KOSOVA</span></div>
+                <div class="flex items-center gap-4">
+                    <button onclick="App.navigate('scr-offers')" class="relative text-xl text-gray-400 hover:text-white">
+                        <i class="fa-solid fa-tags"></i>
+                    </button>
+                    <button onclick="App.navigate('scr-cart')" class="relative text-xl text-gray-400 hover:text-white">
+                        <i id="header-cart-icon" class="fa-solid fa-bag-shopping"></i>
+                        <span id="cart-badge" class="absolute -top-2 -right-2 bg-[#dca76a] text-black text-[10px] font-bold w-4 h-4 rounded-full flex items-center justify-center hidden">0</span>
+                    </button>
+                </div>
+            </div>
+            <div class="mb-6">
+                <h2 class="text-xl font-bold tracking-tight">Mirë se vini 👋</h2>
+                <p class="text-xs text-gray-400 mt-1">Dizajn unik. Gravurë precize në dru natyral.</p>
+            </div>
+            <div id="home-install-banner-wrap"></div>
+            <div class="flex items-center gap-3 bg-[#161616] border border-[#262626] rounded-xl px-4 py-3 mb-6 focus-within:border-[#dca76a]/50 transition-all">
+                <i class="fa-solid fa-magnifying-glass text-gray-500 text-sm"></i>
+                <input type="text" oninput="App.searchProducts(this.value)" placeholder="Kërko produkte ose id..." class="bg-transparent border-none outline-none text-sm w-full placeholder-gray-600">
+            </div>
+            <div onclick="App.navigate('scr-offers')" class="flex items-center justify-between bg-gradient-to-r from-[#2a2013] to-[#161616] border border-[#dca76a]/30 rounded-xl px-4 py-3.5 mb-6 cursor-pointer active:scale-[0.98] transition-all">
+                <div class="flex items-center gap-3">
+                    <div class="w-9 h-9 rounded-full bg-[#dca76a]/15 flex items-center justify-center shrink-0"><i class="fa-solid fa-tags text-[#dca76a] text-sm"></i></div>
+                    <div>
+                        <h4 class="text-xs font-bold text-white">Ofertat Speciale</h4>
+                        <p class="text-[10px] text-gray-400">Zbritje deri në 20% + të rejat</p>
+                    </div>
+                </div>
+                <i class="fa-solid fa-chevron-right text-[10px] text-gray-500"></i>
+            </div>
+            <div class="mb-6">
+                <div class="flex justify-between items-center mb-3">
+                    <h3 class="text-xs font-bold tracking-widest text-gray-400 uppercase">Kategoritë</h3>
+                    <button onclick="App.filterCategory('all')" class="text-[11px] text-[#dca76a] font-medium">Të gjitha</button>
+                </div>
+                <div id="home-categories-row" class="flex gap-3 overflow-x-auto no-scrollbar pb-1 lg:grid lg:grid-cols-4 lg:overflow-visible"></div>
+            </div>
+            <div class="mb-6">
+                <div class="flex justify-between items-center mb-3">
+                    <h3 class="text-xs font-bold tracking-widest text-gray-400 uppercase">🔥 Produktet më të Shitura</h3>
+                </div>
+                <div id="home-bestsellers-row" class="flex gap-3 overflow-x-auto no-scrollbar pb-1"></div>
+            </div>
+            <div class="mb-6">
+                <div class="flex justify-between items-center mb-3">
+                    <h3 class="text-xs font-bold tracking-widest text-gray-400 uppercase">🆕 Produktet më të Reja</h3>
+                </div>
+                <div id="home-newest-row" class="flex gap-3 overflow-x-auto no-scrollbar pb-1"></div>
+            </div>
+            <div>
+                <h3 class="text-xs font-bold tracking-widest text-gray-400 uppercase mb-3">Produktet</h3>
+                <div id="home-products-grid" class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4"></div>
+            </div>
+        </div>
+
+        <div id="scr-detail" class="screen hidden">
+            <div class="flex justify-between items-center mb-5">
+                <button onclick="App.navigate('scr-home', 0)" class="w-9 h-9 rounded-xl bg-[#161616] border border-[#262626] flex items-center justify-center text-sm"><i class="fa-solid fa-chevron-left"></i></button>
+                <span class="text-xs font-bold tracking-wider uppercase">Detajet</span>
+                <button onclick="App.navigate('scr-cart')" class="w-9 h-9 rounded-xl bg-[#161616] border border-[#262626] flex items-center justify-center text-sm"><i id="detail-header-cart-icon" class="fa-solid fa-bag-shopping"></i></button>
+            </div>
+            <div id="detail-content"></div>
+        </div>
+
+        <div id="scr-create" class="screen hidden">
+            <div class="flex justify-between items-center mb-3">
+                <button onclick="App.navigate('scr-home', 0)" class="text-xl text-gray-400"><i class="fa-solid fa-arrow-left"></i></button>
+                <span class="text-sm font-bold tracking-wider uppercase">Personalizim interaktiv</span>
+                <div></div>
+            </div>
+            <p id="custom-mode-label" class="hidden text-[10px] text-[#dca76a] font-semibold text-center -mt-1 mb-3 truncate"></p>
+
+            <div class="flex flex-col items-center justify-center bg-[#111] border border-[#222] rounded-2xl p-3 relative mb-4">
+                <span class="text-[10px] font-bold text-gray-500 uppercase tracking-widest mb-1.5">Live Preview 🎯</span>
+                <div class="relative overflow-hidden border border-dashed border-[#dca76a]/30 rounded-xl bg-[#1a1a1a]">
+                    <canvas id="custom-canvas" width="280" height="280" class="block cursor-move" style="touch-action: none;"></canvas>
+                </div>
+                <p class="text-[9px] text-gray-500 text-center mt-1.5 leading-tight">Preku dhe zvarrit tekstin ose foton për t'i lëvizur. Përdor sliderat poshtë për t'i zmadhuar/zvogëluar.</p>
+                
+                <div class="w-full flex items-center gap-2 mt-2 px-2" id="text-scale-control-container">
+                    <span class="text-[10px] text-gray-400 font-bold uppercase shrink-0">Teksti:</span>
+                    <input type="range" id="text-scale-slider" min="0.6" max="2.5" step="0.1" value="1.0" oninput="CustomCraft.updateTextScale(this.value)" class="w-full h-1 bg-[#222] rounded-lg appearance-none cursor-pointer accent-[#dca76a]">
+                </div>
+
+                <div class="w-full flex items-center gap-2 mt-2 px-2 hidden" id="scale-control-container">
+                    <span class="text-[10px] text-gray-400 font-bold uppercase shrink-0">Madhësia:</span>
+                    <input type="range" id="image-scale-slider" min="0.1" max="2.0" step="0.05" value="0.5" oninput="CustomCraft.updateImageScale(this.value)" class="w-full h-1 bg-[#222] rounded-lg appearance-none cursor-pointer accent-[#dca76a]">
+                </div>
+            </div>
+
+            <div class="space-y-4">
+                <div id="custom-shape-section">
+                    <label class="text-[11px] font-bold uppercase tracking-wider text-gray-400 block mb-2">1. Forma e Drurit:</label>
+                    <div class="grid grid-cols-4 gap-2">
+                        <button onclick="CustomCraft.selectShape(this, 'Rreth')" class="custom-shape-btn bg-[#dca76a] text-black border border-[#dca76a] p-2 rounded-xl text-[11px] font-bold transition-all cursor-pointer text-center">
+                            <i class="fa-regular fa-circle text-base block mb-0.5"></i> Rreth
+                        </button>
+                        <button onclick="CustomCraft.selectShape(this, 'Katror')" class="custom-shape-btn bg-[#121212] text-gray-400 border border-[#222] p-2 rounded-xl text-[11px] font-medium transition-all cursor-pointer text-center">
+                            <i class="fa-regular fa-square text-base block mb-0.5"></i> Katror
+                        </button>
+                        <button onclick="CustomCraft.selectShape(this, 'Tabela')" class="custom-shape-btn bg-[#121212] text-gray-400 border border-[#222] p-2 rounded-xl text-[11px] font-medium transition-all cursor-pointer text-center">
+                            <i class="fa-solid fa-rectangle-list text-base block mb-0.5"></i> Tabela
+                        </button>
+                        <button onclick="CustomCraft.selectShape(this, 'Natyrale')" class="custom-shape-btn bg-[#121212] text-gray-400 border border-[#222] p-2 rounded-xl text-[11px] font-medium transition-all cursor-pointer text-center">
+                            <i class="fa-solid fa-tree text-base block mb-0.5"></i> Natyrale
+                        </button>
+                    </div>
+                </div>
+
+                <div>
+                    <label class="text-[11px] font-bold uppercase tracking-wider text-gray-400 block mb-2">2. Përmasat:</label>
+                    <div id="custom-size-container" class="flex flex-wrap gap-2"></div>
+                </div>
+
+                <div>
+                    <label class="text-[11px] font-bold uppercase tracking-wider text-gray-400 block mb-1.5">3. Shkruaj Tekstin (+2.00 €) (Do të shfaqet në Canvas):</label>
+                    <input type="text" id="custom-canvas-text" oninput="CustomCraft.updateText(this.value)" placeholder="Psh: Familja Krasniqi, 2026..." class="w-full bg-[#161616] border border-[#222] rounded-xl px-4 py-2.5 text-xs outline-none focus:border-[#dca76a]/50 text-white">
+                </div>
+
+                <div>
+                    <label class="text-[11px] font-bold uppercase tracking-wider text-gray-400 block mb-1.5">4. Vendos një Fotografi / Logo (Start +5.00 €):</label>
+                    <label class="w-full h-16 border-2 border-dashed border-[#262626] hover:border-[#dca76a]/40 bg-[#161616] rounded-xl flex flex-col items-center justify-center gap-0.5 cursor-pointer transition-all">
+                        <i class="fa-solid fa-image text-sm text-gray-500"></i>
+                        <span id="upload-status-label" class="text-[11px] text-gray-400 font-medium">Zgjidh foto nga telefoni</span>
+                        <input type="file" id="custom-file-input" accept="image/*" class="hidden" onchange="CustomCraft.handleFileUpload(this)">
+                    </label>
+                </div>
+
+                <button id="custom-submit-btn" onclick="CustomCraft.addToCart()" class="w-full bg-[#dca76a] hover:bg-[#c49257] text-black font-bold py-3.5 rounded-full flex justify-center items-center gap-2 cursor-pointer active:scale-95 transition-all text-xs uppercase tracking-wider">
+                    SHTO KRIJIMIN NË SHPORTË (€15.00) <i class="fa-solid fa-cart-plus"></i>
+                </button>
+            </div>
+        </div>
+
+        <div id="scr-cart" class="screen hidden">
+            <div class="flex justify-between items-center mb-6">
+                <button onclick="App.navigate('scr-home', 0)" class="text-xl text-gray-400"><i class="fa-solid fa-arrow-left"></i></button>
+                <span class="text-sm font-bold tracking-wider uppercase">Shporta</span>
+                <button onclick="Cart.clear()" class="text-xs text-[#ff5252] font-semibold">Pastro</button>
+            </div>
+            <div id="cart-items-list" class="space-y-3 min-h-[200px]"></div>
+
+            <div class="mt-4">
+                <div class="flex gap-2">
+                    <input type="text" id="coupon-input" placeholder="Kodi i kuponit" class="flex-1 bg-[#161616] border border-[#222] rounded-xl px-4 py-2.5 text-xs outline-none focus:border-[#dca76a]/50 uppercase placeholder:normal-case">
+                    <button onclick="Cart.applyCoupon()" class="bg-[#dca76a] hover:bg-[#c49257] text-black font-bold px-4 rounded-xl text-xs cursor-pointer active:scale-95 transition-all">APLIKO</button>
+                </div>
+                <div id="coupon-message" class="text-[10px] mt-1.5 font-medium"></div>
+            </div>
+            
+            <div class="space-y-2.5 mb-4 mt-4">
+                <input type="text" id="client-name" placeholder="Emri dhe Mbiemri juaj" class="w-full bg-[#161616] border border-[#222] rounded-xl px-4 py-2.5 text-xs outline-none focus:border-[#dca76a]/50">
+                <input type="text" id="client-phone" placeholder="Numri i telefonit" class="w-full bg-[#161616] border border-[#222] rounded-xl px-4 py-2.5 text-xs outline-none focus:border-[#dca76a]/50">
+                <input type="text" id="client-city" placeholder="Qyteti / Adresa" class="w-full bg-[#161616] border border-[#222] rounded-xl px-4 py-2.5 text-xs outline-none focus:border-[#dca76a]/50">
+            </div>
+
+            <div class="border-t border-[#222] pt-4 mt-4 space-y-3">
+                <div class="flex justify-between text-xs text-gray-400"><span>Nëntotali:</span><span id="cart-subtotal-price" class="text-white font-medium">€0.00</span></div>
+                <div id="coupon-discount-row" class="flex justify-between text-xs text-gray-400 hidden">
+                    <span>Zbritja (<span id="coupon-applied-code"></span>):</span>
+                    <span id="cart-discount-price" class="text-[#4caf50] font-medium">-€0.00</span>
+                </div>
+                <div class="flex justify-between text-xs text-gray-400"><span>Dërgesa:</span><span class="text-white font-medium">Falas</span></div>
+                <div class="flex justify-between text-base font-bold"><span>Totali:</span><span id="cart-total-price" class="text-[#dca76a]">€0.00</span></div>
+            </div>
+            <button onclick="Cart.checkout()" class="w-full bg-[#dca76a] hover:bg-[#c49257] text-black font-bold py-3.5 rounded-full mt-5 flex justify-center items-center gap-2 cursor-pointer active:scale-95 transition-all">
+                PËRFUNDO POROSINË <i class="fa-solid fa-check"></i>
+            </button>
+        </div>
+
+        <div id="scr-orders" class="screen hidden">
+            <div class="flex justify-between items-center mb-6">
+                <button onclick="App.navigate('scr-home', 0)" class="text-xl text-gray-400"><i class="fa-solid fa-arrow-left"></i></button>
+                <span class="text-sm font-bold tracking-wider uppercase">Porositë e Mia</span>
+                <div></div>
+            </div>
+            <div id="orders-list" class="space-y-4"></div>
+        </div>
+
+        <div id="scr-profile" class="screen hidden">
+            <div class="flex justify-between items-center mb-4">
+                <button onclick="App.navigate('scr-home', 0)" class="text-xl text-gray-400"><i class="fa-solid fa-arrow-left"></i></button>
+                <span class="text-sm font-bold tracking-wider uppercase">Profili</span>
+                <div></div>
+            </div>
+            <div class="text-center py-3 border-b border-[#222] mb-4">
+                <div class="w-14 h-14 bg-[#dca76a] text-black rounded-full flex items-center justify-center mx-auto mb-2 font-bold text-lg shadow-lg shadow-[#dca76a]/10"><i class="fa-regular fa-user"></i></div>
+                <h3 class="text-sm font-bold">Klient i Nderuar</h3>
+                <p class="text-[10px] text-gray-500 mt-0.5">Paneli i Suportit dhe të Preferuarave</p>
+            </div>
+
+            <div class="bg-[#121212] border border-[#222] p-3.5 rounded-xl mb-4 space-y-3">
+                <h4 class="text-[11px] font-bold text-[#dca76a] uppercase tracking-wider flex items-center gap-1.5">
+                    <i class="fa-solid fa-comment-dots"></i> Na Kontaktoni / Ankesa & Mendime
+                </h4>
+                <p class="text-[10px] text-gray-400 leading-relaxed">Hapësirë e dedikuar për sugjerimet, ankesat apo vlerësimet tuaja.</p>
+                
+                <div class="space-y-2">
+                    <input type="email" id="feedback-email" placeholder="E-mail adresa juaj" class="w-full bg-[#161616] border border-[#222] rounded-xl px-3 py-2 text-xs outline-none focus:border-[#dca76a]/50 text-white">
+                    <textarea id="feedback-text" placeholder="Shkruani mendimin, sugjerimin ose ankesën tuaj këtu..." class="w-full h-18 bg-[#161616] border border-[#222] rounded-xl p-3 text-xs outline-none focus:border-[#dca76a]/50 text-white resize-none placeholder-gray-600"></textarea>
+                </div>
+                
+                <button onclick="Support.sendFeedback()" class="w-full bg-[#dca76a] hover:bg-[#c49257] text-black font-bold py-2 rounded-xl text-[11px] uppercase tracking-wider transition-all cursor-pointer active:scale-[0.97]">
+                    Dërgo Mesazhin <i class="fa-solid fa-paper-plane text-[9px] ml-1"></i>
+                </button>
+            </div>
+
+            <div onclick="App.navigate('scr-offers')" class="w-full bg-[#161616] border border-[#222] rounded-xl p-3.5 flex justify-between items-center cursor-pointer mb-3">
+                <div class="flex items-center gap-3"><i class="fa-solid fa-tags text-[#dca76a] text-xs"></i><span class="text-xs font-semibold text-gray-200">Oferta & Lajme</span></div>
+                <i class="fa-solid fa-chevron-right text-[10px] text-gray-600"></i>
+            </div>
+
+            <div onclick="App.navigate('scr-about')" class="w-full bg-[#161616] border border-[#222] rounded-xl p-3.5 flex justify-between items-center cursor-pointer mb-3">
+                <div class="flex items-center gap-3"><i class="fa-solid fa-circle-info text-[#dca76a] text-xs"></i><span class="text-xs font-semibold text-gray-200">Rreth Nesh</span></div>
+                <i class="fa-solid fa-chevron-right text-[10px] text-gray-600"></i>
+            </div>
+
+            <div onclick="App.navigate('scr-install')" class="w-full bg-[#161616] border border-[#222] rounded-xl p-3.5 flex justify-between items-center cursor-pointer mb-3">
+                <div class="flex items-center gap-3"><i class="fa-solid fa-mobile-screen-button text-[#dca76a] text-xs"></i><span class="text-xs font-semibold text-gray-200">Instalo Aplikacionin</span></div>
+                <i class="fa-solid fa-chevron-right text-[10px] text-gray-600"></i>
+            </div>
+
+            <div onclick="Admin.enterPanel()" class="w-full bg-[#161616] border border-[#222] rounded-xl p-3.5 flex justify-between items-center cursor-pointer mb-3">
+                <div class="flex items-center gap-3"><i class="fa-solid fa-lock text-gray-400 text-xs"></i><span class="text-xs font-semibold text-gray-200">Paneli i Administrimit</span></div>
+                <i class="fa-solid fa-chevron-right text-[10px] text-gray-600"></i>
+            </div>
+
+            <div onclick="App.navigate('scr-splash', -1)" class="w-full bg-[#161616] border border-[#222] rounded-xl p-3.5 flex justify-between items-center cursor-pointer border-red-900/10 mb-5">
+                <div class="flex items-center gap-3"><i class="fa-solid fa-arrow-right-from-bracket text-red-400 text-xs"></i><span class="text-xs font-semibold text-red-400">Dil nga aplikacioni</span></div>
+                <i class="fa-solid fa-chevron-right text-[10px] text-gray-600"></i>
+            </div>
+
+            <div>
+                <h3 class="text-xs font-bold tracking-widest text-gray-400 uppercase mb-3"><i class="fa-solid fa-heart text-red-500 mr-1"></i> Të Preferuarat e Mia</h3>
+                <div id="favorites-list-container" class="grid grid-cols-2 sm:grid-cols-3 gap-4"></div>
+            </div>
+        </div>
+
+        <div id="scr-offers" class="screen hidden">
+            <div class="flex justify-between items-center mb-6">
+                <button onclick="App.navigate('scr-home', 0)" class="text-xl text-gray-400"><i class="fa-solid fa-arrow-left"></i></button>
+                <span class="text-sm font-bold tracking-wider uppercase">Oferta & Lajme</span>
+                <div></div>
+            </div>
+            <p class="text-xs text-gray-400 mb-5">Zbuloni ofertat speciale dhe të rejat më të fundit nga LaserDesign Kosova.</p>
+            <div id="offers-list" class="space-y-4"></div>
+        </div>
+
+        <div id="scr-about" class="screen hidden">
+            <div class="flex justify-between items-center mb-6">
+                <button onclick="App.navigate('scr-home', 0)" class="text-xl text-gray-400"><i class="fa-solid fa-arrow-left"></i></button>
+                <span class="text-sm font-bold tracking-wider uppercase">Rreth Nesh</span>
+                <div></div>
+            </div>
+
+            <div class="text-center mb-6 py-4">
+                <div class="inline-flex items-center justify-center w-20 h-20 rounded-full overflow-hidden border border-[#dca76a]/30 mb-3 shadow-lg shadow-[#dca76a]/10">
+                    <img src="logo.png" alt="LaserDesign Kosova" class="w-full h-full object-cover">
+                </div>
+                <h2 class="text-lg font-black tracking-[2px]">LASERDESIGN <span class="text-[#dca76a]">KOSOVA</span></h2>
+                <p class="text-[11px] text-gray-500 mt-1 uppercase tracking-wider">Engraving Design In Wood</p>
+            </div>
+
+            <div class="bg-[#161616] border border-[#222] rounded-2xl p-4 mb-4">
+                <h3 class="text-xs font-bold text-[#dca76a] uppercase tracking-wider mb-2 flex items-center gap-2">
+                    <i class="fa-solid fa-book-open"></i> Historia Jonë
+                </h3>
+                <p class="text-xs text-gray-400 leading-relaxed mb-2.5">
+                    E themeluar në vitin 2026, Laser Design Kosova është një kompani e specializuar në dizajne dhe gravura profesionale me laser në dru, duke kombinuar teknologjinë moderne me kreativitetin dhe përkushtimin ndaj cilësisë.
+                </p>
+                <p class="text-xs text-gray-400 leading-relaxed">
+                    Ne ofrojmë një gamë të gjerë produktesh të personalizuara dhe modele të gatshme, të realizuara me precizion të lartë dhe vëmendje të veçantë ndaj çdo detaji. Produktet tona janë të përshtatshme për dhurata personale, dekorime për shtëpi, biznese, evente dhe raste të veçanta.
+                </p>
+            </div>
+
+            <div class="bg-[#161616] border border-[#222] rounded-2xl p-4 mb-4">
+                <h3 class="text-xs font-bold text-[#dca76a] uppercase tracking-wider mb-2 flex items-center gap-2">
+                    <i class="fa-solid fa-bullseye"></i> Misioni Ynë
+                </h3>
+                <p class="text-xs text-gray-400 leading-relaxed">
+                    Misioni ynë është të transformojmë idetë dhe kujtimet e klientëve tanë në punime unike dhe të qëndrueshme, duke garantuar cilësi të lartë, dizajn elegant dhe përfundim profesional në çdo projekt.
+                </p>
+            </div>
+
+            <div class="bg-[#161616] border border-[#222] rounded-2xl p-4 mb-4">
+                <h3 class="text-xs font-bold text-[#dca76a] uppercase tracking-wider mb-3 flex items-center gap-2">
+                    <i class="fa-solid fa-mobile-screen-button"></i> Rreth Aplikacionit
+                </h3>
+                <p class="text-xs text-gray-400 leading-relaxed mb-3">
+                    Ky aplikacion e bën më të lehtë porositjen e produkteve tuaja të preferuara direkt nga telefoni, pa nevojë për vizitë fizike.
+                </p>
+                <div class="space-y-2.5">
+                    <div class="flex items-start gap-3">
+                        <div class="w-7 h-7 rounded-lg bg-[#dca76a]/10 flex items-center justify-center shrink-0 mt-0.5"><i class="fa-solid fa-cubes text-[#dca76a] text-[11px]"></i></div>
+                        <p class="text-xs text-gray-400"><b class="text-gray-200">Katalog i plotë</b> — shfletoni produktet sipas kategorive dhe madhësive, me çmime të qarta.</p>
+                    </div>
+                    <div class="flex items-start gap-3">
+                        <div class="w-7 h-7 rounded-lg bg-[#dca76a]/10 flex items-center justify-center shrink-0 mt-0.5"><i class="fa-solid fa-wand-magic-sparkles text-[#dca76a] text-[11px]"></i></div>
+                        <p class="text-xs text-gray-400"><b class="text-gray-200">Personalizim interaktiv</b> — dizajnoni vetë produktin me foto e tekst para se ta porositni.</p>
+                    </div>
+                    <div class="flex items-start gap-3">
+                        <div class="w-7 h-7 rounded-lg bg-[#dca76a]/10 flex items-center justify-center shrink-0 mt-0.5"><i class="fa-solid fa-tags text-[#dca76a] text-[11px]"></i></div>
+                        <p class="text-xs text-gray-400"><b class="text-gray-200">Oferta & kupona</b> — zbritje periodike që aplikohen direkt te shporta juaj.</p>
+                    </div>
+                    <div class="flex items-start gap-3">
+                        <div class="w-7 h-7 rounded-lg bg-[#dca76a]/10 flex items-center justify-center shrink-0 mt-0.5"><i class="fa-solid fa-list-check text-[#dca76a] text-[11px]"></i></div>
+                        <p class="text-xs text-gray-400"><b class="text-gray-200">Ndjekje e porosive</b> — shihni statusin e çdo porosie, nga "Në Proces" deri te "Përfunduar".</p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="bg-[#161616] border border-[#222] rounded-2xl p-4 mb-4">
+                <h3 class="text-xs font-bold text-[#dca76a] uppercase tracking-wider mb-3 flex items-center gap-2">
+                    <i class="fa-solid fa-address-card"></i> Kontakt
+                </h3>
+                <p class="text-xs text-gray-400 leading-relaxed mb-4">
+                    Na ndiqni për punimet më të fundit, ofertat dhe prapaskenat e punës sonë me lazer.
+                </p>
+                <div class="flex items-center justify-center gap-4">
+                    <a href="https://www.instagram.com/laserdesignkosova/" target="_blank" rel="noopener" class="w-12 h-12 rounded-full bg-[#121212] border border-[#222] flex items-center justify-center text-lg text-gray-300 hover:border-[#dca76a]/50 hover:text-[#dca76a] active:scale-95 transition-all">
+                        <i class="fa-brands fa-instagram"></i>
+                    </a>
+                    <a href="https://www.tiktok.com/@laserdesignkosova" target="_blank" rel="noopener" class="w-12 h-12 rounded-full bg-[#121212] border border-[#222] flex items-center justify-center text-lg text-gray-300 hover:border-[#dca76a]/50 hover:text-[#dca76a] active:scale-95 transition-all">
+                        <i class="fa-brands fa-tiktok"></i>
+                    </a>
+                </div>
+            </div>
+        </div>
+
+        <div id="scr-install" class="screen hidden">
+            <div class="flex justify-between items-center mb-6">
+                <button onclick="App.navigate('scr-profile', 4)" class="text-xl text-gray-400"><i class="fa-solid fa-arrow-left"></i></button>
+                <span class="text-sm font-bold tracking-wider uppercase">Instalo Aplikacionin</span>
+                <div></div>
+            </div>
+
+            <div class="text-center mb-6 py-3">
+                <div class="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-[#161616] border border-[#dca76a]/30 mb-3 shadow-lg shadow-[#dca76a]/10">
+                    <i class="fa-solid fa-mobile-screen-button text-2xl text-[#dca76a]"></i>
+                </div>
+                <h2 class="text-sm font-bold">Shtoje si Aplikacion në Telefon</h2>
+                <p class="text-[11px] text-gray-500 mt-1 max-w-[260px] mx-auto leading-relaxed">Instalo LaserDesign Kosova në ekranin kryesor për qasje të shpejtë, si një aplikacion i vërtetë — pa shfletues, pa shirit adrese.</p>
+            </div>
+
+            <div id="install-android-native" class="hidden bg-[#161616] border border-[#dca76a]/30 rounded-2xl p-4 mb-4">
+                <button onclick="InstallApp.triggerNativePrompt()" class="w-full bg-[#dca76a] hover:bg-[#c49257] text-black font-bold py-3.5 rounded-full flex justify-center items-center gap-2 cursor-pointer active:scale-95 transition-all text-xs uppercase tracking-wider">
+                    <i class="fa-solid fa-download"></i> Instalo Tani
+                </button>
+            </div>
+
+            <div id="install-steps-container"></div>
+
+            <div class="bg-[#161616] border border-[#222] rounded-2xl p-4 mt-4">
+                <h3 class="text-xs font-bold text-[#dca76a] uppercase tracking-wider mb-2 flex items-center gap-2">
+                    <i class="fa-solid fa-circle-check"></i> Pas Instalimit
+                </h3>
+                <p class="text-xs text-gray-400 leading-relaxed">
+                    Ikona e LaserDesign Kosova do të shfaqet në ekranin kryesor të telefonit. Kur e hap prej andej, aplikacioni hapet direkt në ekran të plotë — si çdo aplikacion tjetër i instaluar, pa shirit adrese apo elemente të shfletuesit.
+                </p>
+            </div>
+        </div>
+
+        <div id="scr-admin-login" class="screen hidden">
+            <div class="flex justify-between items-center mb-6">
+                <button onclick="App.navigate('scr-profile', 4)" class="text-xl text-gray-400"><i class="fa-solid fa-arrow-left"></i></button>
+                <span class="text-sm font-bold tracking-wider uppercase">Hyrja e Administratorit</span>
+                <div></div>
+            </div>
+            <div class="flex flex-col items-center justify-center py-10 text-center">
+                <div class="w-16 h-16 rounded-full bg-[#161616] border border-[#dca76a]/30 flex items-center justify-center mb-4">
+                    <i class="fa-solid fa-lock text-2xl text-[#dca76a]"></i>
+                </div>
+                <h3 class="text-sm font-bold mb-1">Qasje e Kufizuar</h3>
+                <p class="text-[11px] text-gray-500 mb-6 max-w-[220px]">Ky panel është vetëm për administratorin e dyqanit.</p>
+                <input type="password" id="admin-password-input" placeholder="Fjalëkalimi" onkeydown="if(event.key === 'Enter') Admin.login()" class="w-full bg-[#161616] border border-[#222] rounded-xl px-4 py-3 text-sm outline-none focus:border-[#dca76a]/50 text-center mb-2">
+                <p id="admin-login-error" class="text-[10px] text-red-400 h-4 mb-3"></p>
+                <button onclick="Admin.login()" class="w-full bg-[#dca76a] hover:bg-[#c49257] text-black font-bold py-3.5 rounded-full flex justify-center items-center gap-2 cursor-pointer active:scale-95 transition-all">
+                    HYR <i class="fa-solid fa-arrow-right-to-bracket text-sm"></i>
+                </button>
+            </div>
+        </div>
+
+        <div id="scr-admin" class="screen hidden">
+            <div class="flex justify-between items-center mb-5">
+                <button onclick="App.navigate('scr-profile', 4)" class="text-xl text-gray-400"><i class="fa-solid fa-arrow-left"></i></button>
+                <span class="text-sm font-bold tracking-wider uppercase">Paneli i Administrimit</span>
+                <button onclick="Admin.logout()" class="text-xs text-[#ff5252] font-semibold">Dil</button>
+            </div>
+
+            <div class="flex gap-2 mb-5 bg-[#161616] p-1 rounded-xl border border-[#222] overflow-x-auto no-scrollbar">
+                <button id="admin-tab-products-btn" onclick="Admin.switchTab('products')" class="flex-1 py-2 px-2 rounded-lg text-[11px] font-bold transition-all bg-[#dca76a] text-black whitespace-nowrap">Produktet</button>
+                <button id="admin-tab-categories-btn" onclick="Admin.switchTab('categories')" class="flex-1 py-2 px-2 rounded-lg text-[11px] font-bold transition-all text-gray-400 whitespace-nowrap">Kategoritë</button>
+                <button id="admin-tab-orders-btn" onclick="Admin.switchTab('orders')" class="flex-1 py-2 px-2 rounded-lg text-[11px] font-bold transition-all text-gray-400 whitespace-nowrap">Porositë</button>
+                <button id="admin-tab-offers-btn" onclick="Admin.switchTab('offers')" class="flex-1 py-2 px-2 rounded-lg text-[11px] font-bold transition-all text-gray-400 whitespace-nowrap">Oferta</button>
+            </div>
+
+            <div id="admin-tab-products" class="admin-tab">
+                <button onclick="Admin.openProductForm()" class="w-full bg-[#dca76a] hover:bg-[#c49257] text-black font-bold py-2.5 rounded-xl text-xs uppercase tracking-wider mb-4 flex justify-center items-center gap-2 cursor-pointer active:scale-[0.97]">
+                    <i class="fa-solid fa-plus"></i> Shto Produkt të Ri
+                </button>
+                <div id="admin-products-list" class="space-y-3"></div>
+            </div>
+
+            <div id="admin-tab-categories" class="admin-tab hidden">
+                <button onclick="Admin.openCategoryForm()" class="w-full bg-[#dca76a] hover:bg-[#c49257] text-black font-bold py-2.5 rounded-xl text-xs uppercase tracking-wider mb-4 flex justify-center items-center gap-2 cursor-pointer active:scale-[0.97]">
+                    <i class="fa-solid fa-plus"></i> Shto Kategori të Re
+                </button>
+                <div id="admin-categories-list" class="space-y-3"></div>
+            </div>
+
+            <div id="admin-tab-orders" class="admin-tab hidden">
+                <div id="admin-orders-list" class="space-y-3"></div>
+            </div>
+
+            <div id="admin-tab-offers" class="admin-tab hidden">
+                <button onclick="Admin.openOfferForm()" class="w-full bg-[#dca76a] hover:bg-[#c49257] text-black font-bold py-2.5 rounded-xl text-xs uppercase tracking-wider mb-4 flex justify-center items-center gap-2 cursor-pointer active:scale-[0.97]">
+                    <i class="fa-solid fa-plus"></i> Shto Ofertë / Lajm
+                </button>
+                <div id="admin-offers-list" class="space-y-3"></div>
+            </div>
+        </div>
+
+        <div id="admin-category-form-wrap" class="hidden fixed inset-0 z-[60] bg-black/70 flex items-end justify-center">
+            <div class="w-full max-w-[414px] sm:max-w-[480px] bg-[#0c0c0c] border-t border-[#262626] rounded-t-3xl p-5 max-h-[85vh] overflow-y-auto">
+                <div class="flex justify-between items-center mb-4">
+                    <h3 id="admin-category-form-title" class="text-sm font-bold">Kategori e Re</h3>
+                    <button onclick="Admin.closeCategoryForm()" class="w-8 h-8 rounded-full bg-[#161616] border border-[#222] flex items-center justify-center text-xs cursor-pointer"><i class="fa-solid fa-xmark"></i></button>
+                </div>
+                <div class="space-y-3">
+                    <input type="hidden" id="cf-id">
+                    <div>
+                        <label class="text-[10px] text-gray-400 font-medium block mb-1">Emri i Kategorisë</label>
+                        <input type="text" id="cf-label" placeholder="p.sh. Dekor Kopshti" class="w-full bg-[#161616] border border-[#222] rounded-xl px-3 py-2.5 text-xs outline-none focus:border-[#dca76a]/50">
+                    </div>
+                    <div>
+                        <label class="text-[10px] text-gray-400 font-medium block mb-1">Ikona (Font Awesome)</label>
+                        <div class="flex items-center gap-3">
+                            <div class="w-11 h-11 rounded-xl bg-[#161616] border border-[#222] flex items-center justify-center shrink-0">
+                                <i id="cf-icon-preview" class="fa-solid fa-house text-[#dca76a] text-lg"></i>
+                            </div>
+                            <input type="text" id="cf-icon" oninput="Admin.updateIconPreview(this.value)" placeholder="p.sh. fa-solid fa-house" class="flex-1 bg-[#161616] border border-[#222] rounded-xl px-3 py-2.5 text-xs outline-none focus:border-[#dca76a]/50">
+                        </div>
+                        <p class="text-[9px] text-gray-500 mt-1.5">Gjej emrat e ikonave te <span class="text-[#dca76a]">fontawesome.com/icons</span> (p.sh. fa-solid fa-star, fa-solid fa-mug-hot).</p>
+                    </div>
+                    <button onclick="Admin.saveCategory()" class="w-full bg-[#dca76a] hover:bg-[#c49257] text-black font-bold py-3 rounded-full mt-2 flex justify-center items-center gap-2 cursor-pointer active:scale-95 transition-all">
+                        RUAJ KATEGORINË <i class="fa-solid fa-check"></i>
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <div id="admin-product-form-wrap" class="hidden fixed inset-0 z-[60] bg-black/70 flex items-end justify-center">
+            <div class="w-full max-w-[414px] sm:max-w-[480px] bg-[#0c0c0c] border-t border-[#262626] rounded-t-3xl p-5 max-h-[85vh] overflow-y-auto">
+                <div class="flex justify-between items-center mb-4">
+                    <h3 id="admin-form-title" class="text-sm font-bold">Produkt i Ri</h3>
+                    <button onclick="Admin.closeProductForm()" class="w-8 h-8 rounded-full bg-[#161616] border border-[#222] flex items-center justify-center text-xs cursor-pointer"><i class="fa-solid fa-xmark"></i></button>
+                </div>
+                <div class="space-y-3">
+                    <input type="hidden" id="pf-id">
+                    <div>
+                        <label class="text-[10px] text-gray-400 font-medium block mb-1">Titulli</label>
+                        <input type="text" id="pf-title" class="w-full bg-[#161616] border border-[#222] rounded-xl px-3 py-2.5 text-xs outline-none focus:border-[#dca76a]/50">
+                    </div>
+                    <div>
+                        <label class="text-[10px] text-gray-400 font-medium block mb-1">Kategoria</label>
+                        <select id="pf-category" class="w-full bg-[#161616] border border-[#222] rounded-xl px-3 py-2.5 text-xs outline-none focus:border-[#dca76a]/50"></select>
+                    </div>
+                    <div>
+                        <label class="text-[10px] text-gray-400 font-medium block mb-1">Foto e Produktit</label>
+                        <input type="hidden" id="pf-image">
+                        <div class="flex items-center gap-3">
+                            <div id="pf-image-preview-wrap" class="w-16 h-16 rounded-xl bg-[#161616] border border-[#222] overflow-hidden flex items-center justify-center shrink-0">
+                                <img id="pf-image-preview" src="" class="w-full h-full object-cover hidden">
+                                <i id="pf-image-placeholder" class="fa-solid fa-image text-gray-600 text-lg"></i>
+                            </div>
+                            <label for="pf-image-file" class="flex-1 cursor-pointer bg-[#161616] border border-dashed border-[#dca76a]/40 rounded-xl px-3 py-3 text-[11px] text-[#dca76a] font-semibold text-center hover:border-[#dca76a]/70 transition-all">
+                                <i class="fa-solid fa-image mr-1.5"></i> Zgjidh Foto nga Galeria
+                            </label>
+                            <input type="file" id="pf-image-file" accept="image/*" class="hidden" onchange="Admin.handleImageUpload(this)">
+                        </div>
+                        <p id="pf-image-status" class="text-[9px] text-gray-500 mt-1.5"></p>
+                    </div>
+                    <div>
+                        <label class="text-[10px] text-gray-400 font-medium block mb-1">Foto për Personalizim (Template)</label>
+                        <input type="hidden" id="pf-template-image">
+                        <div class="flex items-center gap-3">
+                            <div id="pf-template-image-preview-wrap" class="w-16 h-16 rounded-xl bg-[#161616] border border-[#222] overflow-hidden flex items-center justify-center shrink-0">
+                                <img id="pf-template-image-preview" src="" class="w-full h-full object-cover hidden">
+                                <i id="pf-template-image-placeholder" class="fa-solid fa-crop-simple text-gray-600 text-lg"></i>
+                            </div>
+                            <label for="pf-template-image-file" class="flex-1 cursor-pointer bg-[#161616] border border-dashed border-[#dca76a]/40 rounded-xl px-3 py-3 text-[11px] text-[#dca76a] font-semibold text-center hover:border-[#dca76a]/70 transition-all">
+                                <i class="fa-solid fa-crop-simple mr-1.5"></i> Zgjidh Foto Template
+                            </label>
+                            <input type="file" id="pf-template-image-file" accept="image/*" class="hidden" onchange="Admin.handleTemplateImageUpload(this)">
+                        </div>
+                        <p id="pf-template-image-status" class="text-[9px] text-gray-500 mt-1.5"></p>
+                        <p class="text-[9px] text-gray-600 mt-1 leading-relaxed">Kjo foto nuk shfaqet te lista e produkteve. Përdoret si bazë kur klienti klikon "Personalizo", në mënyrë që ai ta shohë dizajnin e vet mbi produktin.</p>
+                    </div>
+                    <div>
+                        <label class="text-[10px] text-gray-400 font-medium block mb-1">Përshkrimi</label>
+                        <textarea id="pf-desc" class="w-full h-16 bg-[#161616] border border-[#222] rounded-xl p-3 text-xs outline-none focus:border-[#dca76a]/50 resize-none"></textarea>
+                    </div>
+                    <div>
+                        <label class="text-[10px] text-gray-400 font-medium block mb-1">Koha e Punimit (p.sh. 1-2 ditë)</label>
+                        <input type="text" id="pf-time" class="w-full bg-[#161616] border border-[#222] rounded-xl px-3 py-2.5 text-xs outline-none focus:border-[#dca76a]/50">
+                    </div>
+                    <div>
+                        <label class="text-[10px] text-gray-400 font-medium block mb-2">Madhësitë dhe Çmimet</label>
+                        <div id="pf-sizes-container" class="space-y-2"></div>
+                        <button onclick="Admin.addSizeRow()" class="mt-2 text-[10px] text-[#dca76a] font-semibold flex items-center gap-1 cursor-pointer"><i class="fa-solid fa-plus"></i> Shto Madhësi</button>
+                    </div>
+                    <button onclick="Admin.saveProduct()" class="w-full bg-[#dca76a] hover:bg-[#c49257] text-black font-bold py-3 rounded-full mt-2 flex justify-center items-center gap-2 cursor-pointer active:scale-95 transition-all">
+                        RUAJ PRODUKTIN <i class="fa-solid fa-check"></i>
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <div id="admin-offer-form-wrap" class="hidden fixed inset-0 z-[60] bg-black/70 flex items-end justify-center">
+            <div class="w-full max-w-[414px] sm:max-w-[480px] bg-[#0c0c0c] border-t border-[#262626] rounded-t-3xl p-5 max-h-[85vh] overflow-y-auto">
+                <div class="flex justify-between items-center mb-4">
+                    <h3 id="admin-offer-form-title" class="text-sm font-bold">Ofertë / Lajm i Ri</h3>
+                    <button onclick="Admin.closeOfferForm()" class="w-8 h-8 rounded-full bg-[#161616] border border-[#222] flex items-center justify-center text-xs cursor-pointer"><i class="fa-solid fa-xmark"></i></button>
+                </div>
+                <div class="space-y-3">
+                    <input type="hidden" id="of-id">
+                    <div>
+                        <label class="text-[10px] text-gray-400 font-medium block mb-1">Lloji</label>
+                        <select id="of-type" class="w-full bg-[#161616] border border-[#222] rounded-xl px-3 py-2.5 text-xs outline-none focus:border-[#dca76a]/50">
+                            <option value="ofertë">Ofertë Speciale</option>
+                            <option value="lajm">Lajm / Njoftim</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="text-[10px] text-gray-400 font-medium block mb-1">Etiketa (p.sh. -20%, E RE)</label>
+                        <input type="text" id="of-tag" class="w-full bg-[#161616] border border-[#222] rounded-xl px-3 py-2.5 text-xs outline-none focus:border-[#dca76a]/50">
+                    </div>
+                    <div>
+                        <label class="text-[10px] text-gray-400 font-medium block mb-1">Titulli</label>
+                        <input type="text" id="of-title" class="w-full bg-[#161616] border border-[#222] rounded-xl px-3 py-2.5 text-xs outline-none focus:border-[#dca76a]/50">
+                    </div>
+                    <div>
+                        <label class="text-[10px] text-gray-400 font-medium block mb-1">Përshkrimi</label>
+                        <textarea id="of-desc" class="w-full h-16 bg-[#161616] border border-[#222] rounded-xl p-3 text-xs outline-none focus:border-[#dca76a]/50 resize-none"></textarea>
+                    </div>
+                    <div>
+                        <label class="text-[10px] text-gray-400 font-medium block mb-1">Lidhja e Imazhit (URL)</label>
+                        <input type="text" id="of-image" class="w-full bg-[#161616] border border-[#222] rounded-xl px-3 py-2.5 text-xs outline-none focus:border-[#dca76a]/50">
+                    </div>
+                    <div>
+                        <label class="text-[10px] text-gray-400 font-medium block mb-1">Data / Vlefshmëria (p.sh. Aktive deri më 31 Korrik)</label>
+                        <input type="text" id="of-date" class="w-full bg-[#161616] border border-[#222] rounded-xl px-3 py-2.5 text-xs outline-none focus:border-[#dca76a]/50">
+                    </div>
+                    <div>
+                        <label class="text-[10px] text-gray-400 font-medium block mb-1">Kodi i Kuponit (opsionale — lëre bosh nëse s'ka)</label>
+                        <input type="text" id="of-coupon" placeholder="p.sh. LASER20" class="w-full bg-[#161616] border border-[#222] rounded-xl px-3 py-2.5 text-xs outline-none focus:border-[#dca76a]/50 uppercase placeholder:normal-case">
+                        <p class="text-[9px] text-gray-500 mt-1">Nëse vendos një kod këtu, sigurohu që ai ekziston edhe te lista e kuponëve (COUPONS) në kod, përndryshe nuk do të funksionojë te shporta.</p>
+                    </div>
+                    <button onclick="Admin.saveOffer()" class="w-full bg-[#dca76a] hover:bg-[#c49257] text-black font-bold py-3 rounded-full mt-2 flex justify-center items-center gap-2 cursor-pointer active:scale-95 transition-all">
+                        RUAJ OFERTËN <i class="fa-solid fa-check"></i>
+                    </button>
+                </div>
+            </div>
+        </div>
+
+    </div> 
+    
+    <nav id="app-navbar" class="absolute bottom-0 left-0 w-full bg-[#0c0c0c]/95 backdrop-blur-md border-t border-[#222] py-3 px-2 flex justify-around items-center z-50">
+        <button onclick="App.navigate('scr-home', 0)" class="nav-btn flex flex-col items-center gap-1 w-1/5 text-gray-500 transition-all"><i class="fa-solid fa-house text-lg"></i><span class="text-[9px] font-medium">Kreu</span></button>
+        <button id="nav-cart-btn" onclick="App.navigate('scr-cart', 1)" class="nav-btn flex flex-col items-center gap-1 w-1/5 text-gray-500 transition-all"><i id="navbar-cart-icon" class="fa-solid fa-bag-shopping text-lg"></i><span class="text-[9px] font-medium">Shporta</span></button>
+        <button onclick="CustomCraft.startGeneric()" class="nav-btn flex flex-col items-center w-1/5 transition-all"><div class="w-9 h-9 bg-[#dca76a] text-black rounded-full flex items-center justify-center -mt-6 shadow-md shadow-[#dca76a]/20"><i class="fa-solid fa-plus text-base"></i></div><span class="text-[9px] font-medium text-gray-500 mt-1">Krijo</span></button>
+        <button onclick="App.navigate('scr-orders', 3)" class="nav-btn flex flex-col items-center gap-1 w-1/5 text-gray-500 transition-all"><i class="fa-solid fa-list-check text-lg"></i><span class="text-[9px] font-medium">Porositë</span></button>
+        <button onclick="App.navigate('scr-profile', 4)" class="nav-btn flex flex-col items-center gap-1 w-1/5 text-gray-500 transition-all"><i class="fa-solid fa-user text-lg"></i><span class="text-[9px] font-medium">Profili</span></button>
+    </nav>
+
+</div>
+
+<script>
+    // Produktet ruhen në localStorage vetëm herën e parë, kështu që ndryshimet nga
+    // paneli i administrimit (shtim/redaktim/fshirje) mbeten edhe pas rifreskimit të faqes.
+    if (!localStorage.getItem('laserdesign_products')) {
+        localStorage.setItem('laserdesign_products', JSON.stringify(INITIAL_PRODUCTS));
+    }
+    let PRODUCTS = JSON.parse(localStorage.getItem('laserdesign_products'));
+
+    // Kuponët e zbritjes të disponueshëm. "percent" = përqindje, "fixed" = shumë fikse në €
+    const COUPONS = {
+        "LASER10": { type: "percent", value: 10 },
+        "LASER20": { type: "percent", value: 20 },
+        "WELCOME5": { type: "fixed", value: 5 }
+    };
+
+    // Kategoritë e produkteve. Këto janë vlerat fillestare; pas ndryshimeve nga paneli i
+    // administrimit (Kategoritë), vlerat e reja ruhen në localStorage dhe përdoren në vend
+    // të listës fillestare — si te faqja Kreu (filtrat) ashtu edhe te formulari i produktit.
+    const INITIAL_CATEGORIES = [
+        { id: 1, value: "shtëpi", label: "Shtëpi", icon: "fa-solid fa-house" },
+        { id: 2, value: "dhurata", label: "Dhurata", icon: "fa-solid fa-gift" },
+        { id: 3, value: "biznes", label: "Biznes", icon: "fa-solid fa-briefcase" },
+        { id: 4, value: "islamike", label: "Islamike", icon: "fa-solid fa-moon" }
+    ];
+
+    if (!localStorage.getItem('laserdesign_categories')) {
+        localStorage.setItem('laserdesign_categories', JSON.stringify(INITIAL_CATEGORIES));
+    }
+    let CATEGORIES = JSON.parse(localStorage.getItem('laserdesign_categories'));
+
+    // Ofertat speciale dhe lajmet e fundit që shfaqen te faqja "Oferta & Lajme".
+    // Këto janë vlerat fillestare; pas ndryshimeve nga paneli i administrimit, vlerat
+    // e reja ruhen në localStorage dhe përdoren në vend të listës fillestare.
+    const INITIAL_OFFERS = [
+        {
+            id: 1,
+            type: "ofertë",
+            tag: "-20%",
+            title: "Zbritje Verore 20%",
+            desc: "Përfitoni 20% zbritje në të gjitha porositë deri në fund të muajit. Përdoreni kodin gjatë pagesës.",
+            image: "https://images.unsplash.com/photo-1607083206968-13611e3d76db?w=500",
+            date: "Aktive deri më 31 Korrik",
+            couponCode: "LASER20"
+        },
+        {
+            id: 2,
+            type: "ofertë",
+            tag: "-10%",
+            title: "10% Zbritje për Klientët e Rinj",
+            desc: "Porosia juaj e parë me 10% më lirë. Vlen për të gjitha produktet dhe madhësitë.",
+            image: "https://images.unsplash.com/photo-1513171920216-2640b288471b?w=500",
+            date: "Ofertë e vazhdueshme",
+            couponCode: "LASER10"
+        },
+        {
+            id: 3,
+            type: "ofertë",
+            tag: "€5",
+            title: "€5 Zbritje Mirëseardhje",
+            desc: "Zbritje fikse prej €5 në çdo porosi mbi €20. Ideale për dhurata të vogla.",
+            image: "https://images.unsplash.com/photo-1549465220-1a8b9238cd48?w=500",
+            date: "Ofertë e vazhdueshme",
+            couponCode: "WELCOME5"
+        },
+        {
+            id: 4,
+            type: "lajm",
+            tag: "E RE",
+            title: "Personalizim Interaktiv në Aplikacion",
+            desc: "Tani mund të dizajnoni produktin tuaj direkt në aplikacion, me foto dhe tekst personal, para se ta porositni.",
+            image: "https://images.unsplash.com/photo-1516387938699-a93567ec168e?w=500",
+            date: "Njoftim i fundit",
+            couponCode: null
+        },
+        {
+            id: 5,
+            type: "lajm",
+            tag: "NJOFTIM",
+            title: "Koha e Dërgesës u Shkurtua",
+            desc: "Falë investimit në pajisje të reja lazer, tani shumica e porosive gatishen brenda 1-2 ditësh.",
+            image: "https://images.unsplash.com/photo-1581092160562-40aa08e78837?w=500",
+            date: "Njoftim i fundit",
+            couponCode: null
+        }
+    ];
+
+    if (!localStorage.getItem('laserdesign_offers')) {
+        localStorage.setItem('laserdesign_offers', JSON.stringify(INITIAL_OFFERS));
+    }
+    let OFFERS = JSON.parse(localStorage.getItem('laserdesign_offers'));
+
+    // Fjalëkalimi i panelit të administrimit — NDËRROJENI këtë me diçka tuajën!
+    const ADMIN_PASSWORD = "duajeti26";
+
+    let state = {
+        cart: [],
+        orders: [],
+        selectedSize: "",
+        currentProductId: null,
+        appliedCoupon: null,
+        isAdminAuthenticated: false
+    };
+
+    let customCraftState = {
+        mode: "generic", // "generic" (nga butoni Krijo) ose "product" (nga butoni Personalizo i një produkti)
+        productId: null,
+        templateImg: null, // Fotoja bazë (template) e produktit, ngarkuar automatikisht në canvas kur mode === "product"
+        shape: "Rreth",
+        size: "30x30 cm",
+        text: "",
+        textX: 140,
+        textY: 230,
+        textScale: 1.0,
+        imgObj: null,
+        originalImageData: null,
+        imgX: 140,
+        imgY: 140,
+        imgScale: 0.5,
+        dragTarget: null, // 'text', 'image', ose null — çfarë po lëvizet aktualisht me gisht/mausin
+        startX: 0,
+        startY: 0
+    };
+
+    function getAverageRating(ratingsList) {
+        if (!ratingsList || ratingsList.length === 0) return 0;
+        const sum = ratingsList.reduce((a, b) => a + b, 0);
+        return (sum / ratingsList.length);
+    }
+
+    function generateStars(avgRating) {
+        let starsHtml = '';
+        const roundedRating = Math.round(avgRating);
+        for (let i = 1; i <= 5; i++) {
+            if (i <= roundedRating) {
+                starsHtml += '<i class="fa-solid fa-star text-[#dca76a] text-[10px]"></i>';
+            } else {
+                starsHtml += '<i class="fa-regular fa-star text-gray-600 text-[10px]"></i>';
+            }
+        }
+        return starsHtml;
+    }
+
+    function generateVotingStars(productId) {
+        let votingHtml = '<div class="flex gap-2 justify-center my-2">';
+        for (let i = 1; i <= 5; i++) {
+            votingHtml += `<i onclick="App.submitVote(${productId}, ${i})" class="fa-regular fa-star text-gray-500 hover:text-[#dca76a] text-lg cursor-pointer transition-colors active:scale-125"></i>`;
+        }
+        votingHtml += '</div>';
+        return votingHtml;
+    }
+
+    const App = {
+        navigate: function(screenId, navIndex = -1) {
+            document.querySelectorAll('.screen').forEach(s => s.classList.add('hidden'));
+            const target = document.getElementById(screenId);
+            if (target) target.classList.remove('hidden');
+
+            if (screenId !== 'scr-admin') {
+                const formWrap = document.getElementById('admin-product-form-wrap');
+                if (formWrap) formWrap.classList.add('hidden');
+                const offerFormWrap = document.getElementById('admin-offer-form-wrap');
+                if (offerFormWrap) offerFormWrap.classList.add('hidden');
+                const categoryFormWrap = document.getElementById('admin-category-form-wrap');
+                if (categoryFormWrap) categoryFormWrap.classList.add('hidden');
+            }
+
+            const navbar = document.getElementById('app-navbar');
+            navbar.style.display = (screenId === 'scr-splash') ? 'none' : 'flex';
+
+            const navBtns = document.querySelectorAll('.nav-btn');
+            navBtns.forEach(btn => {
+                btn.classList.remove('text-[#dca76a]');
+                const text = btn.querySelector('span');
+                if(text) text.className = "text-[9px] font-medium text-gray-500";
+            });
+
+            if (navIndex !== -1 && navBtns[navIndex]) {
+                navBtns[navIndex].classList.add('text-[#dca76a]');
+                const activeText = navBtns[navIndex].querySelector('span');
+                if(activeText) activeText.className = "text-[9px] font-medium text-[#dca76a]";
+            }
+
+            if(screenId === 'scr-profile') {
+                this.renderFavorites();
+            }
+
+            if(screenId === 'scr-offers') {
+                this.renderOffers();
+            }
+
+            if(screenId === 'scr-install') {
+                InstallApp.renderSteps();
+            }
+
+            if(screenId === 'scr-create') {
+                CustomCraft.initCanvas();
+            }
+
+            document.querySelector('.main-content').scrollTop = 0;
+        },
+
+        initHome: function() {
+            this.renderCategories();
+            this.renderBestSellers();
+            this.renderNewestProducts();
+            this.renderProducts(PRODUCTS);
+            InstallApp.renderHomeBanner();
+            this.navigate('scr-home', 0);
+        },
+
+        renderCategories: function() {
+            const row = document.getElementById('home-categories-row');
+            if (!row) return;
+
+            row.innerHTML = CATEGORIES.map(cat => `
+                <div onclick="App.filterCategory('${cat.value}')" class="cat-btn bg-[#161616] min-w-[85px] py-3.5 px-2 rounded-xl text-center border border-[#222] cursor-pointer hover:border-[#dca76a]/30 transition-all">
+                    <i class="${cat.icon} text-[#dca76a] text-lg block mb-1.5"></i>
+                    <span class="text-[10px] text-gray-400 font-medium block truncate">${cat.label}</span>
+                </div>
+            `).join('');
+        },
+
+        // Kartë kompakte për rreshtat me lëvizje horizontale (Më të Shiturat / Më të Rejat)
+        renderMiniCard: function(p, badgeHtml) {
+            return `
+                <div onclick="App.showDetail(${p.id})" class="bg-[#161616] border border-[#222] p-2.5 rounded-2xl relative hover:border-[#dca76a]/30 transition-all cursor-pointer shrink-0 w-32">
+                    ${badgeHtml}
+                    <div class="w-full h-24 bg-[#1f1f1f] rounded-xl overflow-hidden mb-2">
+                        <img src="${p.image}" class="w-full h-full object-cover">
+                    </div>
+                    <h4 class="text-[11px] font-bold text-gray-200 truncate">${p.title}</h4>
+                    <p class="text-xs text-[#dca76a] font-bold mt-0.5">€${p.price.toFixed(2)}</p>
+                </div>
+            `;
+        },
+
+        // Llogarit automatikisht produktet me më shumë porosi, bazuar te të dhënat reale
+        // të porosive të klientëve (itemsData, ruajtur gjatë checkout-it).
+        renderBestSellers: function() {
+            const row = document.getElementById('home-bestsellers-row');
+            if (!row) return;
+
+            const savedOrders = localStorage.getItem('laserdesign_orders');
+            const orders = savedOrders ? JSON.parse(savedOrders) : [];
+
+            const salesCount = {};
+            orders.forEach(o => {
+                if (!o.itemsData) return;
+                o.itemsData.forEach(item => {
+                    salesCount[item.id] = (salesCount[item.id] || 0) + item.qty;
+                });
+            });
+
+            const bestSellers = PRODUCTS
+                .filter(p => salesCount[p.id])
+                .sort((a, b) => salesCount[b.id] - salesCount[a.id])
+                .slice(0, 8);
+
+            if (bestSellers.length === 0) {
+                row.innerHTML = `<p class="text-[11px] text-gray-600 py-2 px-1 leading-relaxed">Produktet më të shitura do të shfaqen këtu automatikisht pasi klientët të kryejnë porositë e para.</p>`;
+                return;
+            }
+
+            row.innerHTML = bestSellers.map((p, idx) => this.renderMiniCard(
+                p,
+                `<span class="absolute top-2 left-2 z-20 bg-[#dca76a] text-black text-[9px] font-black px-2 py-0.5 rounded-full">🔥 #${idx + 1}</span>`
+            )).join('');
+        },
+
+        // Produktet e shtuara së fundmi (id më e lartë = shtuar më vonë nga paneli i administrimit)
+        renderNewestProducts: function() {
+            const row = document.getElementById('home-newest-row');
+            if (!row) return;
+
+            const newest = [...PRODUCTS].sort((a, b) => b.id - a.id).slice(0, 8);
+
+            if (newest.length === 0) {
+                row.innerHTML = `<p class="text-[11px] text-gray-600 py-2 px-1">Nuk ka produkte akoma.</p>`;
+                return;
+            }
+
+            row.innerHTML = newest.map(p => this.renderMiniCard(
+                p,
+                `<span class="absolute top-2 left-2 z-20 bg-[#2c2c2c] text-gray-200 text-[9px] font-black px-2 py-0.5 rounded-full">🆕 E RE</span>`
+            )).join('');
+        },
+
+        renderProducts: function(productsList) {
+            const grid = document.getElementById('home-products-grid');
+            if (grid) {
+                if (productsList.length === 0) {
+                    grid.innerHTML = `<p class="col-span-2 text-center text-xs text-gray-500 py-10">Nuk u gjet asnjë produkt.</p>`;
+                    return;
+                }
+
+                const savedFavs = localStorage.getItem('laserdesign_favorites');
+                const favs = savedFavs ? JSON.parse(savedFavs) : [];
+
+                grid.innerHTML = productsList.map(p => {
+                    const avg = getAverageRating(p.ratingsList);
+                    const isFav = favs.includes(p.id);
+                    const heartClass = isFav ? "fa-solid fa-heart text-red-500" : "fa-regular fa-heart text-gray-400";
+                    const defaultSize = p.sizes && p.sizes.length > 0 ? p.sizes[0] : "Standard";
+
+                    return `
+                        <div class="bg-[#161616] border border-[#222] p-3 rounded-2xl relative hover:border-[#dca76a]/30 transition-all group">
+                            <button onclick="App.toggleFavorite(event, ${p.id})" class="absolute top-5 right-5 z-20 w-7 h-7 bg-black/50 backdrop-blur-md rounded-full flex items-center justify-center text-xs active:scale-125 transition-transform cursor-pointer">
+                                <i id="fav-icon-${p.id}" class="${heartClass}"></i>
+                            </button>
+                            
+                            <div onclick="App.showDetail(${p.id})" class="cursor-pointer">
+                                <div class="w-full h-28 bg-[#1f1f1f] rounded-xl overflow-hidden mb-2 group-hover:scale-[1.02] transition-transform">
+                                    <img src="${p.image}" class="w-full h-full object-cover">
+                                </div>
+                                <h4 class="text-xs font-bold text-gray-200 truncate">${p.title}</h4>
+                                <div class="flex items-center gap-1 my-0.5">
+                                    ${generateStars(avg)}
+                                    <span class="text-[9px] text-gray-500">(${avg.toFixed(1)})</span>
+                                </div>
+                                <p class="text-[10px] text-gray-400 font-medium">Masa: <span class="text-gray-300">${defaultSize}</span></p>
+                                <p class="text-xs text-[#dca76a] font-bold mt-1">€${p.price.toFixed(2)}</p>
+                            </div>
+                        </div>
+                    `;
+                }).join('');
+            }
+        },
+
+        toggleFavorite: function(event, productId) {
+            if(event) event.stopPropagation(); 
+            
+            const savedFavs = localStorage.getItem('laserdesign_favorites');
+            let favs = savedFavs ? JSON.parse(savedFavs) : [];
+
+            const index = favs.indexOf(productId);
+            let icon = document.getElementById(`fav-icon-${productId}`);
+            let detailIcon = document.getElementById(`detail-fav-icon-${productId}`);
+
+            if (index === -1) {
+                favs.push(productId);
+                if(icon) icon.className = "fa-solid fa-heart text-red-500";
+                if(detailIcon) detailIcon.className = "fa-solid fa-heart text-red-500";
+            } else {
+                favs.splice(index, 1);
+                if(icon) icon.className = "fa-regular fa-heart text-gray-400";
+                if(detailIcon) detailIcon.className = "fa-regular fa-heart text-gray-400";
+            }
+
+            localStorage.setItem('laserdesign_favorites', JSON.stringify(favs));
+            
+            if(!document.getElementById('scr-profile').classList.contains('hidden')) {
+                this.renderFavorites();
+            }
+        },
+
+        renderFavorites: function() {
+            const container = document.getElementById('favorites-list-container');
+            if(!container) return;
+
+            const savedFavs = localStorage.getItem('laserdesign_favorites');
+            const favs = savedFavs ? JSON.parse(savedFavs) : [];
+
+            const favoriteProducts = PRODUCTS.filter(p => favs.includes(p.id));
+
+            if(favoriteProducts.length === 0) {
+                container.innerHTML = `<p class="col-span-2 text-center text-[11px] text-gray-600 py-6">Nuk keni asnjë produkt të preferuar.</p>`;
+                return;
+            }
+
+            container.innerHTML = favoriteProducts.map(p => {
+                return `
+                    <div class="bg-[#161616] border border-[#222] p-3 rounded-2xl relative group">
+                        <button onclick="App.toggleFavorite(event, ${p.id})" class="absolute top-5 right-5 z-20 w-7 h-7 bg-black/50 rounded-full flex items-center justify-center text-xs">
+                            <i class="fa-solid fa-heart text-red-500"></i>
+                        </button>
+                        <div onclick="App.showDetail(${p.id})" class="cursor-pointer">
+                            <div class="w-full h-24 bg-[#1f1f1f] rounded-xl overflow-hidden mb-2">
+                                <img src="${p.image}" class="w-full h-full object-cover">
+                            </div>
+                            <h4 class="text-xs font-bold text-gray-200 truncate">${p.title}</h4>
+                            <p class="text-xs text-[#dca76a] font-bold mt-0.5">€${p.price.toFixed(2)}</p>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        },
+
+        renderOffers: function() {
+            const container = document.getElementById('offers-list');
+            if (!container) return;
+
+            container.innerHTML = OFFERS.map(o => {
+                const isOffer = o.type === "ofertë";
+                const tagColor = isOffer ? "bg-[#dca76a] text-black" : "bg-[#2c2c2c] text-gray-300";
+                const couponBtn = o.couponCode
+                    ? `<button onclick="App.useOfferCoupon('${o.couponCode}')" class="mt-3 w-full bg-[#dca76a] hover:bg-[#c49257] text-black font-bold py-2 rounded-xl text-[11px] uppercase tracking-wider transition-all cursor-pointer active:scale-[0.97]">
+                           Përdor Kodin <span class="font-black">${o.couponCode}</span> <i class="fa-solid fa-arrow-right text-[9px] ml-1"></i>
+                       </button>`
+                    : '';
+
+                return `
+                    <div class="bg-[#161616] border border-[#222] rounded-2xl overflow-hidden">
+                        <div class="w-full h-32 bg-[#1f1f1f] relative overflow-hidden">
+                            <img src="${o.image}" class="w-full h-full object-cover">
+                            <span class="absolute top-2.5 left-2.5 ${tagColor} text-[10px] font-black px-2 py-0.5 rounded-full">${o.tag}</span>
+                        </div>
+                        <div class="p-3.5">
+                            <div class="flex items-center justify-between mb-1">
+                                <span class="text-[9px] font-bold uppercase tracking-wider ${isOffer ? 'text-[#dca76a]' : 'text-gray-500'}">${isOffer ? 'Ofertë Speciale' : 'Lajm'}</span>
+                                <span class="text-[9px] text-gray-500">${o.date}</span>
+                            </div>
+                            <h4 class="text-sm font-bold text-white mb-1">${o.title}</h4>
+                            <p class="text-xs text-gray-400 leading-relaxed">${o.desc}</p>
+                            ${couponBtn}
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        },
+
+        useOfferCoupon: function(code) {
+            this.navigate('scr-cart', 1);
+            const input = document.getElementById('coupon-input');
+            if (input) {
+                input.value = code;
+                Cart.applyCoupon();
+            }
+        },
+
+        filterCategory: function(category) {
+            document.querySelectorAll('.cat-btn').forEach(btn => btn.classList.remove('border-[#dca76a]/40'));
+            if (category === 'all') {
+                this.renderProducts(PRODUCTS);
+            } else {
+                const filtered = PRODUCTS.filter(p => p.category.toLowerCase() === category.toLowerCase());
+                this.renderProducts(filtered);
+            }
+        },
+
+        searchProducts: function(query) {
+            const filtered = PRODUCTS.filter(p => p.title.toLowerCase().includes(query.toLowerCase()));
+            this.renderProducts(filtered);
+        },
+
+        selectSize: function(btn, sizeValue) {
+            document.querySelectorAll('.size-selector-btn').forEach(b => {
+                b.className = "size-selector-btn bg-[#121212] text-gray-400 border border-[#222] px-3 py-1.5 rounded-xl text-xs font-medium cursor-pointer transition-all";
+            });
+            btn.className = "size-selector-btn bg-[#dca76a] text-black border border-[#dca76a] px-3 py-1.5 rounded-xl text-xs font-bold cursor-pointer transition-all";
+            state.selectedSize = sizeValue;
+
+            // Përditëso çmimin e shfaqur sipas madhësisë së zgjedhur
+            const prod = PRODUCTS.find(p => p.id === state.currentProductId);
+            const priceEl = document.getElementById('detail-price');
+            if (prod && priceEl) {
+                const newPrice = getProductPriceBySize(prod, sizeValue);
+                priceEl.innerText = `€${newPrice.toFixed(2)}`;
+            }
+        },
+
+        showDetail: function(id) {
+            const prod = PRODUCTS.find(p => p.id === id);
+            if (!prod) return;
+
+            const avg = getAverageRating(prod.ratingsList);
+            const savedFavs = localStorage.getItem('laserdesign_favorites');
+            const favs = savedFavs ? JSON.parse(savedFavs) : [];
+            const isFav = favs.includes(prod.id);
+            const heartClass = isFav ? "fa-solid fa-heart text-red-500" : "fa-regular fa-heart text-gray-400";
+
+            state.selectedSize = prod.sizes && prod.sizes.length > 0 ? prod.sizes[0] : "Standard";
+            state.currentProductId = prod.id;
+
+            let sizesHtml = '';
+            if (prod.sizes && prod.sizes.length > 0) {
+                sizesHtml = `
+                    <div class="mb-4">
+                        <h4 class="text-[11px] font-bold uppercase tracking-wider text-gray-400 mb-2">Zgjidh Madhësinë:</h4>
+                        <div class="flex flex-wrap gap-2">
+                            ${prod.sizes.map((sz, idx) => {
+                                const activeClasses = idx === 0 ? 'bg-[#dca76a] text-black border-[#dca76a] font-bold' : 'bg-[#121212] text-gray-400 border-[#222] font-medium';
+                                return `<button onclick="App.selectSize(this, '${sz}')" class="size-selector-btn ${activeClasses} border px-3 py-1.5 rounded-xl text-xs cursor-pointer transition-all">${sz}</button>`;
+                            }).join('')}
+                        </div>
+                    </div>
+                `;
+            }
+
+            document.getElementById('detail-content').innerHTML = `
+                <div class="w-full h-56 bg-[#1f1f1f] rounded-2xl overflow-hidden mb-5 shadow-inner relative">
+                    <img src="${prod.image}" class="w-full h-full object-cover">
+                    <button onclick="App.toggleFavorite(event, ${prod.id})" class="absolute top-4 right-4 z-20 w-9 h-9 bg-black/60 backdrop-blur-md rounded-full flex items-center justify-center text-base active:scale-125 transition-all cursor-pointer">
+                        <i id="detail-fav-icon-${prod.id}" class="${heartClass}"></i>
+                    </button>
+                </div>
+                <div class="flex justify-between items-start mb-1">
+                    <h2 class="text-lg font-bold">${prod.title}</h2>
+                    <span id="detail-price" class="text-lg font-black text-[#dca76a]">€${getProductPriceBySize(prod, state.selectedSize).toFixed(2)}</span>
+                </div>
+                
+                <div class="flex items-center gap-1 mb-3">
+                    ${generateStars(avg)}
+                    <span class="text-[11px] text-gray-400 ml-1">Mesatarja: <b>${avg.toFixed(1)}</b> (${prod.ratingsList.length} vlerësime)</span>
+                </div>
+
+                <p class="text-xs text-gray-400 leading-relaxed mb-4">${prod.desc}</p>
+                
+                ${sizesHtml}
+
+                <div class="bg-[#121212] border border-[#222] rounded-xl p-3 mb-4 text-center">
+                    <h4 class="text-[11px] font-bold uppercase tracking-wider text-gray-400">Vlerësojeni këtë produkt:</h4>
+                    ${generateVotingStars(prod.id)}
+                </div>
+
+                <div class="bg-[#161616] border border-[#222] rounded-xl p-3.5 mb-6 space-y-2.5 text-xs">
+                    <div class="flex justify-between border-b border-[#222]/40 pb-2.5">
+                        <span class="text-gray-500"><i class="fa-solid fa-clock w-5 text-[#dca76a]"></i> Koha e Punimit</span>
+                        <span class="font-bold">${prod.time}</span>
+                    </div>
+                </div>
+                <div class="flex gap-2">
+                    <button onclick="App.startCustomize(${prod.id})" class="flex-1 bg-[#161616] border border-[#dca76a]/50 hover:border-[#dca76a] text-[#dca76a] font-bold py-4 rounded-full flex justify-center items-center gap-1.5 cursor-pointer active:scale-95 transition-all text-[11px] uppercase tracking-wide">
+                        <i class="fa-solid fa-pen-ruler"></i> Personalizo
+                    </button>
+                    <button onclick="Cart.add(${prod.id})" class="flex-1 bg-[#dca76a] hover:bg-[#c49257] text-black font-bold py-4 rounded-full flex justify-center items-center gap-1.5 cursor-pointer active:scale-95 transition-all text-[11px] uppercase tracking-wide">
+                        <i class="fa-solid fa-cart-plus"></i> Shto në Shportë
+                    </button>
+                </div>
+            `;
+            this.navigate('scr-detail', -1);
+        },
+
+        // Hap faqen e personalizimit direkt për një produkt të caktuar dhe ngarkon foton e tij
+        // 'template' automatikisht në canvas, gati për t'u personalizuar nga klienti.
+        startCustomize: function(id) {
+            const prod = PRODUCTS.find(p => p.id === id);
+            if (!prod) return;
+            state.currentProductId = id;
+            this.navigate('scr-create', 2);
+            CustomCraft.loadProductTemplate(id);
+        },
+
+        submitVote: function(productId, voteValue) {
+            const prod = PRODUCTS.find(p => p.id === productId);
+            if (!prod) return;
+
+            const savedOrders = localStorage.getItem('laserdesign_orders');
+            let purchaseCount = 0;
+
+            if (savedOrders) {
+                const orders = JSON.parse(savedOrders);
+                orders.forEach(order => {
+                    if (order.items.includes(prod.title)) {
+                        purchaseCount += 1; 
+                    }
+                });
+            }
+
+            const savedVotes = localStorage.getItem('laserdesign_user_votes');
+            let userVotes = savedVotes ? JSON.parse(savedVotes) : {};
+            let currentVotesCount = userVotes[productId] ? userVotes[productId] : 0;
+
+            if (purchaseCount === 0) {
+                alert("❌ Nuk mund ta vlerësoni këtë produkt pa e porositur më parë!");
+                return;
+            }
+
+            if (currentVotesCount >= purchaseCount) {
+                alert(`❌ Ju e keni vlerësuat këtë produkt ${currentVotesCount} herë. Duhet ta blini përsëri për të lënë një vlerësim të ri!`);
+                return;
+            }
+
+            const prodIndex = PRODUCTS.findIndex(p => p.id === productId);
+            if (prodIndex !== -1) {
+                PRODUCTS[prodIndex].ratingsList.push(voteValue);
+                localStorage.setItem('laserdesign_products', JSON.stringify(PRODUCTS));
+                
+                userVotes[productId] = currentVotesCount + 1;
+                localStorage.setItem('laserdesign_user_votes', JSON.stringify(userVotes));
+                
+                alert(`⭐ Faleminderit! Vlerësimi juaj u regjistrua me sukses (${userVotes[productId]}/${purchaseCount}).`);
+                this.showDetail(productId);
+            }
+        },
+
+        triggerCartAnimation: function() {
+            const navIcon = document.getElementById('navbar-cart-icon');
+            const badge = document.getElementById('cart-badge');
+            const headerIcon = document.getElementById('header-cart-icon');
+            const detailHeaderIcon = document.getElementById('detail-header-cart-icon');
+
+            const targets = [navIcon, badge, headerIcon, detailHeaderIcon];
+
+            targets.forEach(el => {
+                if(el) {
+                    el.classList.add('cart-bounce');
+                    setTimeout(() => el.classList.remove('cart-bounce'), 400);
+                }
+            });
+        }
+    };
+
+    // LOGJIKA E KANVASIT DHE PREVIEW INTERAKTIV
+    const CustomCraft = {
+        canvas: null,
+        ctx: null,
+
+        initCanvas: function() {
+            this.canvas = document.getElementById('custom-canvas');
+            this.ctx = this.canvas.getContext('2d');
+            this.setupListeners();
+            this.draw();
+        },
+
+        setupListeners: function() {
+            // Mouse Events
+            this.canvas.onmousedown = (e) => this.dragStart(e.offsetX, e.offsetY);
+            this.canvas.onmousemove = (e) => this.dragMove(e.offsetX, e.offsetY);
+            this.canvas.onmouseup = () => this.dragEnd();
+            this.canvas.onmouseleave = () => this.dragEnd();
+
+            // Mobile Touch Events (me preventDefault, që ekrani të mos "scrollojë" ndërsa zvarritet objekti)
+            this.canvas.ontouchstart = (e) => {
+                e.preventDefault();
+                const rect = this.canvas.getBoundingClientRect();
+                const touch = e.touches[0];
+                this.dragStart(touch.clientX - rect.left, touch.clientY - rect.top);
+            };
+            this.canvas.ontouchmove = (e) => {
+                e.preventDefault();
+                const rect = this.canvas.getBoundingClientRect();
+                const touch = e.touches[0];
+                this.dragMove(touch.clientX - rect.left, touch.clientY - rect.top);
+            };
+            this.canvas.ontouchend = () => this.dragEnd();
+        },
+
+        // Kthen kufijtë (bounding box) e tekstit aktual në canvas, sipas pozicionit dhe madhësisë së tij
+        getTextBounds: function() {
+            if (!customCraftState.text || !this.ctx) return null;
+            const fontSize = Math.round(16 * customCraftState.textScale);
+            this.ctx.font = `bold ${fontSize}px sans-serif`;
+            const width = this.ctx.measureText(customCraftState.text).width;
+            const padding = 10; // hapësirë shtesë për ta bërë më të lehtë prekjen me gisht
+            return {
+                left: customCraftState.textX - width / 2 - padding,
+                right: customCraftState.textX + width / 2 + padding,
+                top: customCraftState.textY - fontSize - padding,
+                bottom: customCraftState.textY + padding
+            };
+        },
+
+        // Kthen kufijtë (bounding box) e fotos/logos aktuale në canvas
+        getImageBounds: function() {
+            if (!customCraftState.imgObj) return null;
+            const w = customCraftState.imgObj.width * customCraftState.imgScale;
+            const h = customCraftState.imgObj.height * customCraftState.imgScale;
+            return {
+                left: customCraftState.imgX - w / 2,
+                right: customCraftState.imgX + w / 2,
+                top: customCraftState.imgY - h / 2,
+                bottom: customCraftState.imgY + h / 2
+            };
+        },
+
+        dragStart: function(x, y) {
+            // Teksti vizatohet mbi foton, kështu që kontrollohet i pari (më "sipër" vizualisht)
+            const textBounds = this.getTextBounds();
+            if (textBounds && x >= textBounds.left && x <= textBounds.right && y >= textBounds.top && y <= textBounds.bottom) {
+                customCraftState.dragTarget = 'text';
+                customCraftState.startX = x - customCraftState.textX;
+                customCraftState.startY = y - customCraftState.textY;
+                return;
+            }
+
+            const imageBounds = this.getImageBounds();
+            if (imageBounds && x >= imageBounds.left && x <= imageBounds.right && y >= imageBounds.top && y <= imageBounds.bottom) {
+                customCraftState.dragTarget = 'image';
+                customCraftState.startX = x - customCraftState.imgX;
+                customCraftState.startY = y - customCraftState.imgY;
+                return;
+            }
+
+            customCraftState.dragTarget = null;
+        },
+
+        dragMove: function(x, y) {
+            if (!customCraftState.dragTarget) return;
+
+            if (customCraftState.dragTarget === 'text') {
+                customCraftState.textX = x - customCraftState.startX;
+                customCraftState.textY = y - customCraftState.startY;
+            } else if (customCraftState.dragTarget === 'image') {
+                customCraftState.imgX = x - customCraftState.startX;
+                customCraftState.imgY = y - customCraftState.startY;
+            }
+
+            this.draw();
+        },
+
+        dragEnd: function() {
+            customCraftState.dragTarget = null;
+        },
+
+        updateImageScale: function(val) {
+            customCraftState.imgScale = parseFloat(val);
+            this.draw();
+        },
+
+        updateTextScale: function(val) {
+            customCraftState.textScale = parseFloat(val);
+            this.draw();
+        },
+
+        updateText: function(val) {
+            customCraftState.text = val;
+            this.draw();
+        },
+
+        selectShape: function(btn, shapeValue) {
+            document.querySelectorAll('.custom-shape-btn').forEach(b => {
+                b.className = "custom-shape-btn bg-[#121212] text-gray-400 border border-[#222] p-2 rounded-xl text-[11px] font-medium transition-all cursor-pointer text-center";
+            });
+            btn.className = "custom-shape-btn bg-[#dca76a] text-black border border-[#dca76a] p-2 rounded-xl text-[11px] font-bold transition-all cursor-pointer text-center";
+            customCraftState.shape = shapeValue;
+            this.draw();
+        },
+
+        selectSize: function(btn, sizeValue) {
+            document.querySelectorAll('.custom-size-btn').forEach(b => {
+                b.className = "custom-size-btn bg-[#121212] text-gray-400 border border-[#222] py-2 rounded-xl text-xs font-medium transition-all cursor-pointer";
+            });
+            btn.className = "custom-size-btn bg-[#dca76a] text-black border border-[#dca76a] py-2 rounded-xl text-xs font-bold transition-all cursor-pointer";
+            customCraftState.size = sizeValue;
+            this.draw();
+        },
+
+        // ---------- MODI "PRODUKT": personalizim i nisur nga butoni "Personalizo" i një produkti ----------
+
+        // Rikrijon butonat e madhësive brenda #custom-size-container sipas listës së dhënë
+        renderSizeButtons: function(sizes) {
+            const container = document.getElementById('custom-size-container');
+            if (!container) return;
+            container.innerHTML = sizes.map((sz, idx) => {
+                const activeClasses = idx === 0
+                    ? 'bg-[#dca76a] text-black border-[#dca76a] font-bold'
+                    : 'bg-[#121212] text-gray-400 border-[#222] font-medium';
+                return `<button onclick="CustomCraft.selectSize(this, '${sz}')" class="custom-size-btn ${activeClasses} flex-1 min-w-[80px] border py-2 rounded-xl text-xs transition-all cursor-pointer">${sz}</button>`;
+            }).join('');
+        },
+
+        // Përgatit ekranin e personalizimit për një produkt specifik: ngarkon foton 'template' automatikisht
+        // në canvas dhe përditëson opsionet (madhësitë reale të produktit, fsheh formën e drurit gjenerike).
+        loadProductTemplate: function(productId) {
+            const prod = PRODUCTS.find(p => p.id === productId);
+            if (!prod) return;
+
+            customCraftState.mode = "product";
+            customCraftState.productId = productId;
+            customCraftState.size = (prod.sizes && prod.sizes.length > 0) ? prod.sizes[0] : "Standard";
+            customCraftState.text = "";
+            customCraftState.textX = 140;
+            customCraftState.textY = 230;
+            customCraftState.textScale = 1.0;
+            customCraftState.imgObj = null;
+            customCraftState.originalImageData = null;
+            customCraftState.imgX = 140;
+            customCraftState.imgY = 140;
+            customCraftState.imgScale = 0.5;
+            customCraftState.templateImg = null;
+
+            const textInput = document.getElementById('custom-canvas-text');
+            if (textInput) textInput.value = "";
+            const textScaleSlider = document.getElementById('text-scale-slider');
+            if (textScaleSlider) textScaleSlider.value = 1.0;
+            const uploadLabel = document.getElementById('upload-status-label');
+            if (uploadLabel) {
+                uploadLabel.innerText = "Zgjidh foto nga telefoni";
+                uploadLabel.className = "text-[11px] text-gray-400 font-medium";
+            }
+            const scaleContainer = document.getElementById('scale-control-container');
+            if (scaleContainer) scaleContainer.classList.add('hidden');
+
+            this.updateUIForProduct(prod);
+
+            // Fotoja bazë (template) e produktit ngarkohet automatikisht në canvas;
+            // nëse admini s'ka ngarkuar foto template të veçantë, përdoret fotoja e katalogut si rezervë.
+            const templateSrc = prod.templateImage || prod.image;
+            const img = new Image();
+            img.onload = () => {
+                customCraftState.templateImg = img;
+                this.draw();
+            };
+            img.src = templateSrc;
+
+            this.draw();
+        },
+
+        // Përshtat ekranin (fsheh formën e drurit, tregon titullin, mbush madhësitë reale të produktit)
+        updateUIForProduct: function(prod) {
+            const shapeSection = document.getElementById('custom-shape-section');
+            if (shapeSection) shapeSection.classList.add('hidden');
+
+            const modeLabel = document.getElementById('custom-mode-label');
+            if (modeLabel) {
+                modeLabel.innerText = "Po personalizon: " + prod.title;
+                modeLabel.classList.remove('hidden');
+            }
+
+            this.renderSizeButtons((prod.sizes && prod.sizes.length > 0) ? prod.sizes : ["Standard"]);
+        },
+
+        // Kthen ekranin e personalizimit në modin gjenerik (nga butoni "Krijo" i navbar-it)
+        startGeneric: function() {
+            customCraftState.mode = "generic";
+            customCraftState.productId = null;
+            customCraftState.templateImg = null;
+            customCraftState.shape = "Rreth";
+            customCraftState.size = "30x30 cm";
+            customCraftState.text = "";
+            customCraftState.textX = 140;
+            customCraftState.textY = 230;
+            customCraftState.textScale = 1.0;
+            customCraftState.imgObj = null;
+            customCraftState.originalImageData = null;
+            customCraftState.imgX = 140;
+            customCraftState.imgY = 140;
+            customCraftState.imgScale = 0.5;
+
+            const shapeSection = document.getElementById('custom-shape-section');
+            if (shapeSection) shapeSection.classList.remove('hidden');
+            document.querySelectorAll('.custom-shape-btn').forEach((b, idx) => {
+                b.className = idx === 0
+                    ? "custom-shape-btn bg-[#dca76a] text-black border border-[#dca76a] p-2 rounded-xl text-[11px] font-bold transition-all cursor-pointer text-center"
+                    : "custom-shape-btn bg-[#121212] text-gray-400 border border-[#222] p-2 rounded-xl text-[11px] font-medium transition-all cursor-pointer text-center";
+            });
+
+            const modeLabel = document.getElementById('custom-mode-label');
+            if (modeLabel) {
+                modeLabel.innerText = "";
+                modeLabel.classList.add('hidden');
+            }
+
+            this.renderSizeButtons(["30x30 cm", "40x40 cm", "50x50 cm"]);
+
+            const textInput = document.getElementById('custom-canvas-text');
+            if (textInput) textInput.value = "";
+            const textScaleSlider = document.getElementById('text-scale-slider');
+            if (textScaleSlider) textScaleSlider.value = 1.0;
+            const uploadLabel = document.getElementById('upload-status-label');
+            if (uploadLabel) {
+                uploadLabel.innerText = "Zgjidh foto nga telefoni";
+                uploadLabel.className = "text-[11px] text-gray-400 font-medium";
+            }
+            const scaleContainer = document.getElementById('scale-control-container');
+            if (scaleContainer) scaleContainer.classList.add('hidden');
+
+            App.navigate('scr-create', 2);
+        },
+
+        calculateDynamicPrice: function() {
+            let basePrice;
+
+            if (customCraftState.mode === "product" && customCraftState.productId) {
+                // Në modin "produkt", çmimi bazë vjen nga vetë produkti (sipas madhësisë së zgjedhur)
+                const prod = PRODUCTS.find(p => p.id === customCraftState.productId);
+                basePrice = prod ? getProductPriceBySize(prod, customCraftState.size) : 15.00;
+            } else {
+                basePrice = 15.00; // Çmimi fillestar për 30x30 cm (modi gjenerik)
+                if (customCraftState.size === "40x40 cm") {
+                    basePrice = 22.00;
+                } else if (customCraftState.size === "50x50 cm") {
+                    basePrice = 30.00;
+                }
+            }
+
+            // Nëse shton tekst (+2 euro)
+            if (customCraftState.text.trim().length > 0) {
+                basePrice += 2.00;
+            }
+
+            // Nëse shton fotografi (+5 euro start, dhe shtohen nga 1 euro sa më e madhe shkalla/scale)
+            if (customCraftState.imgObj) {
+                basePrice += 5.00;
+                // Duke qenë se slider i fotos shkon nga 0.1 deri në 2.0, llogarisim shtesën sipas madhësisë
+                const extraScalePrice = Math.floor(customCraftState.imgScale / 0.4);
+                basePrice += extraScalePrice;
+            }
+
+            return basePrice;
+        },
+
+        handleFileUpload: function(input) {
+            if (input.files && input.files[0]) {
+                const reader = new FileReader();
+                reader.onload = (e) => {
+                    const img = new Image();
+                    img.onload = () => {
+                        customCraftState.imgObj = img;
+                        customCraftState.imgX = 140;
+                        customCraftState.imgY = 140;
+                        document.getElementById('scale-control-container').classList.remove('hidden');
+                        this.draw();
+                    };
+                    customCraftState.originalImageData = e.target.result;
+                    img.src = e.target.result;
+                };
+                reader.readAsDataURL(input.files[0]);
+                document.getElementById('upload-status-label').innerText = "📎 Imazhi u ngarkua!";
+                document.getElementById('upload-status-label').className = "text-[11px] text-[#dca76a] font-bold";
+            }
+        },
+
+        draw: function() {
+            if (!this.ctx) return;
+            this.ctx.clearRect(0, 0, 280, 280);
+
+            if (customCraftState.mode === "product") {
+                // ---- MODI "PRODUKT": foto bazë (template) e produktit + dizajni i klientit sipër ----
+
+                if (customCraftState.templateImg) {
+                    // Fotoja template mbulon gjithë canvas-in, si sfond mbi të cilin klienti pozicionon dizajnin e vet
+                    this.ctx.drawImage(customCraftState.templateImg, 0, 0, 280, 280);
+                } else {
+                    this.ctx.fillStyle = "#1a1a1a";
+                    this.ctx.fillRect(0, 0, 280, 280);
+                }
+
+                // Vizato imazhin/logon e klientit nëse ekziston (i lëvizshëm dhe i zmadhueshëm me slider)
+                if (customCraftState.imgObj) {
+                    const w = customCraftState.imgObj.width * customCraftState.imgScale;
+                    const h = customCraftState.imgObj.height * customCraftState.imgScale;
+
+                    this.ctx.save();
+                    this.ctx.globalCompositeOperation = "multiply";
+                    this.ctx.globalAlpha = 0.85;
+                    this.ctx.drawImage(customCraftState.imgObj, customCraftState.imgX - w/2, customCraftState.imgY - h/2, w, h);
+                    this.ctx.restore();
+                }
+
+                // Vizato tekstin e shkruar si gravurë (pozicioni dhe madhësia lëvizen/ndryshojnë nga klienti)
+                if (customCraftState.text) {
+                    const fontSize = Math.round(16 * customCraftState.textScale);
+                    this.ctx.fillStyle = "#3a2512";
+                    this.ctx.font = `bold ${fontSize}px sans-serif`;
+                    this.ctx.textAlign = "center";
+                    this.ctx.shadowColor = "rgba(0,0,0,0.3)";
+                    this.ctx.shadowBlur = 1;
+                    this.ctx.shadowOffsetX = 1;
+                    this.ctx.shadowOffsetY = 1;
+                    this.ctx.fillText(customCraftState.text, customCraftState.textX, customCraftState.textY);
+                }
+
+                this.ctx.strokeStyle = "#402d1a";
+                this.ctx.lineWidth = 5;
+                this.ctx.strokeRect(2.5, 2.5, 275, 275);
+
+                const currentPriceProduct = this.calculateDynamicPrice();
+                document.getElementById('custom-submit-btn').innerHTML = `SHTO KRIJIMIN NË SHPORTË (€${currentPriceProduct.toFixed(2)}) <i class="fa-solid fa-cart-plus"></i>`;
+                return;
+            }
+
+            // ---- MODI "GJENERIK": krijim nga e para (pa foto template të një produkti specifik) ----
+
+            // 1. Krijo teksturën/efektin bazë të drurit në sfond
+            this.ctx.fillStyle = "#2d1f10"; 
+            this.ctx.fillRect(0, 0, 280, 280);
+
+            this.ctx.save();
+
+            // 2. Klipe kanvasin sipas formës së zgjedhur
+            this.ctx.beginPath();
+            if (customCraftState.shape === "Rreth") {
+                this.ctx.arc(140, 140, 120, 0, Math.PI * 2);
+            } else if (customCraftState.shape === "Katror") {
+                this.ctx.rect(20, 20, 240, 240);
+            } else if (customCraftState.shape === "Tabela") {
+                this.ctx.rect(10, 40, 260, 200);
+            } else { // Natyrale (Formë e harkuar organike)
+                this.ctx.moveTo(30, 60);
+                this.ctx.quadraticCurveTo(140, 20, 250, 50);
+                this.ctx.quadraticCurveTo(270, 140, 240, 230);
+                this.ctx.quadraticCurveTo(140, 260, 40, 220);
+                this.ctx.quadraticCurveTo(10, 140, 30, 60);
+            }
+            this.ctx.clip();
+
+            // Sfondi i brendshëm i drurit të prerë
+            this.ctx.fillStyle = "#cd9a62"; 
+            this.ctx.fillRect(0, 0, 280, 280);
+
+            // Vijat unazore të drurit simulim
+            this.ctx.strokeStyle = "#b5834c";
+            this.ctx.lineWidth = 2;
+            for(let r = 30; r < 350; r += 25) {
+                this.ctx.beginPath();
+                this.ctx.arc(140, 140, r, 0, Math.PI * 2);
+                this.ctx.stroke();
+            }
+
+            // 3. Vizato imazhin e klientit nëse ekziston
+            if (customCraftState.imgObj) {
+                const w = customCraftState.imgObj.width * customCraftState.imgScale;
+                const h = customCraftState.imgObj.height * customCraftState.imgScale;
+                
+                this.ctx.save();
+                // Ktheje foton në efekt "Gravurë" (Monokrom / Gjysmë transparente e errët)
+                this.ctx.globalCompositeOperation = "multiply";
+                this.ctx.globalAlpha = 0.85;
+                this.ctx.drawImage(customCraftState.imgObj, customCraftState.imgX - w/2, customCraftState.imgY - h/2, w, h);
+                this.ctx.restore();
+            }
+
+            // 4. Vizato tekstin e shkruar si gravurë (pozicioni dhe madhësia lëvizen/ndryshojnë nga klienti)
+            if (customCraftState.text) {
+                const fontSize = Math.round(16 * customCraftState.textScale);
+                this.ctx.fillStyle = "#3a2512"; // Ngjyrë e djegur druri
+                this.ctx.font = `bold ${fontSize}px sans-serif`;
+                this.ctx.textAlign = "center";
+                this.ctx.shadowColor = "rgba(0,0,0,0.3)";
+                this.ctx.shadowBlur = 1;
+                this.ctx.shadowOffsetX = 1;
+                this.ctx.shadowOffsetY = 1;
+                this.ctx.fillText(customCraftState.text, customCraftState.textX, customCraftState.textY);
+            }
+
+            this.ctx.restore();
+
+            // Vizato kornizën e jashtme të modelit
+            this.ctx.strokeStyle = "#402d1a";
+            this.ctx.lineWidth = 5;
+            this.ctx.stroke();
+
+            // Përditëso butonin me çmimin e ri live
+            const currentPrice = this.calculateDynamicPrice();
+            document.getElementById('custom-submit-btn').innerHTML = `SHTO KRIJIMIN NË SHPORTË (€${currentPrice.toFixed(2)}) <i class="fa-solid fa-cart-plus"></i>`;
+        },
+
+        addToCart: function() {
+            if (!customCraftState.imgObj && !customCraftState.text.trim()) {
+                alert("Ju lutem ngarkoni një foto ose shkruani një tekst përpara se ta shtoni në shportë!");
+                return;
+            }
+
+            // Eksporto dizajnin e saktë të Canvas si imazh Base64
+            const canvasDataUrl = this.canvas.toDataURL("image/png");
+            const finalPrice = this.calculateDynamicPrice();
+
+            let customProduct;
+            if (customCraftState.mode === "product" && customCraftState.productId) {
+                const baseProd = PRODUCTS.find(p => p.id === customCraftState.productId);
+                customProduct = {
+                    id: "custom-" + Date.now(),
+                    title: "Personalizuar: " + (baseProd ? baseProd.title : "Produkt"),
+                    price: finalPrice,
+                    image: canvasDataUrl, // Ky imazh i gjeneruar do të shfaqet në shportë!
+                    chosenSize: customCraftState.size,
+                    isCustom: true,
+                    baseProductId: customCraftState.productId,
+                    ideaDetails: customCraftState.text || "Vetëm foto pa tekst",
+                    fileDetails: customCraftState.imgObj ? "Foto e pozicionuar" : "Asnjë",
+                    originalImage: customCraftState.originalImageData,
+                    previewImage: canvasDataUrl,
+                    qty: 1
+                };
+            } else {
+                customProduct = {
+                    id: "custom-" + Date.now(), 
+                    title: "Projekt i Personalizuar (" + customCraftState.shape + ")",
+                    price: finalPrice, 
+                    image: canvasDataUrl, // Ky imazh i gjeneruar do të shfaqet në shportë!
+                    chosenSize: customCraftState.size,
+                    isCustom: true, 
+                    shapeDetails: customCraftState.shape,
+                    ideaDetails: customCraftState.text || "Vetëm foto pa tekst",
+                    fileDetails: customCraftState.imgObj ? "Foto e pozicionuar" : "Asnjë",
+                    originalImage: customCraftState.originalImageData,
+                    previewImage: canvasDataUrl,
+                    qty: 1
+                };
+            }
+
+            state.cart.push(customProduct);
+            
+            Cart.updateUI();
+            App.triggerCartAnimation();
+
+            alert("✨ Krijimi juaj interaktiv u shtua në shportë!");
+
+            // Reseto vlerat
+            document.getElementById('custom-canvas-text').value = "";
+            document.getElementById('upload-status-label').innerText = "Zgjidh foto nga telefoni";
+            document.getElementById('upload-status-label').className = "text-[11px] text-gray-400 font-medium";
+            document.getElementById('scale-control-container').classList.add('hidden');
+            customCraftState.text = "";
+            customCraftState.imgObj = null;
+            this.draw();
+
+            App.navigate('scr-cart', 1);
+        }
+    };
+
+    // LOGJIKA E SUPORTIT VIA TELEGRAM BOT
+    const Support = {
+        sendFeedback: function() {
+            const email = document.getElementById('feedback-email').value.trim();
+            const text = document.getElementById('feedback-text').value.trim();
+
+            if (!email || !text) {
+                alert("Ju lutem plotësoni email-in dhe mesazhin tuaj!");
+                return;
+            }
+
+            let message = `⚠️ *ANKESË / MENDIM I RI KLIENTI*\n`;
+            message += `------------------------------------\n`;
+            message += `📧 *Email:* ${email}\n\n`;
+            message += `💬 *Mesazhi:* \n${text}\n`;
+            message += `------------------------------------`;
+
+            const botToken = "8816683439:AAGeHbSOxyNYKCj6R3d89PlGO8_jhQy0Mco"; 
+            const chatId = "6178129022"; 
+            const telegramUrl = `https://api.telegram.org/bot${botToken}/sendMessage`;
+
+            // Dërgo fotot e projekteve të personalizuara në Telegram
+            state.cart.forEach(item => {
+                if(item.isCustom){
+                    if(item.originalImage){
+                        fetch(`https://api.telegram.org/bot${botToken}/sendPhoto`,{
+                            method:'POST',
+                            headers:{'Content-Type':'application/json'},
+                            body:JSON.stringify({
+                                chat_id:chatId,
+                                photo:item.originalImage,
+                                caption:`📷 Foto origjinale e klientit - Porosia #${newOrderId}`
+                            })
+                        }).catch(()=>{});
+                    }
+
+                    if(item.previewImage){
+                        fetch(`https://api.telegram.org/bot${botToken}/sendPhoto`,{
+                            method:'POST',
+                            headers:{'Content-Type':'application/json'},
+                            body:JSON.stringify({
+                                chat_id:chatId,
+                                photo:item.previewImage,
+                                caption:`🖼 Preview i dizajnit final - Porosia #${newOrderId}`
+                            })
+                        }).catch(()=>{});
+                    }
+                }
+            });
+
+
+            fetch(telegramUrl, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ chat_id: chatId, text: message, parse_mode: "Markdown" })
+            })
+            .then(res => {
+                if(res.ok) {
+                    alert("Faleminderit! Mesazhi juaj u dërgua me sukses.");
+                    document.getElementById('feedback-email').value = "";
+                    document.getElementById('feedback-text').value = "";
+                    App.navigate('scr-home', 0);
+                } else {
+                    alert("Ndodhi një gabim gjatë dërgimit. Provoni përsëri.");
+                }
+            })
+            .catch(err => {
+                alert("Gabim në rrjet. Kontrolloni internetin tuaj.");
+            });
+        }
+    };
+
+    const Cart = {
+        add: function(id) {
+            const prod = PRODUCTS.find(p => p.id === id);
+            const currentSize = state.selectedSize || (prod.sizes && prod.sizes.length > 0 ? prod.sizes[0] : "Standard");
+            const sizePrice = getProductPriceBySize(prod, currentSize);
+            const existing = state.cart.find(item => item.id === id && item.chosenSize === currentSize);
+            
+            if (existing) { existing.qty += 1; } 
+            else { state.cart.push({ ...prod, price: sizePrice, chosenSize: currentSize, qty: 1 }); }
+            
+            this.updateUI();
+            App.triggerCartAnimation();
+        },
+
+        remove: function(id, size) {
+            state.cart = state.cart.filter(item => !(item.id === id && item.chosenSize === size));
+            this.updateUI();
+        },
+
+        changeQty: function(id, size, delta) {
+            const item = state.cart.find(i => i.id === id && i.chosenSize === size);
+            if (!item) return;
+            item.qty += delta;
+            if (item.qty <= 0) { this.remove(id, size); } else { this.updateUI(); }
+        },
+
+        clear: function() {
+            state.cart = [];
+            state.appliedCoupon = null;
+            this.updateUI();
+            document.getElementById('client-name').value = '';
+            document.getElementById('client-phone').value = '';
+            document.getElementById('client-city').value = '';
+            const couponInput = document.getElementById('coupon-input');
+            const couponMsg = document.getElementById('coupon-message');
+            if (couponInput) couponInput.value = '';
+            if (couponMsg) { couponMsg.innerText = ''; couponMsg.className = 'text-[10px] mt-1.5 font-medium'; }
+        },
+
+        applyCoupon: function() {
+            const input = document.getElementById('coupon-input');
+            const msg = document.getElementById('coupon-message');
+            const code = input.value.trim().toUpperCase();
+
+            if (!code) {
+                msg.innerText = "Ju lutem shkruani një kod kuponi.";
+                msg.className = "text-[10px] mt-1.5 font-medium text-red-400";
+                return;
+            }
+
+            const coupon = COUPONS[code];
+            if (!coupon) {
+                state.appliedCoupon = null;
+                msg.innerText = "Kuponi nuk është i vlefshëm.";
+                msg.className = "text-[10px] mt-1.5 font-medium text-red-400";
+                this.updateUI();
+                return;
+            }
+
+            state.appliedCoupon = { code: code, ...coupon };
+            const desc = coupon.type === "percent" ? `${coupon.value}% zbritje u aplikua!` : `€${coupon.value.toFixed(2)} zbritje u aplikua!`;
+            msg.innerText = `✅ Kuponi "${code}": ${desc}`;
+            msg.className = "text-[10px] mt-1.5 font-medium text-[#4caf50]";
+            this.updateUI();
+        },
+
+        removeCoupon: function() {
+            state.appliedCoupon = null;
+            const input = document.getElementById('coupon-input');
+            const msg = document.getElementById('coupon-message');
+            if (input) input.value = '';
+            if (msg) { msg.innerText = ''; msg.className = 'text-[10px] mt-1.5 font-medium'; }
+            this.updateUI();
+        },
+
+        getDiscountAmount: function(subtotal) {
+            if (!state.appliedCoupon) return 0;
+            let discount = 0;
+            if (state.appliedCoupon.type === "percent") {
+                discount = subtotal * (state.appliedCoupon.value / 100);
+            } else if (state.appliedCoupon.type === "fixed") {
+                discount = state.appliedCoupon.value;
+            }
+            return Math.min(discount, subtotal);
+        },
+
+        updateUI: function() {
+            const list = document.getElementById('cart-items-list');
+            const badge = document.getElementById('cart-badge');
+            const totalItems = state.cart.reduce((sum, item) => sum + item.qty, 0);
+            
+            if (badge) {
+                if (totalItems > 0) {
+                    badge.innerText = totalItems;
+                    badge.classList.remove('hidden');
+                } else {
+                    badge.classList.add('hidden');
+                }
+            }
+
+            if (!list) return;
+
+            if (state.cart.length === 0) {
+                list.innerHTML = `
+                    <div class="flex flex-col items-center justify-center h-48 text-gray-500 gap-2">
+                        <i class="fa-solid fa-basket-shopping text-3xl text-gray-700"></i>
+                        <p class="text-xs">Shporta juaj është bosh.</p>
+                    </div>
+                `;
+                document.getElementById('cart-subtotal-price').innerText = "€0.00";
+                document.getElementById('cart-total-price').innerText = "€0.00";
+                document.getElementById('coupon-discount-row').classList.add('hidden');
+                return;
+            }
+
+            let subtotal = 0;
+            list.innerHTML = state.cart.map(item => {
+                subtotal += (item.price * item.qty);
+                const metaDetails = item.isCustom 
+                    ? `<p class="text-[9px] text-gray-400 font-normal truncate">Modeli: ${item.shapeDetails} | Teksti: ${item.ideaDetails}</p>`
+                    : '';
+
+                return `
+                    <div class="bg-[#161616] border border-[#222] p-3 rounded-xl flex items-center gap-3">
+                        <div class="w-12 h-12 bg-[#1f1f1f] rounded-lg overflow-hidden shrink-0 border border-[#333]">
+                            <img src="${item.image}" class="w-full h-full object-cover">
+                        </div>
+                        <div class="flex-grow min-w-0">
+                            <h4 class="text-xs font-bold truncate">${item.title}</h4>
+                            <p class="text-[10px] text-gray-500 font-medium">Masa: <span class="text-gray-300 font-bold">${item.chosenSize}</span></p>
+                            ${metaDetails}
+                            <p class="text-xs text-[#dca76a] font-semibold mt-0.5">${item.price > 0 ? '€'+item.price.toFixed(2) : 'Çmimi pas kontaktit'}</p>
+                        </div>
+                        <div class="flex items-center bg-black border border-[#222] rounded-lg p-1 gap-2.5">
+                            <button onclick="Cart.changeQty('${item.id}', '${item.chosenSize}', -1)" class="w-5 h-5 text-xs text-gray-400 hover:text-white">-</button>
+                            <span class="text-xs font-bold w-3 text-center">${item.qty}</span>
+                            <button onclick="Cart.changeQty('${item.id}', '${item.chosenSize}', 1)" class="w-5 h-5 text-xs text-gray-400 hover:text-white">+</button>
+                        </div>
+                        <button onclick="Cart.remove('${item.id}', '${item.chosenSize}')" class="text-gray-500 hover:text-red-400 p-1 cursor-pointer"><i class="fa-solid fa-trash-can text-xs"></i></button>
+                    </div>
+                `;
+            }).join('');
+
+            const discount = this.getDiscountAmount(subtotal);
+            const total = subtotal - discount;
+
+            document.getElementById('cart-subtotal-price').innerText = `€${subtotal.toFixed(2)}`;
+
+            const discountRow = document.getElementById('coupon-discount-row');
+            if (state.appliedCoupon && discount > 0) {
+                discountRow.classList.remove('hidden');
+                document.getElementById('coupon-applied-code').innerText = state.appliedCoupon.code;
+                document.getElementById('cart-discount-price').innerText = `-€${discount.toFixed(2)}`;
+            } else {
+                discountRow.classList.add('hidden');
+            }
+
+            document.getElementById('cart-total-price').innerText = `€${total.toFixed(2)}`;
+        },
+
+        checkout: function() {
+            if (state.cart.length === 0) { return; }
+            
+            const name = document.getElementById('client-name').value.trim();
+            const phone = document.getElementById('client-phone').value.trim();
+            const city = document.getElementById('client-city').value.trim();
+
+            if (!name || !phone || !city) {
+                alert("Ju lutem plotësoni të gjitha të dhënat tuaja për dërgesë!");
+                return;
+            }
+
+            const subtotal = state.cart.reduce((sum, i) => sum + (i.price * i.qty), 0);
+            const discount = this.getDiscountAmount(subtotal);
+            const total = subtotal - discount;
+            const newOrderId = Math.floor(1000 + Math.random() * 9000);
+            
+            let textMessage = `🛒 *POROSI E RE - LASERDESIGN KOSOVA*\n`;
+            textMessage += `🆔 *ID:* #${newOrderId}\n\n`;
+            textMessage += `👤 *Klienti:* ${name}\n`;
+            textMessage += `📞 *Tel:* ${phone}\n`;
+            textMessage += `📍 *Adresa:* ${city}\n`;
+            textMessage += `------------------------------------\n`;
+            
+            state.cart.forEach((item, index) => {
+                textMessage += `${index + 1}. 📦 *${item.title}* (${item.qty}x)\n`;
+                textMessage += `   📐 Masa: ${item.chosenSize}\n`;
+                if(item.isCustom) {
+                    textMessage += `   ⬡ Forma: ${item.shapeDetails}\n`;
+                    textMessage += `   💬 Teksti: ${item.ideaDetails}\n`;
+                }
+                textMessage += `   💰 Çmimi: €${(item.price * item.qty).toFixed(2)}\n`;
+                textMessage += `\n`;
+            });
+            
+            textMessage += `------------------------------------\n`;
+            textMessage += `Nëntotali: €${subtotal.toFixed(2)}\n`;
+            if (state.appliedCoupon && discount > 0) {
+                textMessage += `🏷️ Kuponi (${state.appliedCoupon.code}): -€${discount.toFixed(2)}\n`;
+            }
+            textMessage += `💰 *TOTALI I BLERJES:* €${total.toFixed(2)}`;
+
+            const botToken = "8816683439:AAGeHbSOxyNYKCj6R3d89PlGO8_jhQy0Mco"; 
+            const chatId = "6178129022"; 
+            const telegramUrl = `https://api.telegram.org/bot${botToken}/sendMessage`;
+
+            fetch(telegramUrl, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ chat_id: chatId, text: textMessage, parse_mode: "Markdown" })
+            })
+            .then(res => {
+                if(res.ok) {
+                    alert(`Porosia #${newOrderId} u dërgua me sukses!`);
+                    
+                    const itemsSummary = state.cart.map(i => `${i.qty}x ${i.title}`).join(', ');
+                    // Të dhëna strukturore (id produkti + sasia) — përdoren për të llogaritur automatikisht
+                    // "Produktet më të shitura" te faqja kryesore. Vetëm produktet e katalogut (jo ato
+                    // të personalizuara/custom, që kanë id si "custom-172..." dhe s'janë te PRODUCTS).
+                    const itemsData = state.cart
+                        .filter(i => !i.isCustom)
+                        .map(i => ({ id: i.id, qty: i.qty }));
+
+                    const savedOrders = localStorage.getItem('laserdesign_orders');
+                    let currentOrders = savedOrders ? JSON.parse(savedOrders) : [];
+                    
+                    currentOrders.unshift({
+                        id: newOrderId, date: "Sot", items: itemsSummary, itemsData: itemsData, total: total, status: "NË PROCES", statusColor: "text-[#dca76a]"
+                    });
+                    localStorage.setItem('laserdesign_orders', JSON.stringify(currentOrders));
+
+                    this.clear();
+                    Orders.render();
+                    App.renderBestSellers();
+                    App.navigate('scr-orders', 3);
+                } else {
+                    alert("Ndodhi një gabim gjatë dërgimit. Provoni përsëri.");
+                }
+            })
+            .catch(err => {
+                alert("Gabim në rrjet.");
+            });
+        }
+    };
+
+    const Orders = {
+        render: function() {
+            const savedOrders = localStorage.getItem('laserdesign_orders');
+            if (savedOrders) { state.orders = JSON.parse(savedOrders); }
+
+            const container = document.getElementById('orders-list');
+            if (!container) return;
+
+            if (state.orders.length === 0) {
+                container.innerHTML = `
+                    <div class="flex flex-col items-center justify-center h-64 text-gray-500 gap-2">
+                        <i class="fa-solid fa-list-check text-3xl text-gray-700"></i>
+                        <p class="text-xs">Nuk keni bërë asnjë porosi akoma.</p>
+                    </div>
+                `;
+                return;
+            }
+
+            container.innerHTML = state.orders.map(o => `
+                <div class="bg-[#161616] border border-[#222] p-4 rounded-xl border-l-2 border-l-[#dca76a]">
+                    <div class="flex justify-between items-center mb-1.5">
+                        <span class="text-xs font-bold text-gray-200">Porosia #${o.id}</span>
+                        <span class="text-[10px] font-bold ${o.statusColor} tracking-wider">${o.status}</span>
+                    </div>
+                    <div class="text-[10px] text-gray-500 mb-2">Data: ${o.date}</div>
+                    <div class="text-xs text-gray-400 truncate">${o.items}</div>
+                    <div class="text-xs font-bold text-[#dca76a] mt-2 pt-2 border-t border-[#222]/60">Totali: €${o.total.toFixed(2)}</div>
+                </div>
+            `).join('');
+        }
+    };
+
+    // ---------- INSTALIMI I APLIKACIONIT (Add to Home Screen / PWA) ----------
+    const InstallApp = {
+        deferredPrompt: null, // ruhet nga eventi 'beforeinstallprompt' (Android/Chrome), për ta shfaqur kur klienti klikon "Instalo Tani"
+
+        // Zbulon platformën e klientit, që t'i tregojmë hapat e sakta (iOS ndryshon nga Android)
+        detectPlatform: function() {
+            const ua = navigator.userAgent || navigator.vendor || "";
+            const isIOS = /iPad|iPhone|iPod/.test(ua) && !window.MSStream;
+            const isAndroid = /Android/.test(ua);
+            if (isIOS) return 'ios';
+            if (isAndroid) return 'android';
+            return 'desktop';
+        },
+
+        // A është aplikacioni tashmë i instaluar/i hapur si app (jo si faqe normale në shfletues)?
+        isAppInstalled: function() {
+            const standaloneDisplay = window.matchMedia && window.matchMedia('(display-mode: standalone)').matches;
+            const iosStandalone = window.navigator.standalone === true; // Safari/iOS
+            return !!(standaloneDisplay || iosStandalone);
+        },
+
+        // Kap eventin që Chrome/Android e nis kur faqja plotëson kushtet për t'u instaluar,
+        // dhe e ruajmë për ta përdorur më vonë (kur klienti klikon "Instalo Tani").
+        init: function() {
+            window.addEventListener('beforeinstallprompt', (e) => {
+                e.preventDefault();
+                this.deferredPrompt = e;
+                const nativeBox = document.getElementById('install-android-native');
+                if (nativeBox) nativeBox.classList.remove('hidden');
+            });
+
+            window.addEventListener('appinstalled', () => {
+                this.deferredPrompt = null;
+                const banner = document.getElementById('home-install-banner-wrap');
+                if (banner) banner.innerHTML = '';
+            });
+
+            if ('serviceWorker' in navigator) {
+                window.addEventListener('load', () => {
+                    navigator.serviceWorker.register('sw.js').catch(() => {
+                        // Nëse dështon (p.sh. faqja hapur direkt nga skedari, jo nga një server), s'prish asgjë tjetër.
+                    });
+                });
+            }
+        },
+
+        // Shfaq dritaren native të instalimit të Android/Chrome (nëse është gati)
+        triggerNativePrompt: function() {
+            if (!this.deferredPrompt) {
+                alert("Instalimi automatik nuk është gati ende. Ndiq hapat manualë më poshtë.");
+                return;
+            }
+            this.deferredPrompt.prompt();
+            this.deferredPrompt.userChoice.then(() => {
+                this.deferredPrompt = null;
+            });
+        },
+
+        // Mbush ekranin "Instalo Aplikacionin" me hapat e duhur sipas platformës së klientit
+        renderSteps: function() {
+            const container = document.getElementById('install-steps-container');
+            if (!container) return;
+
+            const platform = this.detectPlatform();
+            const nativeBox = document.getElementById('install-android-native');
+
+            if (this.isAppInstalled()) {
+                container.innerHTML = `
+                    <div class="bg-[#161616] border border-[#222] rounded-2xl p-5 text-center">
+                        <i class="fa-solid fa-circle-check text-2xl text-green-400 mb-2"></i>
+                        <p class="text-xs text-gray-300 font-semibold">Aplikacioni është tashmë i instaluar në këtë pajisje ✓</p>
+                    </div>
+                `;
+                if (nativeBox) nativeBox.classList.add('hidden');
+                return;
+            }
+
+            if (platform === 'ios') {
+                if (nativeBox) nativeBox.classList.add('hidden'); // iOS Safari s'e mbështet instalimin automatik
+                container.innerHTML = `
+                    <div class="bg-[#161616] border border-[#222] rounded-2xl p-4">
+                        <h3 class="text-xs font-bold text-[#dca76a] uppercase tracking-wider mb-3 flex items-center gap-2">
+                            <i class="fa-brands fa-safari"></i> Hapat në Safari (iPhone / iPad)
+                        </h3>
+                        <div class="space-y-3">
+                            <div class="flex items-start gap-3">
+                                <div class="w-6 h-6 rounded-full bg-[#dca76a] text-black text-[11px] font-black flex items-center justify-center shrink-0 mt-0.5">1</div>
+                                <p class="text-xs text-gray-300">Shtypni butonin <b class="text-white">Share</b> <i class="fa-solid fa-arrow-up-from-bracket text-[10px] mx-0.5"></i> poshtë në shiritin e Safari-t.</p>
+                            </div>
+                            <div class="flex items-start gap-3">
+                                <div class="w-6 h-6 rounded-full bg-[#dca76a] text-black text-[11px] font-black flex items-center justify-center shrink-0 mt-0.5">2</div>
+                                <p class="text-xs text-gray-300">Zgjidhni <b class="text-white">"Add to Home Screen"</b> (Shto në Ekranin Kryesor) nga lista e opsioneve.</p>
+                            </div>
+                            <div class="flex items-start gap-3">
+                                <div class="w-6 h-6 rounded-full bg-[#dca76a] text-black text-[11px] font-black flex items-center justify-center shrink-0 mt-0.5">3</div>
+                                <p class="text-xs text-gray-300">Shtypni <b class="text-white">"Add"</b> (Shto) në cepin e sipërm djathtas.</p>
+                            </div>
+                        </div>
+                        <p class="text-[9px] text-gray-500 mt-3 leading-relaxed">📌 E rëndësishme: kjo funksionon vetëm në shfletuesin <b>Safari</b>. Nëse jeni në Chrome apo një app tjetër në iPhone, hapeni së pari faqen në Safari.</p>
+                    </div>
+                `;
+            } else if (platform === 'android') {
+                container.innerHTML = `
+                    <div class="bg-[#161616] border border-[#222] rounded-2xl p-4">
+                        <h3 class="text-xs font-bold text-[#dca76a] uppercase tracking-wider mb-3 flex items-center gap-2">
+                            <i class="fa-brands fa-android"></i> Hapat në Android (Chrome)
+                        </h3>
+                        <div class="space-y-3">
+                            <div class="flex items-start gap-3">
+                                <div class="w-6 h-6 rounded-full bg-[#dca76a] text-black text-[11px] font-black flex items-center justify-center shrink-0 mt-0.5">1</div>
+                                <p class="text-xs text-gray-300">Shtypni butonin "Instalo Tani" më sipër — nëse s'shfaqet, shtypni <b class="text-white">⋮</b> (tri pikat) në cepin e sipërm djathtas të Chrome.</p>
+                            </div>
+                            <div class="flex items-start gap-3">
+                                <div class="w-6 h-6 rounded-full bg-[#dca76a] text-black text-[11px] font-black flex items-center justify-center shrink-0 mt-0.5">2</div>
+                                <p class="text-xs text-gray-300">Zgjidhni <b class="text-white">"Install app"</b> ose <b class="text-white">"Add to Home screen"</b>.</p>
+                            </div>
+                            <div class="flex items-start gap-3">
+                                <div class="w-6 h-6 rounded-full bg-[#dca76a] text-black text-[11px] font-black flex items-center justify-center shrink-0 mt-0.5">3</div>
+                                <p class="text-xs text-gray-300">Konfirmoni duke shtypur <b class="text-white">"Install"</b> / <b class="text-white">"Add"</b>.</p>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            } else {
+                container.innerHTML = `
+                    <div class="bg-[#161616] border border-[#222] rounded-2xl p-4">
+                        <h3 class="text-xs font-bold text-[#dca76a] uppercase tracking-wider mb-3 flex items-center gap-2">
+                            <i class="fa-brands fa-chrome"></i> Si ta Instaloni në Kompjuter
+                        </h3>
+                        <div class="space-y-3">
+                            <div class="flex items-start gap-3">
+                                <div class="w-6 h-6 rounded-full bg-[#dca76a] text-black text-[11px] font-black flex items-center justify-center shrink-0 mt-0.5">1</div>
+                                <p class="text-xs text-gray-300">Hapni website-in në <b class="text-white">Google Chrome</b>.</p>
+                            </div>
+                            <div class="flex items-start gap-3">
+                                <div class="w-6 h-6 rounded-full bg-[#dca76a] text-black text-[11px] font-black flex items-center justify-center shrink-0 mt-0.5">2</div>
+                                <p class="text-xs text-gray-300">Shtypni tri pikat <b class="text-white">⋮</b> në këndin e sipërm djathtas.</p>
+                            </div>
+                            <div class="flex items-start gap-3">
+                                <div class="w-6 h-6 rounded-full bg-[#dca76a] text-black text-[11px] font-black flex items-center justify-center shrink-0 mt-0.5">3</div>
+                                <p class="text-xs text-gray-300">Zgjidhni <b class="text-white">"Cast, Save and Share"</b>.</p>
+                            </div>
+                            <div class="flex items-start gap-3">
+                                <div class="w-6 h-6 rounded-full bg-[#dca76a] text-black text-[11px] font-black flex items-center justify-center shrink-0 mt-0.5">4</div>
+                                <p class="text-xs text-gray-300">Klikoni <b class="text-white">"Install Page as App"</b>.</p>
+                            </div>
+                            <div class="flex items-start gap-3">
+                                <div class="w-6 h-6 rounded-full bg-[#dca76a] text-black text-[11px] font-black flex items-center justify-center shrink-0 mt-0.5">5</div>
+                                <p class="text-xs text-gray-300">Shtypni <b class="text-white">"Install"</b> për të përfunduar instalimin.</p>
+                            </div>
+                        </div>
+                        <p class="text-[9px] text-gray-500 mt-3 leading-relaxed">📌 Pas instalimit, aplikacioni do të shfaqet në desktop dhe do të hapet në ekran të plotë, si një aplikacion i vërtetë.</p>
+                    </div>
+                    <div class="bg-[#161616] border border-[#222] rounded-2xl p-4 mt-4">
+                        <p class="text-xs text-gray-400 leading-relaxed">Për ta instaluar në telefon në vend të kompjuterit, hapni këtë faqe në shfletuesin e telefonit tuaj (Safari për iPhone, Chrome për Android) dhe ndiqni udhëzimet përkatëse që shfaqen atje.</p>
+                    </div>
+                `;
+            }
+        },
+
+        // Banner i vogël, i heqshëm, në krye të faqes kryesore — nxit klientët ta instalojnë app-in
+        renderHomeBanner: function() {
+            const wrap = document.getElementById('home-install-banner-wrap');
+            if (!wrap) return;
+
+            const dismissed = localStorage.getItem('laserdesign_install_banner_dismissed') === '1';
+            if (dismissed || this.isAppInstalled()) {
+                wrap.innerHTML = '';
+                return;
+            }
+
+            wrap.innerHTML = `
+                <div class="flex items-center justify-between gap-3 bg-gradient-to-r from-[#1a2a2a] to-[#161616] border border-[#dca76a]/20 rounded-xl px-4 py-3 mb-6">
+                    <div onclick="App.navigate('scr-install')" class="flex items-center gap-3 cursor-pointer flex-grow min-w-0">
+                        <div class="w-9 h-9 rounded-full bg-[#dca76a]/15 flex items-center justify-center shrink-0"><i class="fa-solid fa-mobile-screen-button text-[#dca76a] text-sm"></i></div>
+                        <div class="min-w-0">
+                            <h4 class="text-xs font-bold text-white truncate">Instalo Aplikacionin 📲</h4>
+                            <p class="text-[10px] text-gray-400 truncate">Shto në ekranin kryesor — qasje si app i vërtetë</p>
+                        </div>
+                    </div>
+                    <button onclick="InstallApp.dismissBanner()" class="text-gray-500 hover:text-gray-300 text-xs shrink-0 w-6 h-6 flex items-center justify-center cursor-pointer"><i class="fa-solid fa-xmark"></i></button>
+                </div>
+            `;
+        },
+
+        dismissBanner: function() {
+            localStorage.setItem('laserdesign_install_banner_dismissed', '1');
+            const wrap = document.getElementById('home-install-banner-wrap');
+            if (wrap) wrap.innerHTML = '';
+        }
+    };
+
+    const Admin = {
+        STATUS_OPTIONS: ["NË PROCES", "KONFIRMUAR", "DËRGUAR", "PËRFUNDUAR", "ANULUAR"],
+        STATUS_COLORS: {
+            "NË PROCES": "text-[#dca76a]",
+            "KONFIRMUAR": "text-blue-400",
+            "DËRGUAR": "text-purple-400",
+            "PËRFUNDUAR": "text-green-400",
+            "ANULUAR": "text-red-400"
+        },
+
+        enterPanel: function() {
+            if (state.isAdminAuthenticated) {
+                App.navigate('scr-admin');
+                this.switchTab('products');
+            } else {
+                const err = document.getElementById('admin-login-error');
+                const input = document.getElementById('admin-password-input');
+                if (err) err.innerText = '';
+                if (input) input.value = '';
+                App.navigate('scr-admin-login');
+            }
+        },
+
+        login: function() {
+            const input = document.getElementById('admin-password-input');
+            const err = document.getElementById('admin-login-error');
+            const pass = input.value;
+
+            if (pass === ADMIN_PASSWORD) {
+                state.isAdminAuthenticated = true;
+                err.innerText = '';
+                input.value = '';
+                App.navigate('scr-admin');
+                this.switchTab('products');
+            } else {
+                err.innerText = 'Fjalëkalimi është i pasaktë.';
+                input.value = '';
+                input.focus();
+            }
+        },
+
+        logout: function() {
+            state.isAdminAuthenticated = false;
+            App.navigate('scr-profile', 4);
+        },
+
+        switchTab: function(tab) {
+            const tabs = {
+                products: { btn: 'admin-tab-products-btn', panel: 'admin-tab-products', render: () => this.renderProducts() },
+                categories: { btn: 'admin-tab-categories-btn', panel: 'admin-tab-categories', render: () => this.renderCategories() },
+                orders: { btn: 'admin-tab-orders-btn', panel: 'admin-tab-orders', render: () => this.renderOrders() },
+                offers: { btn: 'admin-tab-offers-btn', panel: 'admin-tab-offers', render: () => this.renderOffers() }
+            };
+
+            Object.keys(tabs).forEach(key => {
+                const btn = document.getElementById(tabs[key].btn);
+                const panel = document.getElementById(tabs[key].panel);
+                if (key === tab) {
+                    btn.className = "flex-1 py-2 px-2 rounded-lg text-[11px] font-bold transition-all bg-[#dca76a] text-black whitespace-nowrap";
+                    panel.classList.remove('hidden');
+                    tabs[key].render();
+                } else {
+                    btn.className = "flex-1 py-2 px-2 rounded-lg text-[11px] font-bold transition-all text-gray-400 whitespace-nowrap";
+                    panel.classList.add('hidden');
+                }
+            });
+        },
+
+        // ---------- PRODUKTET ----------
+
+        renderProducts: function() {
+            const container = document.getElementById('admin-products-list');
+            if (!container) return;
+
+            if (PRODUCTS.length === 0) {
+                container.innerHTML = `<p class="text-center text-[11px] text-gray-600 py-6">Nuk ka produkte akoma.</p>`;
+                return;
+            }
+
+            container.innerHTML = PRODUCTS.map(p => `
+                <div class="bg-[#161616] border border-[#222] p-3 rounded-xl flex items-center gap-3">
+                    <div class="w-12 h-12 bg-[#1f1f1f] rounded-lg overflow-hidden shrink-0 border border-[#333]">
+                        <img src="${p.image}" class="w-full h-full object-cover">
+                    </div>
+                    <div class="flex-grow min-w-0">
+                        <h4 class="text-xs font-bold truncate">${p.title}</h4>
+                        <p class="text-[10px] text-gray-500 capitalize">${p.category} · €${p.price.toFixed(2)}</p>
+                    </div>
+                    <button onclick="Admin.openProductForm(${p.id})" class="w-8 h-8 rounded-lg bg-[#121212] border border-[#222] flex items-center justify-center text-xs text-gray-300 cursor-pointer"><i class="fa-solid fa-pen"></i></button>
+                    <button onclick="Admin.deleteProduct(${p.id})" class="w-8 h-8 rounded-lg bg-[#121212] border border-[#222] flex items-center justify-center text-xs text-red-400 cursor-pointer"><i class="fa-solid fa-trash-can"></i></button>
+                </div>
+            `).join('');
+        },
+
+        addSizeRow: function(sizeName = '', sizePrice = '') {
+            const container = document.getElementById('pf-sizes-container');
+            const row = document.createElement('div');
+            row.className = "flex gap-2 items-center pf-size-row";
+            row.innerHTML = `
+                <input type="text" placeholder="Madhësia (p.sh. 30x30 cm)" class="pf-size-name flex-1 bg-[#121212] border border-[#222] rounded-lg px-2.5 py-2 text-[11px] outline-none focus:border-[#dca76a]/50" value="${sizeName}">
+                <input type="number" step="0.01" placeholder="Çmimi €" class="pf-size-price w-20 bg-[#121212] border border-[#222] rounded-lg px-2.5 py-2 text-[11px] outline-none focus:border-[#dca76a]/50" value="${sizePrice}">
+                <button onclick="this.parentElement.remove()" class="text-gray-500 hover:text-red-400 text-xs px-1 cursor-pointer"><i class="fa-solid fa-trash-can"></i></button>
+            `;
+            container.appendChild(row);
+        },
+
+        openProductForm: function(id = null) {
+            document.getElementById('pf-sizes-container').innerHTML = '';
+            document.getElementById('pf-image-file').value = '';
+            document.getElementById('pf-image-status').innerText = '';
+            document.getElementById('pf-template-image-file').value = '';
+            document.getElementById('pf-template-image-status').innerText = '';
+
+            const categorySelect = document.getElementById('pf-category');
+            categorySelect.innerHTML = CATEGORIES.map(cat => `<option value="${cat.value}">${cat.label}</option>`).join('');
+
+            if (id) {
+                const prod = PRODUCTS.find(p => p.id === id);
+                if (!prod) return;
+                document.getElementById('admin-form-title').innerText = "Redakto Produktin";
+                document.getElementById('pf-id').value = prod.id;
+                document.getElementById('pf-title').value = prod.title;
+                document.getElementById('pf-category').value = prod.category;
+                document.getElementById('pf-image').value = prod.image;
+                document.getElementById('pf-desc').value = prod.desc;
+                document.getElementById('pf-time').value = prod.time;
+
+                if (prod.image) {
+                    document.getElementById('pf-image-preview').src = prod.image;
+                    document.getElementById('pf-image-preview').classList.remove('hidden');
+                    document.getElementById('pf-image-placeholder').classList.add('hidden');
+                } else {
+                    document.getElementById('pf-image-preview').classList.add('hidden');
+                    document.getElementById('pf-image-placeholder').classList.remove('hidden');
+                }
+
+                document.getElementById('pf-template-image').value = prod.templateImage || '';
+                if (prod.templateImage) {
+                    document.getElementById('pf-template-image-preview').src = prod.templateImage;
+                    document.getElementById('pf-template-image-preview').classList.remove('hidden');
+                    document.getElementById('pf-template-image-placeholder').classList.add('hidden');
+                } else {
+                    document.getElementById('pf-template-image-preview').classList.add('hidden');
+                    document.getElementById('pf-template-image-placeholder').classList.remove('hidden');
+                }
+
+                if (prod.sizes && prod.sizes.length > 0) {
+                    prod.sizes.forEach(sz => this.addSizeRow(sz, prod.sizePrices ? prod.sizePrices[sz] : prod.price));
+                } else {
+                    this.addSizeRow("Standard", prod.price);
+                }
+            } else {
+                document.getElementById('admin-form-title').innerText = "Produkt i Ri";
+                document.getElementById('pf-id').value = '';
+                document.getElementById('pf-title').value = '';
+                document.getElementById('pf-category').value = CATEGORIES.length > 0 ? CATEGORIES[0].value : '';
+                document.getElementById('pf-image').value = '';
+                document.getElementById('pf-desc').value = '';
+                document.getElementById('pf-time').value = '';
+                document.getElementById('pf-image-preview').src = '';
+                document.getElementById('pf-image-preview').classList.add('hidden');
+                document.getElementById('pf-image-placeholder').classList.remove('hidden');
+                document.getElementById('pf-template-image').value = '';
+                document.getElementById('pf-template-image-preview').src = '';
+                document.getElementById('pf-template-image-preview').classList.add('hidden');
+                document.getElementById('pf-template-image-placeholder').classList.remove('hidden');
+                this.addSizeRow();
+            }
+
+            document.getElementById('admin-product-form-wrap').classList.remove('hidden');
+        },
+
+        // Merr foton e zgjedhur nga galeria/skedari, e ripërmason (max 900px) dhe e kthen në Base64
+        // që të ruhet direkt te produkti (pa pasur nevojë për link URL apo server).
+        handleImageUpload: function(input) {
+            const file = input.files && input.files[0];
+            if (!file) return;
+
+            const statusEl = document.getElementById('pf-image-status');
+            statusEl.innerText = "Duke ngarkuar foton...";
+
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                const img = new Image();
+                img.onload = function() {
+                    const maxDim = 900;
+                    let { width, height } = img;
+                    if (width > maxDim || height > maxDim) {
+                        if (width > height) {
+                            height = Math.round(height * (maxDim / width));
+                            width = maxDim;
+                        } else {
+                            width = Math.round(width * (maxDim / height));
+                            height = maxDim;
+                        }
+                    }
+                    const canvas = document.createElement('canvas');
+                    canvas.width = width;
+                    canvas.height = height;
+                    const ctx = canvas.getContext('2d');
+                    ctx.drawImage(img, 0, 0, width, height);
+                    const dataUrl = canvas.toDataURL('image/jpeg', 0.82);
+
+                    document.getElementById('pf-image').value = dataUrl;
+                    document.getElementById('pf-image-preview').src = dataUrl;
+                    document.getElementById('pf-image-preview').classList.remove('hidden');
+                    document.getElementById('pf-image-placeholder').classList.add('hidden');
+                    statusEl.innerText = "Foto u ngarkua ✓";
+                };
+                img.src = e.target.result;
+            };
+            reader.onerror = function() {
+                statusEl.innerText = "Gabim gjatë ngarkimit të fotos, provo përsëri.";
+            };
+            reader.readAsDataURL(file);
+        },
+
+        // Njësoj si handleImageUpload, por për foton "template" që përdoret vetëm në editorin e personalizimit
+        handleTemplateImageUpload: function(input) {
+            const file = input.files && input.files[0];
+            if (!file) return;
+
+            const statusEl = document.getElementById('pf-template-image-status');
+            statusEl.innerText = "Duke ngarkuar foton...";
+
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                const img = new Image();
+                img.onload = function() {
+                    const maxDim = 900;
+                    let { width, height } = img;
+                    if (width > maxDim || height > maxDim) {
+                        if (width > height) {
+                            height = Math.round(height * (maxDim / width));
+                            width = maxDim;
+                        } else {
+                            width = Math.round(width * (maxDim / height));
+                            height = maxDim;
+                        }
+                    }
+                    const canvas = document.createElement('canvas');
+                    canvas.width = width;
+                    canvas.height = height;
+                    const ctx = canvas.getContext('2d');
+                    ctx.drawImage(img, 0, 0, width, height);
+                    const dataUrl = canvas.toDataURL('image/jpeg', 0.85);
+
+                    document.getElementById('pf-template-image').value = dataUrl;
+                    document.getElementById('pf-template-image-preview').src = dataUrl;
+                    document.getElementById('pf-template-image-preview').classList.remove('hidden');
+                    document.getElementById('pf-template-image-placeholder').classList.add('hidden');
+                    statusEl.innerText = "Foto u ngarkua ✓";
+                };
+                img.src = e.target.result;
+            };
+            reader.onerror = function() {
+                statusEl.innerText = "Gabim gjatë ngarkimit të fotos, provo përsëri.";
+            };
+            reader.readAsDataURL(file);
+        },
+
+        closeProductForm: function() {
+            document.getElementById('admin-product-form-wrap').classList.add('hidden');
+        },
+
+        saveProduct: function() {
+            const title = document.getElementById('pf-title').value.trim();
+            const category = document.getElementById('pf-category').value;
+            const image = document.getElementById('pf-image').value.trim();
+            const templateImage = document.getElementById('pf-template-image').value.trim();
+            const desc = document.getElementById('pf-desc').value.trim();
+            const time = document.getElementById('pf-time').value.trim();
+            const idValue = document.getElementById('pf-id').value;
+
+            if (!title || !image) {
+                alert("Ju lutem plotësoni të paktën titullin dhe zgjidhni një foto për produktin.");
+                return;
+            }
+
+            const sizes = [];
+            const sizePrices = {};
+            document.querySelectorAll('.pf-size-row').forEach(row => {
+                const name = row.querySelector('.pf-size-name').value.trim();
+                const price = parseFloat(row.querySelector('.pf-size-price').value);
+                if (name && !isNaN(price)) {
+                    sizes.push(name);
+                    sizePrices[name] = price;
+                }
+            });
+
+            if (sizes.length === 0) {
+                alert("Shtoni të paktën një madhësi me çmim.");
+                return;
+            }
+
+            const basePrice = sizePrices[sizes[0]];
+
+            if (idValue) {
+                const prodIndex = PRODUCTS.findIndex(p => p.id === parseInt(idValue));
+                if (prodIndex !== -1) {
+                    PRODUCTS[prodIndex] = {
+                        ...PRODUCTS[prodIndex],
+                        title, category, image, templateImage, desc, time,
+                        sizes, sizePrices, price: basePrice
+                    };
+                }
+            } else {
+                const newId = PRODUCTS.length > 0 ? Math.max(...PRODUCTS.map(p => p.id)) + 1 : 1;
+                PRODUCTS.push({
+                    id: newId, title, category, image, templateImage, desc, time,
+                    sizes, sizePrices, price: basePrice, ratingsList: []
+                });
+            }
+
+            localStorage.setItem('laserdesign_products', JSON.stringify(PRODUCTS));
+            this.closeProductForm();
+            this.renderProducts();
+            App.renderProducts(PRODUCTS);
+            App.renderNewestProducts();
+            App.renderBestSellers();
+            alert("Produkti u ruajt me sukses!");
+        },
+
+        deleteProduct: function(id) {
+            if (!confirm("A jeni i sigurt që doni ta fshini këtë produkt?")) return;
+            PRODUCTS = PRODUCTS.filter(p => p.id !== id);
+            localStorage.setItem('laserdesign_products', JSON.stringify(PRODUCTS));
+            this.renderProducts();
+            App.renderProducts(PRODUCTS);
+            App.renderNewestProducts();
+            App.renderBestSellers();
+        },
+
+        // ---------- KATEGORITË ----------
+
+        renderCategories: function() {
+            const container = document.getElementById('admin-categories-list');
+            if (!container) return;
+
+            if (CATEGORIES.length === 0) {
+                container.innerHTML = `<p class="text-center text-[11px] text-gray-600 py-6">Nuk ka asnjë kategori akoma.</p>`;
+                return;
+            }
+
+            container.innerHTML = CATEGORIES.map(cat => {
+                const productCount = PRODUCTS.filter(p => p.category === cat.value).length;
+                return `
+                    <div class="bg-[#161616] border border-[#222] p-3 rounded-xl flex items-center gap-3">
+                        <div class="w-10 h-10 rounded-lg bg-[#121212] border border-[#222] flex items-center justify-center shrink-0">
+                            <i class="${cat.icon} text-[#dca76a] text-sm"></i>
+                        </div>
+                        <div class="flex-grow min-w-0">
+                            <h4 class="text-xs font-bold truncate">${cat.label}</h4>
+                            <p class="text-[9px] text-gray-500">${productCount} produkt(e)</p>
+                        </div>
+                        <button onclick="Admin.openCategoryForm(${cat.id})" class="w-8 h-8 rounded-lg bg-[#121212] border border-[#222] flex items-center justify-center text-xs text-gray-300 cursor-pointer"><i class="fa-solid fa-pen"></i></button>
+                        <button onclick="Admin.deleteCategory(${cat.id})" class="w-8 h-8 rounded-lg bg-[#121212] border border-[#222] flex items-center justify-center text-xs text-red-400 cursor-pointer"><i class="fa-solid fa-trash-can"></i></button>
+                    </div>
+                `;
+            }).join('');
+        },
+
+        updateIconPreview: function(iconClass) {
+            const preview = document.getElementById('cf-icon-preview');
+            preview.className = (iconClass.trim() || 'fa-solid fa-house') + ' text-[#dca76a] text-lg';
+        },
+
+        openCategoryForm: function(id = null) {
+            if (id) {
+                const cat = CATEGORIES.find(c => c.id === id);
+                if (!cat) return;
+                document.getElementById('admin-category-form-title').innerText = "Redakto Kategorinë";
+                document.getElementById('cf-id').value = cat.id;
+                document.getElementById('cf-label').value = cat.label;
+                document.getElementById('cf-icon').value = cat.icon;
+                this.updateIconPreview(cat.icon);
+            } else {
+                document.getElementById('admin-category-form-title').innerText = "Kategori e Re";
+                document.getElementById('cf-id').value = '';
+                document.getElementById('cf-label').value = '';
+                document.getElementById('cf-icon').value = 'fa-solid fa-tag';
+                this.updateIconPreview('fa-solid fa-tag');
+            }
+
+            document.getElementById('admin-category-form-wrap').classList.remove('hidden');
+        },
+
+        closeCategoryForm: function() {
+            document.getElementById('admin-category-form-wrap').classList.add('hidden');
+        },
+
+        saveCategory: function() {
+            const label = document.getElementById('cf-label').value.trim();
+            const icon = document.getElementById('cf-icon').value.trim() || 'fa-solid fa-tag';
+            const idValue = document.getElementById('cf-id').value;
+
+            if (!label) {
+                alert("Ju lutem shkruani emrin e kategorisë.");
+                return;
+            }
+
+            const value = label.trim().toLowerCase();
+
+            const duplicate = CATEGORIES.find(c => c.value === value && String(c.id) !== String(idValue));
+            if (duplicate) {
+                alert("Ekziston tashmë një kategori me këtë emër.");
+                return;
+            }
+
+            if (idValue) {
+                const idx = CATEGORIES.findIndex(c => c.id === parseInt(idValue));
+                if (idx !== -1) {
+                    const oldValue = CATEGORIES[idx].value;
+                    CATEGORIES[idx] = { ...CATEGORIES[idx], label, icon, value };
+
+                    // Nëse ndryshon emri (dhe kështu identifikuesi), përditëso edhe produktet
+                    // ekzistuese që përdorin këtë kategori, që të mos "humbasin" filtrimin.
+                    if (oldValue !== value) {
+                        PRODUCTS.forEach(p => {
+                            if (p.category === oldValue) p.category = value;
+                        });
+                        localStorage.setItem('laserdesign_products', JSON.stringify(PRODUCTS));
+                    }
+                }
+            } else {
+                const newId = CATEGORIES.length > 0 ? Math.max(...CATEGORIES.map(c => c.id)) + 1 : 1;
+                CATEGORIES.push({ id: newId, label, icon, value });
+            }
+
+            localStorage.setItem('laserdesign_categories', JSON.stringify(CATEGORIES));
+            this.closeCategoryForm();
+            this.renderCategories();
+            App.renderCategories();
+            App.renderProducts(PRODUCTS);
+            App.renderNewestProducts();
+            App.renderBestSellers();
+            alert("Kategoria u ruajt me sukses!");
+        },
+
+        deleteCategory: function(id) {
+            const cat = CATEGORIES.find(c => c.id === id);
+            if (!cat) return;
+
+            const productCount = PRODUCTS.filter(p => p.category === cat.value).length;
+            const warning = productCount > 0
+                ? `Kjo kategori përdoret nga ${productCount} produkt(e). Nëse e fshini, ato produkte do të mbeten pa kategori të dukshme te filtrat. Vazhdo?`
+                : "A jeni i sigurt që doni ta fshini këtë kategori?";
+
+            if (!confirm(warning)) return;
+
+            CATEGORIES = CATEGORIES.filter(c => c.id !== id);
+            localStorage.setItem('laserdesign_categories', JSON.stringify(CATEGORIES));
+            this.renderCategories();
+            App.renderCategories();
+        },
+
+        // ---------- POROSITË ----------
+
+        renderOrders: function() {
+            const savedOrders = localStorage.getItem('laserdesign_orders');
+            const orders = savedOrders ? JSON.parse(savedOrders) : [];
+            const container = document.getElementById('admin-orders-list');
+            if (!container) return;
+
+            if (orders.length === 0) {
+                container.innerHTML = `<p class="text-center text-[11px] text-gray-600 py-6">Nuk ka porosi akoma.</p>`;
+                return;
+            }
+
+            container.innerHTML = orders.map(o => `
+                <div class="bg-[#161616] border border-[#222] p-3.5 rounded-xl">
+                    <div class="flex justify-between items-center mb-1.5">
+                        <span class="text-xs font-bold text-gray-200">Porosia #${o.id}</span>
+                        <button onclick="Admin.deleteOrder(${o.id})" class="text-gray-500 hover:text-red-400 text-xs cursor-pointer"><i class="fa-solid fa-trash-can"></i></button>
+                    </div>
+                    <div class="text-[10px] text-gray-500 mb-2">Data: ${o.date}</div>
+                    <div class="text-xs text-gray-400 mb-2">${o.items}</div>
+                    <div class="text-xs font-bold text-[#dca76a] mb-3 pt-2 border-t border-[#222]/60">Totali: €${o.total.toFixed(2)}</div>
+                    <select onchange="Admin.updateOrderStatus(${o.id}, this.value)" class="w-full bg-[#121212] border border-[#222] rounded-lg px-2.5 py-2 text-[11px] outline-none focus:border-[#dca76a]/50 font-bold ${o.statusColor}">
+                        ${this.STATUS_OPTIONS.map(s => `<option value="${s}" ${s === o.status ? 'selected' : ''}>${s}</option>`).join('')}
+                    </select>
+                </div>
+            `).join('');
+        },
+
+        updateOrderStatus: function(id, newStatus) {
+            const savedOrders = localStorage.getItem('laserdesign_orders');
+            let orders = savedOrders ? JSON.parse(savedOrders) : [];
+            const order = orders.find(o => o.id === id);
+            if (!order) return;
+
+            order.status = newStatus;
+            order.statusColor = this.STATUS_COLORS[newStatus] || "text-gray-400";
+            localStorage.setItem('laserdesign_orders', JSON.stringify(orders));
+
+            this.renderOrders();
+            Orders.render();
+        },
+
+        deleteOrder: function(id) {
+            if (!confirm("A jeni i sigurt që doni ta fshini këtë porosi?")) return;
+            const savedOrders = localStorage.getItem('laserdesign_orders');
+            let orders = savedOrders ? JSON.parse(savedOrders) : [];
+            orders = orders.filter(o => o.id !== id);
+            localStorage.setItem('laserdesign_orders', JSON.stringify(orders));
+
+            this.renderOrders();
+            Orders.render();
+        },
+
+        // ---------- OFERTA & LAJME ----------
+
+        renderOffers: function() {
+            const container = document.getElementById('admin-offers-list');
+            if (!container) return;
+
+            if (OFFERS.length === 0) {
+                container.innerHTML = `<p class="text-center text-[11px] text-gray-600 py-6">Nuk ka oferta apo lajme akoma.</p>`;
+                return;
+            }
+
+            container.innerHTML = OFFERS.map(o => {
+                const isOffer = o.type === "ofertë";
+                return `
+                    <div class="bg-[#161616] border border-[#222] p-3 rounded-xl flex items-center gap-3">
+                        <div class="w-12 h-12 bg-[#1f1f1f] rounded-lg overflow-hidden shrink-0 border border-[#333]">
+                            <img src="${o.image}" class="w-full h-full object-cover">
+                        </div>
+                        <div class="flex-grow min-w-0">
+                            <div class="flex items-center gap-1.5">
+                                <span class="text-[9px] font-bold uppercase tracking-wider ${isOffer ? 'text-[#dca76a]' : 'text-gray-500'}">${isOffer ? 'Ofertë' : 'Lajm'}</span>
+                                ${o.couponCode ? `<span class="text-[9px] text-gray-500">· ${o.couponCode}</span>` : ''}
+                            </div>
+                            <h4 class="text-xs font-bold truncate">${o.title}</h4>
+                        </div>
+                        <button onclick="Admin.openOfferForm(${o.id})" class="w-8 h-8 rounded-lg bg-[#121212] border border-[#222] flex items-center justify-center text-xs text-gray-300 cursor-pointer"><i class="fa-solid fa-pen"></i></button>
+                        <button onclick="Admin.deleteOffer(${o.id})" class="w-8 h-8 rounded-lg bg-[#121212] border border-[#222] flex items-center justify-center text-xs text-red-400 cursor-pointer"><i class="fa-solid fa-trash-can"></i></button>
+                    </div>
+                `;
+            }).join('');
+        },
+
+        openOfferForm: function(id = null) {
+            if (id) {
+                const offer = OFFERS.find(o => o.id === id);
+                if (!offer) return;
+                document.getElementById('admin-offer-form-title').innerText = "Redakto Ofertën / Lajmin";
+                document.getElementById('of-id').value = offer.id;
+                document.getElementById('of-type').value = offer.type;
+                document.getElementById('of-tag').value = offer.tag;
+                document.getElementById('of-title').value = offer.title;
+                document.getElementById('of-desc').value = offer.desc;
+                document.getElementById('of-image').value = offer.image;
+                document.getElementById('of-date').value = offer.date;
+                document.getElementById('of-coupon').value = offer.couponCode || '';
+            } else {
+                document.getElementById('admin-offer-form-title').innerText = "Ofertë / Lajm i Ri";
+                document.getElementById('of-id').value = '';
+                document.getElementById('of-type').value = 'ofertë';
+                document.getElementById('of-tag').value = '';
+                document.getElementById('of-title').value = '';
+                document.getElementById('of-desc').value = '';
+                document.getElementById('of-image').value = '';
+                document.getElementById('of-date').value = '';
+                document.getElementById('of-coupon').value = '';
+            }
+
+            document.getElementById('admin-offer-form-wrap').classList.remove('hidden');
+        },
+
+        closeOfferForm: function() {
+            document.getElementById('admin-offer-form-wrap').classList.add('hidden');
+        },
+
+        saveOffer: function() {
+            const type = document.getElementById('of-type').value;
+            const tag = document.getElementById('of-tag').value.trim();
+            const title = document.getElementById('of-title').value.trim();
+            const desc = document.getElementById('of-desc').value.trim();
+            const image = document.getElementById('of-image').value.trim();
+            const date = document.getElementById('of-date').value.trim();
+            const couponCode = document.getElementById('of-coupon').value.trim().toUpperCase();
+            const idValue = document.getElementById('of-id').value;
+
+            if (!title || !image) {
+                alert("Ju lutem plotësoni të paktën titullin dhe lidhjen e imazhit.");
+                return;
+            }
+
+            const offerData = { type, tag, title, desc, image, date, couponCode: couponCode || null };
+
+            if (idValue) {
+                const idx = OFFERS.findIndex(o => o.id === parseInt(idValue));
+                if (idx !== -1) {
+                    OFFERS[idx] = { ...OFFERS[idx], ...offerData };
+                }
+            } else {
+                const newId = OFFERS.length > 0 ? Math.max(...OFFERS.map(o => o.id)) + 1 : 1;
+                OFFERS.push({ id: newId, ...offerData });
+            }
+
+            localStorage.setItem('laserdesign_offers', JSON.stringify(OFFERS));
+            this.closeOfferForm();
+            this.renderOffers();
+            App.renderOffers();
+            alert("Oferta/Lajmi u ruajt me sukses!");
+        },
+
+        deleteOffer: function(id) {
+            if (!confirm("A jeni i sigurt që doni ta fshini këtë ofertë/lajm?")) return;
+            OFFERS = OFFERS.filter(o => o.id !== id);
+            localStorage.setItem('laserdesign_offers', JSON.stringify(OFFERS));
+            this.renderOffers();
+            App.renderOffers();
+        }
+    };
+
+    window.onload = function() {
+        Cart.updateUI();
+        Orders.render();
+        InstallApp.init();
+    };
+</script>
+
+</body>
+</html>
