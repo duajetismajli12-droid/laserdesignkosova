@@ -217,17 +217,6 @@
                 </div>
                 <div id="home-categories-row" class="flex gap-3 overflow-x-auto no-scrollbar pb-1 lg:grid lg:grid-cols-4 lg:overflow-visible"></div>
             </div>
-            <div class="mb-6">
-                <div class="flex justify-between items-center gap-3 mb-3">
-                    <div>
-                        <h3 class="text-xs font-bold tracking-widest text-gray-400 uppercase">🖼 Galeria e Punimeve</h3>
-                        <p class="text-[10px] text-gray-500 mt-1">Vetëm për inspirim</p>
-                    </div>
-                    <button onclick="App.openGalleryScreen()" class="text-[11px] text-[#dca76a] font-medium shrink-0">Shiko të gjitha</button>
-                </div>
-                <p class="text-[11px] text-gray-500 mb-3 leading-relaxed">Shikoni disa nga punimet tona të mëparshme. Artikujt e galerisë nuk porositen direkt — shtypni <b class="text-[#dca76a]">Customize</b> për ta nisur personalizimin ose hapni galerinë e plotë për preview më të madh.</p>
-                <div id="home-gallery-grid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-2 xl:grid-cols-4 gap-4"></div>
-            </div>
             <div>
                 <h3 class="text-xs font-bold tracking-widest text-gray-400 uppercase mb-3">Produktet</h3>
                 <div id="home-products-grid" class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4"></div>
@@ -861,9 +850,9 @@
 
     </div> 
     
-    <nav id="app-navbar" class="absolute bottom-0 left-0 w-full bg-[#0c0c0c]/95 backdrop-blur-md border-t border-[#222] py-3 px-2 flex justify-around items-center z-50">
+    <nav id="app-navbar" class="absolute bottom-0 left-0 w-full bg-[#0c0c0c]/95 backdrop-blur-md border-t border-[#222] py-3 px-2 flex justify-around items-center z-50 gap-1">
         <button onclick="App.navigate('scr-home', 0)" class="nav-btn flex flex-col items-center gap-1 w-1/5 text-gray-500 transition-all"><i class="fa-solid fa-house text-lg"></i><span class="text-[9px] font-medium">Kreu</span></button>
-        <button id="nav-cart-btn" onclick="App.navigate('scr-cart', 1)" class="nav-btn flex flex-col items-center gap-1 w-1/5 text-gray-500 transition-all"><i id="navbar-cart-icon" class="fa-solid fa-bag-shopping text-lg"></i><span class="text-[9px] font-medium">Shporta</span></button>
+        <button onclick="App.openGalleryScreen()" class="nav-btn flex flex-col items-center gap-1 w-1/5 text-gray-500 transition-all"><i class="fa-solid fa-images text-lg"></i><span class="text-[9px] font-medium">Galeria</span></button>
         <button onclick="CustomCraft.startGeneric()" class="nav-btn flex flex-col items-center w-1/5 transition-all"><div class="w-9 h-9 bg-[#dca76a] text-black rounded-full flex items-center justify-center -mt-6 shadow-md shadow-[#dca76a]/20"><i class="fa-solid fa-plus text-base"></i></div><span class="text-[9px] font-medium text-gray-500 mt-1">Krijo</span></button>
         <button onclick="App.navigate('scr-orders', 3)" class="nav-btn flex flex-col items-center gap-1 w-1/5 text-gray-500 transition-all"><i class="fa-solid fa-list-check text-lg"></i><span class="text-[9px] font-medium">Porositë</span></button>
         <button onclick="App.navigate('scr-profile', 4)" class="nav-btn flex flex-col items-center gap-1 w-1/5 text-gray-500 transition-all"><i class="fa-solid fa-user text-lg"></i><span class="text-[9px] font-medium">Profili</span></button>
@@ -1254,7 +1243,7 @@
 
         openGalleryScreen: function() {
             this.renderFullGallery();
-            this.navigate('scr-gallery', -1);
+            this.navigate('scr-gallery', 1);
         },
 
         renderCategories: function() {
@@ -1582,7 +1571,7 @@
         },
 
         useOfferCoupon: function(code) {
-            this.navigate('scr-cart', 1);
+            this.navigate('scr-cart');
             const input = document.getElementById('coupon-input');
             if (input) {
                 input.value = code;
@@ -2326,7 +2315,7 @@
             customCraftState.imgObj = null;
             this.draw();
 
-            App.navigate('scr-cart', 1);
+            App.navigate('scr-cart');
         }
     };
 
@@ -3711,5 +3700,5 @@
     };
 </script>
 
-<script>(function(){function c(){var b=a.contentDocument||a.contentWindow.document;if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'a1ab7b2f0ef8b8ab',t:'MTc4Mzk3OTE5NA=='};var a=document.createElement('script');a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>
+<script>(function(){function c(){var b=a.contentDocument||a.contentWindow.document;if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'a1ab8cb22bdad0e7',t:'MTc4Mzk3OTkxMg=='};var a=document.createElement('script');a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>
 </html>
