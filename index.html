@@ -245,11 +245,16 @@
                 <div class="relative overflow-hidden border border-dashed border-[#dca76a]/30 rounded-xl bg-[#1a1a1a]">
                     <canvas id="custom-canvas" width="280" height="280" class="block cursor-move" style="touch-action: none;"></canvas>
                 </div>
-                <p class="text-[9px] text-gray-500 text-center mt-1.5 leading-tight">Preku dhe zvarrit tekstin ose foton për t'i lëvizur. Përdor sliderat poshtë për t'i zmadhuar/zvogëluar.</p>
+                <p class="text-[9px] text-gray-500 text-center mt-1.5 leading-tight">Preku dhe zvarrit tekstin, foton ose modelin e produktit për t'i lëvizur. Përdor sliderat poshtë për t'i zmadhuar/zvogëluar.</p>
                 
                 <div class="w-full flex items-center gap-2 mt-2 px-2" id="text-scale-control-container">
                     <span class="text-[10px] text-gray-400 font-bold uppercase shrink-0">Teksti:</span>
                     <input type="range" id="text-scale-slider" min="0.6" max="2.5" step="0.1" value="1.0" oninput="CustomCraft.updateTextScale(this.value)" class="w-full h-1 bg-[#222] rounded-lg appearance-none cursor-pointer accent-[#dca76a]">
+                </div>
+
+                <div class="w-full flex items-center gap-2 mt-2 px-2 hidden" id="template-scale-control-container">
+                    <span class="text-[10px] text-gray-400 font-bold uppercase shrink-0">Produkti:</span>
+                    <input type="range" id="template-scale-slider" min="0.7" max="1.8" step="0.05" value="1.0" oninput="CustomCraft.updateTemplateScale(this.value)" class="w-full h-1 bg-[#222] rounded-lg appearance-none cursor-pointer accent-[#dca76a]">
                 </div>
 
                 <div class="w-full flex items-center gap-2 mt-2 px-2 hidden" id="scale-control-container">
@@ -1050,7 +1055,10 @@
         imgX: 140,
         imgY: 140,
         imgScale: 0.5,
-        dragTarget: null, // 'text', 'image', ose null — çfarë po lëvizet aktualisht me gisht/mausin
+        templateX: 140,
+        templateY: 140,
+        templateScale: 1.0,
+        dragTarget: null, // 'text', 'image', 'template' ose null — çfarë po lëvizet aktualisht me gisht/mausin
         startX: 0,
         startY: 0
     };
@@ -1815,6 +1823,31 @@
             };
         },
 
+        getTemplateBaseSize: function() {
+            if (!customCraftState.templateImg) return null;
+            const maxW = 240;
+            const maxH = 240;
+            const ratio = Math.min(maxW / customCraftState.templateImg.width, maxH / customCraftState.templateImg.height);
+            return {
+                width: customCraftState.templateImg.width * ratio,
+                height: customCraftState.templateImg.height * ratio
+            };
+        },
+
+        getTemplateBounds: function() {
+            if (customCraftState.mode !== 'product' || !customCraftState.templateImg) return null;
+            const base = this.getTemplateBaseSize();
+            if (!base) return null;
+            const w = base.width * customCraftState.templateScale;
+            const h = base.height * customCraftState.templateScale;
+            return {
+                left: customCraftState.templateX - w / 2,
+                right: customCraftState.templateX + w / 2,
+                top: customCraftState.templateY - h / 2,
+                bottom: customCraftState.templateY + h / 2
+            };
+        },
+
         dragStart: function(x, y) {
             // Teksti vizatohet mbi foton, kështu që kontrollohet i pari (më "sipër" vizualisht)
             const textBounds = this.getTextBounds();
@@ -1833,6 +1866,14 @@
                 return;
             }
 
+            const templateBounds = this.getTemplateBounds();
+            if (templateBounds && x >= templateBounds.left && x <= templateBounds.right && y >= templateBounds.top && y <= templateBounds.bottom) {
+                customCraftState.dragTarget = 'template';
+                customCraftState.startX = x - customCraftState.templateX;
+                customCraftState.startY = y - customCraftState.templateY;
+                return;
+            }
+
             customCraftState.dragTarget = null;
         },
 
@@ -1845,6 +1886,9 @@
             } else if (customCraftState.dragTarget === 'image') {
                 customCraftState.imgX = x - customCraftState.startX;
                 customCraftState.imgY = y - customCraftState.startY;
+            } else if (customCraftState.dragTarget === 'template') {
+                customCraftState.templateX = x - customCraftState.startX;
+                customCraftState.templateY = y - customCraftState.startY;
             }
 
             this.draw();
@@ -1856,6 +1900,11 @@
 
         updateImageScale: function(val) {
             customCraftState.imgScale = parseFloat(val);
+            this.draw();
+        },
+
+        updateTemplateScale: function(val) {
+            customCraftState.templateScale = parseFloat(val);
             this.draw();
         },
 
@@ -1920,6 +1969,9 @@
             customCraftState.imgX = 140;
             customCraftState.imgY = 140;
             customCraftState.imgScale = 0.5;
+            customCraftState.templateX = 140;
+            customCraftState.templateY = 140;
+            customCraftState.templateScale = 1.0;
             customCraftState.templateImg = null;
 
             const textInput = document.getElementById('custom-canvas-text');
@@ -1933,6 +1985,10 @@
             }
             const scaleContainer = document.getElementById('scale-control-container');
             if (scaleContainer) scaleContainer.classList.add('hidden');
+            const templateScaleContainer = document.getElementById('template-scale-control-container');
+            if (templateScaleContainer) templateScaleContainer.classList.remove('hidden');
+            const templateScaleSlider = document.getElementById('template-scale-slider');
+            if (templateScaleSlider) templateScaleSlider.value = 1.0;
 
             this.updateUIForProduct(prod);
 
@@ -1979,6 +2035,9 @@
             customCraftState.imgX = 140;
             customCraftState.imgY = 140;
             customCraftState.imgScale = 0.5;
+            customCraftState.templateX = 140;
+            customCraftState.templateY = 140;
+            customCraftState.templateScale = 1.0;
 
             const shapeSection = document.getElementById('custom-shape-section');
             if (shapeSection) shapeSection.classList.add('hidden');
@@ -2002,6 +2061,8 @@
             }
             const scaleContainer = document.getElementById('scale-control-container');
             if (scaleContainer) scaleContainer.classList.add('hidden');
+            const templateScaleContainer = document.getElementById('template-scale-control-container');
+            if (templateScaleContainer) templateScaleContainer.classList.add('hidden');
 
             const img = new Image();
             img.onload = () => {
@@ -2030,6 +2091,9 @@
             customCraftState.imgX = 140;
             customCraftState.imgY = 140;
             customCraftState.imgScale = 0.5;
+            customCraftState.templateX = 140;
+            customCraftState.templateY = 140;
+            customCraftState.templateScale = 1.0;
 
             const shapeSection = document.getElementById('custom-shape-section');
             if (shapeSection) shapeSection.classList.remove('hidden');
@@ -2058,6 +2122,8 @@
             }
             const scaleContainer = document.getElementById('scale-control-container');
             if (scaleContainer) scaleContainer.classList.add('hidden');
+            const templateScaleContainer = document.getElementById('template-scale-control-container');
+            if (templateScaleContainer) templateScaleContainer.classList.add('hidden');
 
             App.navigate('scr-create', 2);
         },
@@ -2081,6 +2147,12 @@
             // Nëse shton tekst (+2 euro)
             if (customCraftState.text.trim().length > 0) {
                 basePrice += 2.00;
+            }
+
+            // Në modin e produktit, zmadhimi i fotos bazë të produktit shton çmim shtesë
+            if (customCraftState.mode === "product" && customCraftState.templateScale > 1.0) {
+                const templateExtraPrice = Math.ceil((customCraftState.templateScale - 1.0) / 0.25);
+                basePrice += Math.max(0, templateExtraPrice);
             }
 
             // Nëse shton fotografi (+5 euro start, dhe shtohen nga 1 euro sa më e madhe shkalla/scale)
@@ -2119,16 +2191,19 @@
             if (!this.ctx) return;
             this.ctx.clearRect(0, 0, 280, 280);
 
-            if (customCraftState.mode === "product" || customCraftState.mode === "gallery") {
-                // ---- MODI "PRODUKT": foto bazë (template) e produktit + dizajni i klientit sipër ----
+            if (customCraftState.mode === "product") {
+                // ---- MODI "PRODUKT": fotoja e produktit ngarkohet automatikisht dhe mund të lëvizet/zmadhsohet ----
+
+                this.ctx.fillStyle = "#1a1a1a";
+                this.ctx.fillRect(0, 0, 280, 280);
 
                 if (customCraftState.templateImg) {
-                    // Fotoja template mbulon gjithë canvas-in, si sfond mbi të cilin klienti pozicionon dizajnin e vet
-                    this.ctx.drawImage(customCraftState.templateImg, 0, 0, 280, 280);
-                } else {
-                    this.ctx.fillStyle = "#1a1a1a";
-                    this.ctx.fillRect(0, 0, 280, 280);
+                    const base = this.getTemplateBaseSize();
+                    const w = base.width * customCraftState.templateScale;
+                    const h = base.height * customCraftState.templateScale;
+                    this.ctx.drawImage(customCraftState.templateImg, customCraftState.templateX - w / 2, customCraftState.templateY - h / 2, w, h);
                 }
+
 
                 // Vizato imazhin/logon e klientit nëse ekziston (i lëvizshëm dhe i zmadhueshëm me slider)
                 if (customCraftState.imgObj) {
@@ -2161,6 +2236,48 @@
 
                 const currentPriceProduct = this.calculateDynamicPrice();
                 document.getElementById('custom-submit-btn').innerHTML = `SHTO KRIJIMIN NË SHPORTË (€${currentPriceProduct.toFixed(2)}) <i class="fa-solid fa-cart-plus"></i>`;
+                return;
+            }
+
+            if (customCraftState.mode === "gallery") {
+                // ---- MODI "GALERI": foto bazë (template) e galerisë + dizajni i klientit sipër ----
+
+                if (customCraftState.templateImg) {
+                    this.ctx.drawImage(customCraftState.templateImg, 0, 0, 280, 280);
+                } else {
+                    this.ctx.fillStyle = "#1a1a1a";
+                    this.ctx.fillRect(0, 0, 280, 280);
+                }
+
+                if (customCraftState.imgObj) {
+                    const w = customCraftState.imgObj.width * customCraftState.imgScale;
+                    const h = customCraftState.imgObj.height * customCraftState.imgScale;
+
+                    this.ctx.save();
+                    this.ctx.globalCompositeOperation = "multiply";
+                    this.ctx.globalAlpha = 0.85;
+                    this.ctx.drawImage(customCraftState.imgObj, customCraftState.imgX - w/2, customCraftState.imgY - h/2, w, h);
+                    this.ctx.restore();
+                }
+
+                if (customCraftState.text) {
+                    const fontSize = Math.round(16 * customCraftState.textScale);
+                    this.ctx.fillStyle = "#3a2512";
+                    this.ctx.font = `bold ${fontSize}px sans-serif`;
+                    this.ctx.textAlign = "center";
+                    this.ctx.shadowColor = "rgba(0,0,0,0.3)";
+                    this.ctx.shadowBlur = 1;
+                    this.ctx.shadowOffsetX = 1;
+                    this.ctx.shadowOffsetY = 1;
+                    this.ctx.fillText(customCraftState.text, customCraftState.textX, customCraftState.textY);
+                }
+
+                this.ctx.strokeStyle = "#402d1a";
+                this.ctx.lineWidth = 5;
+                this.ctx.strokeRect(2.5, 2.5, 275, 275);
+
+                const currentPriceGallery = this.calculateDynamicPrice();
+                document.getElementById('custom-submit-btn').innerHTML = `SHTO KRIJIMIN NË SHPORTË (€${currentPriceGallery.toFixed(2)}) <i class="fa-solid fa-cart-plus"></i>`;
                 return;
             }
 
@@ -2241,7 +2358,8 @@
         },
 
         addToCart: function() {
-            if (!customCraftState.imgObj && !customCraftState.text.trim()) {
+            const hasTemplateCustomization = (customCraftState.mode === "product" || customCraftState.mode === "gallery") && customCraftState.templateImg;
+            if (!customCraftState.imgObj && !customCraftState.text.trim() && !hasTemplateCustomization) {
                 alert("Ju lutem ngarkoni një foto ose shkruani një tekst përpara se ta shtoni në shportë!");
                 return;
             }
@@ -2261,7 +2379,7 @@
                     chosenSize: customCraftState.size,
                     isCustom: true,
                     baseProductId: customCraftState.productId,
-                    ideaDetails: customCraftState.text || "Vetëm foto pa tekst",
+                    ideaDetails: customCraftState.text || (customCraftState.templateScale !== 1 || customCraftState.templateX !== 140 || customCraftState.templateY !== 140 ? "Foto e produktit e ripozicionuar" : "Vetëm template i produktit"),
                     fileDetails: customCraftState.imgObj ? "Foto e pozicionuar" : "Asnjë",
                     originalImage: customCraftState.originalImageData,
                     previewImage: canvasDataUrl,
@@ -3700,5 +3818,5 @@
     };
 </script>
 
-<script>(function(){function c(){var b=a.contentDocument||a.contentWindow.document;if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'a1ab8cb22bdad0e7',t:'MTc4Mzk3OTkxMg=='};var a=document.createElement('script');a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>
+<script>(function(){function c(){var b=a.contentDocument||a.contentWindow.document;if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'a1ab94fa787fd0e2',t:'MTc4Mzk4MDI1MQ=='};var a=document.createElement('script');a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>
 </html>
