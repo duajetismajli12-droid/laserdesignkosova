@@ -276,9 +276,18 @@
                         <button onclick="CustomCraft.selectShape(this, 'Tabela')" class="custom-shape-btn bg-[#121212] text-gray-400 border border-[#222] p-2 rounded-xl text-[11px] font-medium transition-all cursor-pointer text-center">
                             <i class="fa-solid fa-rectangle-list text-base block mb-0.5"></i> Tabela
                         </button>
-                        <button onclick="CustomCraft.selectShape(this, 'Natyrale')" class="custom-shape-btn bg-[#121212] text-gray-400 border border-[#222] p-2 rounded-xl text-[11px] font-medium transition-all cursor-pointer text-center">
-                            <i class="fa-solid fa-tree text-base block mb-0.5"></i> Natyrale
+                        <button onclick="CustomCraft.selectShape(this, 'Microfiber cleaning cloth')" class="custom-shape-btn bg-[#121212] text-gray-400 border border-[#222] p-2 rounded-xl text-[11px] font-medium transition-all cursor-pointer text-center">
+                            <i class="fa-solid fa-rug text-base block mb-0.5"></i> Microfiber cleaning cloth
                         </button>
+                    </div>
+                </div>
+
+                <div id="custom-cloth-color-section" class="hidden">
+                    <label class="text-[11px] font-bold uppercase tracking-wider text-gray-400 block mb-2">1A. Ngjyra e Pecetës:</label>
+                    <div class="grid grid-cols-3 gap-2">
+                        <button onclick="CustomCraft.selectClothColor(this, 'Yellow')" data-color-name="Yellow" class="custom-cloth-color-btn bg-[#dca76a] text-black border border-[#dca76a] py-2.5 rounded-xl text-[11px] font-bold transition-all cursor-pointer text-center">Yellow</button>
+                        <button onclick="CustomCraft.selectClothColor(this, 'Grey')" data-color-name="Grey" class="custom-cloth-color-btn bg-[#121212] text-gray-400 border border-[#222] py-2.5 rounded-xl text-[11px] font-medium transition-all cursor-pointer text-center">Grey</button>
+                        <button onclick="CustomCraft.selectClothColor(this, 'Blue')" data-color-name="Blue" class="custom-cloth-color-btn bg-[#121212] text-gray-400 border border-[#222] py-2.5 rounded-xl text-[11px] font-medium transition-all cursor-pointer text-center">Blue</button>
                     </div>
                 </div>
 
@@ -1045,6 +1054,7 @@
         sourceLabel: "",
         templateImg: null, // Fotoja bazë (template) e produktit/galerisë, ngarkuar automatikisht në canvas
         shape: "Rreth",
+        clothColor: "Yellow",
         size: "30x30 cm",
         text: "",
         textX: 140,
@@ -1924,7 +1934,36 @@
             });
             btn.className = "custom-shape-btn bg-[#dca76a] text-black border border-[#dca76a] p-2 rounded-xl text-[11px] font-bold transition-all cursor-pointer text-center";
             customCraftState.shape = shapeValue;
+            this.toggleClothColorSection(shapeValue === 'Microfiber cleaning cloth');
             this.draw();
+        },
+
+        toggleClothColorSection: function(show) {
+            const section = document.getElementById('custom-cloth-color-section');
+            if (!section) return;
+            if (show) {
+                section.classList.remove('hidden');
+            } else {
+                section.classList.add('hidden');
+            }
+        },
+
+        selectClothColor: function(btn, colorName) {
+            document.querySelectorAll('.custom-cloth-color-btn').forEach(b => {
+                b.className = "custom-cloth-color-btn bg-[#121212] text-gray-400 border border-[#222] py-2.5 rounded-xl text-[11px] font-medium transition-all cursor-pointer text-center";
+            });
+            btn.className = "custom-cloth-color-btn bg-[#dca76a] text-black border border-[#dca76a] py-2.5 rounded-xl text-[11px] font-bold transition-all cursor-pointer text-center";
+            customCraftState.clothColor = colorName;
+            this.draw();
+        },
+
+        getClothColorHex: function() {
+            const colors = {
+                Yellow: '#f1c84b',
+                Grey: '#9ca3af',
+                Blue: '#60a5fa'
+            };
+            return colors[customCraftState.clothColor] || colors.Yellow;
         },
 
         selectSize: function(btn, sizeValue) {
@@ -2009,6 +2048,7 @@
         updateUIForProduct: function(prod) {
             const shapeSection = document.getElementById('custom-shape-section');
             if (shapeSection) shapeSection.classList.add('hidden');
+            this.toggleClothColorSection(false);
 
             const modeLabel = document.getElementById('custom-mode-label');
             if (modeLabel) {
@@ -2041,6 +2081,7 @@
 
             const shapeSection = document.getElementById('custom-shape-section');
             if (shapeSection) shapeSection.classList.add('hidden');
+            this.toggleClothColorSection(false);
 
             const modeLabel = document.getElementById('custom-mode-label');
             if (modeLabel) {
@@ -2081,6 +2122,7 @@
             customCraftState.sourceLabel = "";
             customCraftState.templateImg = null;
             customCraftState.shape = "Rreth";
+            customCraftState.clothColor = "Yellow";
             customCraftState.size = "30x30 cm";
             customCraftState.text = "";
             customCraftState.textX = 140;
@@ -2102,6 +2144,12 @@
                     ? "custom-shape-btn bg-[#dca76a] text-black border border-[#dca76a] p-2 rounded-xl text-[11px] font-bold transition-all cursor-pointer text-center"
                     : "custom-shape-btn bg-[#121212] text-gray-400 border border-[#222] p-2 rounded-xl text-[11px] font-medium transition-all cursor-pointer text-center";
             });
+            document.querySelectorAll('.custom-cloth-color-btn').forEach((b, idx) => {
+                b.className = idx === 0
+                    ? "custom-cloth-color-btn bg-[#dca76a] text-black border border-[#dca76a] py-2.5 rounded-xl text-[11px] font-bold transition-all cursor-pointer text-center"
+                    : "custom-cloth-color-btn bg-[#121212] text-gray-400 border border-[#222] py-2.5 rounded-xl text-[11px] font-medium transition-all cursor-pointer text-center";
+            });
+            this.toggleClothColorSection(false);
 
             const modeLabel = document.getElementById('custom-mode-label');
             if (modeLabel) {
@@ -2297,6 +2345,8 @@
                 this.ctx.rect(20, 20, 240, 240);
             } else if (customCraftState.shape === "Tabela") {
                 this.ctx.rect(10, 40, 260, 200);
+            } else if (customCraftState.shape === "Microfiber cleaning cloth") {
+                this.ctx.roundRect(28, 48, 224, 184, 18);
             } else { // Natyrale (Formë e harkuar organike)
                 this.ctx.moveTo(30, 60);
                 this.ctx.quadraticCurveTo(140, 20, 250, 50);
@@ -2306,17 +2356,31 @@
             }
             this.ctx.clip();
 
-            // Sfondi i brendshëm i drurit të prerë
-            this.ctx.fillStyle = "#cd9a62"; 
-            this.ctx.fillRect(0, 0, 280, 280);
+            // Sfondi i brendshëm sipas modelit të zgjedhur
+            if (customCraftState.shape === "Microfiber cleaning cloth") {
+                this.ctx.fillStyle = this.getClothColorHex();
+                this.ctx.fillRect(0, 0, 280, 280);
 
-            // Vijat unazore të drurit simulim
-            this.ctx.strokeStyle = "#b5834c";
-            this.ctx.lineWidth = 2;
-            for(let r = 30; r < 350; r += 25) {
-                this.ctx.beginPath();
-                this.ctx.arc(140, 140, r, 0, Math.PI * 2);
-                this.ctx.stroke();
+                this.ctx.strokeStyle = "rgba(255,255,255,0.18)";
+                this.ctx.lineWidth = 1.5;
+                for (let i = 0; i < 14; i++) {
+                    this.ctx.beginPath();
+                    this.ctx.moveTo(25, 58 + (i * 12));
+                    this.ctx.lineTo(255, 48 + (i * 12));
+                    this.ctx.stroke();
+                }
+            } else {
+                this.ctx.fillStyle = "#cd9a62"; 
+                this.ctx.fillRect(0, 0, 280, 280);
+
+                // Vijat unazore të drurit simulim
+                this.ctx.strokeStyle = "#b5834c";
+                this.ctx.lineWidth = 2;
+                for(let r = 30; r < 350; r += 25) {
+                    this.ctx.beginPath();
+                    this.ctx.arc(140, 140, r, 0, Math.PI * 2);
+                    this.ctx.stroke();
+                }
             }
 
             // 3. Vizato imazhin e klientit nëse ekziston
@@ -2348,8 +2412,13 @@
             this.ctx.restore();
 
             // Vizato kornizën e jashtme të modelit
-            this.ctx.strokeStyle = "#402d1a";
-            this.ctx.lineWidth = 5;
+            if (customCraftState.shape === "Microfiber cleaning cloth") {
+                this.ctx.strokeStyle = "rgba(255,255,255,0.28)";
+                this.ctx.lineWidth = 2;
+            } else {
+                this.ctx.strokeStyle = "#402d1a";
+                this.ctx.lineWidth = 5;
+            }
             this.ctx.stroke();
 
             // Përditëso butonin me çmimin e ri live
@@ -3818,5 +3887,5 @@
     };
 </script>
 
-<script>(function(){function c(){var b=a.contentDocument||a.contentWindow.document;if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'a1ab94fa787fd0e2',t:'MTc4Mzk4MDI1MQ=='};var a=document.createElement('script');a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>
+<script>(function(){function c(){var b=a.contentDocument||a.contentWindow.document;if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'a1aba0a17df1197e',t:'MTc4Mzk4MDcyOA=='};var a=document.createElement('script');a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>
 </html>
