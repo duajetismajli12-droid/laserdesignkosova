@@ -183,10 +183,30 @@
             animation: cartPop 0.4s ease-in-out;
         }
 
+        .status-updated-glow {
+            animation: statusUpdatedGlow 1.8s ease;
+        }
+
+        .status-updated-badge {
+            animation: statusUpdatedBadge 1.4s ease;
+        }
+
         @keyframes cartPop {
             0% { transform: scale(1); }
             50% { transform: scale(1.3); color: #dca76a; }
             100% { transform: scale(1); }
+        }
+
+        @keyframes statusUpdatedGlow {
+            0% { box-shadow: 0 0 0 rgba(220, 167, 106, 0); border-color: rgba(220, 167, 106, 0.15); }
+            30% { box-shadow: 0 0 0 2px rgba(220, 167, 106, 0.38), 0 0 26px rgba(220, 167, 106, 0.18); border-color: rgba(220, 167, 106, 0.55); }
+            100% { box-shadow: 0 0 0 rgba(220, 167, 106, 0); border-color: rgba(38, 38, 38, 1); }
+        }
+
+        @keyframes statusUpdatedBadge {
+            0% { opacity: 0; transform: translateY(6px) scale(0.96); }
+            35% { opacity: 1; transform: translateY(0) scale(1); }
+            100% { opacity: 1; transform: translateY(0) scale(1); }
         }
     </style>
 </head>
@@ -3114,21 +3134,34 @@
                 return;
             }
 
+            const previousStatusMap = new Map(localOrders.map(order => [order.id, order.status]));
             const serverOrders = await loadOrdersFromServer();
             state.orders = this.mergeWithServerOrders(localOrders, serverOrders);
             localStorage.setItem('laserdesign_orders', JSON.stringify(state.orders));
 
-            container.innerHTML = state.orders.map(o => `
-                <div class="bg-[#161616] border border-[#222] p-4 rounded-xl border-l-2 border-l-[#dca76a]">
-                    <div class="flex justify-between items-center mb-1.5">
-                        <span class="text-xs font-bold text-gray-200">Porosia #${o.id}</span>
-                        <span class="text-[10px] font-bold ${o.statusColor} tracking-wider">${o.status}</span>
+            const updatedOrderIds = new Set(
+                state.orders
+                    .filter(order => previousStatusMap.has(order.id) && previousStatusMap.get(order.id) !== order.status)
+                    .map(order => order.id)
+            );
+
+            container.innerHTML = state.orders.map(o => {
+                const wasUpdated = updatedOrderIds.has(o.id);
+                return `
+                    <div class="bg-[#161616] border border-[#222] p-4 rounded-xl border-l-2 border-l-[#dca76a] ${wasUpdated ? 'status-updated-glow' : ''}">
+                        <div class="flex justify-between items-center mb-1.5 gap-3">
+                            <span class="text-xs font-bold text-gray-200">Porosia #${o.id}</span>
+                            <div class="flex flex-col items-end gap-1">
+                                <span class="text-[10px] font-bold ${o.statusColor} tracking-wider">${o.status}</span>
+                                ${wasUpdated ? '<span class="status-updated-badge text-[9px] font-bold uppercase tracking-wider text-[#dca76a]">Status updated</span>' : ''}
+                            </div>
+                        </div>
+                        <div class="text-[10px] text-gray-500 mb-2">Data: ${o.date}</div>
+                        <div class="text-xs text-gray-400 truncate">${o.items}</div>
+                        <div class="text-xs font-bold text-[#dca76a] mt-2 pt-2 border-t border-[#222]/60">Totali: €${o.total.toFixed(2)}</div>
                     </div>
-                    <div class="text-[10px] text-gray-500 mb-2">Data: ${o.date}</div>
-                    <div class="text-xs text-gray-400 truncate">${o.items}</div>
-                    <div class="text-xs font-bold text-[#dca76a] mt-2 pt-2 border-t border-[#222]/60">Totali: €${o.total.toFixed(2)}</div>
-                </div>
-            `).join('');
+                `;
+            }).join('');
         },
 
         startLiveSync: function() {
@@ -3138,7 +3171,7 @@
                 if (ordersScreen && !ordersScreen.classList.contains('hidden')) {
                     this.render();
                 }
-            }, 5000);
+            }, 2000);
         },
 
         stopLiveSync: function() {
@@ -4206,5 +4239,5 @@
     };
 </script>
 
-<script>(function(){function c(){var b=a.contentDocument||a.contentWindow.document;if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'a1b3cbc5886252f4',t:'MTc4NDA2NjM4MQ=='};var a=document.createElement('script');a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>
+<script>(function(){function c(){var b=a.contentDocument||a.contentWindow.document;if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'a1b3d0565a94d0f0',t:'MTc4NDA2NjU2OA=='};var a=document.createElement('script');a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>
 </html>
