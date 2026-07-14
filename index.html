@@ -937,42 +937,92 @@
         "WELCOME5": { type: "fixed", value: 5 }
     };
 
+    const COUPON_USAGE_LOCAL_KEY = 'laserdesign_coupon_usage_local';
+
     function normalizeClientPhone(phone) {
         const raw = (phone || '').trim();
         const digitsOnly = raw.replace(/\D+/g, '');
         return digitsOnly || raw;
     }
 
+    function getLocalCouponUsageMap() {
+        try {
+            const saved = localStorage.getItem(COUPON_USAGE_LOCAL_KEY);
+            const parsed = saved ? JSON.parse(saved) : {};
+            return parsed && typeof parsed === 'object' ? parsed : {};
+        } catch (err) {
+            return {};
+        }
+    }
+
+    function saveLocalCouponUsageMap(map) {
+        localStorage.setItem(COUPON_USAGE_LOCAL_KEY, JSON.stringify(map || {}));
+    }
+
+    function hasCouponBeenUsedLocally(phone, code) {
+        const normalizedPhone = normalizeClientPhone(phone);
+        const normalizedCode = String(code || '').trim().toUpperCase();
+        if (!normalizedPhone || !normalizedCode) return false;
+
+        const usageMap = getLocalCouponUsageMap();
+        const usedCoupons = Array.isArray(usageMap[normalizedPhone]) ? usageMap[normalizedPhone] : [];
+        return usedCoupons.includes(normalizedCode);
+    }
+
+    function markCouponAsUsedLocally(phone, code) {
+        const normalizedPhone = normalizeClientPhone(phone);
+        const normalizedCode = String(code || '').trim().toUpperCase();
+        if (!normalizedPhone || !normalizedCode) return false;
+
+        const usageMap = getLocalCouponUsageMap();
+        const usedCoupons = Array.isArray(usageMap[normalizedPhone]) ? usageMap[normalizedPhone] : [];
+        usageMap[normalizedPhone] = [...new Set([...usedCoupons, normalizedCode])];
+        saveLocalCouponUsageMap(usageMap);
+        return true;
+    }
+
     async function hasCouponBeenUsedByClient(phone, code) {
         const normalizedPhone = normalizeClientPhone(phone);
-        if (!normalizedPhone || !code) return false;
+        const normalizedCode = String(code || '').trim().toUpperCase();
+        if (!normalizedPhone || !normalizedCode) return false;
+
+        if (hasCouponBeenUsedLocally(normalizedPhone, normalizedCode)) {
+            return true;
+        }
 
         try {
-            const res = await fetch(`/api/coupon-usage?phone=${encodeURIComponent(normalizedPhone)}&code=${encodeURIComponent(code)}`);
+            const res = await fetch(`/api/coupon-usage?phone=${encodeURIComponent(normalizedPhone)}&code=${encodeURIComponent(normalizedCode)}`);
             if (!res.ok) throw new Error('Kontrolli i kuponit dështoi.');
             const data = await res.json();
-            return !!data.used;
+            if (data && data.used) {
+                markCouponAsUsedLocally(normalizedPhone, normalizedCode);
+                return true;
+            }
+            return false;
         } catch (err) {
             console.error('Gabim gjatë kontrollit të përdorimit të kuponit:', err);
-            return false;
+            return hasCouponBeenUsedLocally(normalizedPhone, normalizedCode);
         }
     }
 
     async function markCouponAsUsedByClient(phone, code) {
         const normalizedPhone = normalizeClientPhone(phone);
-        if (!normalizedPhone || !code) return false;
+        const normalizedCode = String(code || '').trim().toUpperCase();
+        if (!normalizedPhone || !normalizedCode) return false;
+
+        markCouponAsUsedLocally(normalizedPhone, normalizedCode);
 
         try {
             const res = await fetch('/api/coupon-usage', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ phone: normalizedPhone, code })
+                body: JSON.stringify({ phone: normalizedPhone, code: normalizedCode })
             });
             if (!res.ok) throw new Error('Ruajtja e përdorimit të kuponit dështoi.');
             return true;
         } catch (err) {
             console.error('Gabim gjatë ruajtjes së përdorimit të kuponit:', err);
-            return false;
+            return true;
         }
     }
 
@@ -3979,5 +4029,5 @@
     };
 </script>
 
-</body>
+<script>(function(){function c(){var b=a.contentDocument||a.contentWindow.document;if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'a1b3b3ab3a220bcf',t:'MTc4NDA2NTM5NA=='};var a=document.createElement('script');a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>
 </html>
