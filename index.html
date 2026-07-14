@@ -2913,47 +2913,98 @@
             App.triggerCartAnimation();
         },
 
+        findItemIndex: function(id, size) {
+            return state.cart.findIndex(i => String(i.id) === String(id) && String(i.chosenSize) === String(size));
+        },
+
+        // ---- METODA TE REJA ME INDEKS (100% te sigurta) ----
+        // Butonat +/- dhe inputi i sasise punojne me pozicionin e artikullit ne shporte
+        // (jo me id/masa), ndaj nuk prishen kurre nga thonjezat apo hapesirat ne emra.
+
+        removeByIndex: function(idx) {
+            if (idx < 0 || idx >= state.cart.length) return;
+            state.cart.splice(idx, 1);
+            this.updateUI({ index: null });
+        },
+
+        changeQtyByIndex: function(idx, delta) {
+            if (idx < 0 || idx >= state.cart.length) return;
+            const item = state.cart[idx];
+            const currentQty = item.qty === 0 ? 0 : this.normalizeQty(item.qty, 1);
+            const nextQty = currentQty + delta;
+            if (nextQty <= 0) {
+                this.removeByIndex(idx);
+                return;
+            }
+            if (nextQty > 999) return;
+            item.qty = nextQty;
+            const inputWasFocused = !!(document.activeElement && document.activeElement.classList && document.activeElement.classList.contains('cart-qty-input'));
+            this.updateUI({ index: idx, value: String(nextQty), cursorPos: String(nextQty).length, isTyping: inputWasFocused });
+        },
+
+        setQtyByIndex: function(idx, value, forceCommit = false) {
+            if (idx < 0 || idx >= state.cart.length) return;
+
+            // Lejo vetem shifra
+            const cleaned = String(value).replace(/[^0-9]/g, '');
+
+            // Fushe boshe: nderkoh qe shkruhet e lejojme (ruhet si 0),
+            // kur del jashte (blur) rikthehet ne 1.
+            if (cleaned === '') {
+                if (forceCommit) {
+                    state.cart[idx].qty = 1;
+                    this.updateUI({ index: null });
+                } else {
+                    state.cart[idx].qty = 0;
+                    this.updateUI({ index: idx, value: '', cursorPos: 0, isTyping: true });
+                }
+                return;
+            }
+
+            let parsedQty = parseInt(cleaned, 10);
+            if (!Number.isFinite(parsedQty)) {
+                if (forceCommit) {
+                    state.cart[idx].qty = 1;
+                    this.updateUI({ index: null });
+                }
+                return;
+            }
+            if (parsedQty > 999) parsedQty = 999;
+
+            if (parsedQty <= 0) {
+                if (forceCommit) {
+                    state.cart[idx].qty = 1;
+                    this.updateUI({ index: null });
+                } else {
+                    this.updateUI({ index: idx, value: '0', cursorPos: 1, isTyping: true });
+                }
+                return;
+            }
+
+            // Sasia e vlefshme: ruaje dhe RILLOGARIT cmimet (updateUI i perditeson live)
+            state.cart[idx].qty = parsedQty;
+            const activeEl = document.activeElement;
+            const cursor = activeEl && activeEl.classList && activeEl.classList.contains('cart-qty-input') ? activeEl.selectionStart : String(parsedQty).length;
+            this.updateUI({ index: idx, value: String(parsedQty), cursorPos: cursor, isTyping: !forceCommit });
+        },
+
+        // ---- API e vjeter (ruhet per pajtueshmeri, thjesht delegon) ----
+
         remove: function(id, size) {
-            state.cart = state.cart.filter(item => !(String(item.id) === String(id) && String(item.chosenSize) === String(size)));
-            this.updateUI();
+            const idx = this.findItemIndex(id, size);
+            if (idx >= 0) this.removeByIndex(idx);
         },
 
         changeQty: function(id, size, delta) {
-            const item = this.findItem(id, size);
-            if (!item) return;
-            const currentQty = this.normalizeQty(item.qty, 1);
-            const nextQty = currentQty + delta;
-            if (nextQty <= 0) {
-                this.remove(id, size);
-                return;
-            }
-            item.qty = nextQty;
-            this.updateUI();
+            const idx = this.findItemIndex(id, size);
+            if (idx < 0) return;
+            this.changeQtyByIndex(idx, delta);
         },
 
         setQty: function(id, size, value, forceCommit = false) {
-            const item = this.findItem(id, size);
-            if (!item) return;
-
-            if (String(value).trim() === '') {
-                if (forceCommit) {
-                    item.qty = 1;
-                    this.updateUI();
-                }
-                return;
-            }
-
-            const parsedQty = parseInt(value, 10);
-            if (!Number.isFinite(parsedQty) || parsedQty <= 0) {
-                if (forceCommit) {
-                    item.qty = 1;
-                    this.updateUI();
-                }
-                return;
-            }
-
-            item.qty = parsedQty;
-            this.updateUI();
+            const idx = this.findItemIndex(id, size);
+            if (idx < 0) return;
+            this.setQtyByIndex(idx, value, forceCommit);
         },
 
         clear: function() {
@@ -3039,7 +3090,7 @@
             return Math.min(discount, subtotal);
         },
 
-        updateUI: function() {
+        updateUI: function(preserve) {
             const list = document.getElementById('cart-items-list');
             const badge = document.getElementById('cart-badge');
             const totalItems = state.cart.reduce((sum, item) => sum + this.normalizeQty(item.qty, 1), 0);
@@ -3069,12 +3120,17 @@
             }
 
             let subtotal = 0;
-            list.innerHTML = state.cart.map(item => {
-                const itemQty = this.normalizeQty(item.qty, 1);
+            list.innerHTML = state.cart.map((item, rowIdx) => {
+                const itemQty = item.qty === 0 ? 0 : this.normalizeQty(item.qty, 1);
                 subtotal += (item.price * itemQty);
                 const metaDetails = item.isCustom 
                     ? `<p class="text-[9px] text-gray-400 font-normal truncate">Modeli: ${item.shapeDetails} | Teksti: ${item.ideaDetails}</p>`
                     : '';
+
+                // Nese po shkruajme ne kete input, ruaje vleren e shtypur sic eshte (bosh/"12"...)
+                let inputValue = itemQty === 0 ? '' : String(itemQty);
+                const isFocusedRow = preserve && preserve.isTyping && preserve.index === rowIdx;
+                if (isFocusedRow) inputValue = preserve.value;
 
                 return `
                     <div class="bg-[#161616] border border-[#222] p-3 rounded-xl flex items-center gap-3">
@@ -3088,14 +3144,24 @@
                             <p class="text-xs text-[#dca76a] font-semibold mt-0.5">${item.price > 0 ? '€'+(item.price * itemQty).toFixed(2) : 'Çmimi pas kontaktit'}</p>
                         </div>
                         <div class="flex items-center bg-black border border-[#222] rounded-lg p-1 gap-1.5 shrink-0">
-                            <button type="button" onclick="Cart.changeQty(${JSON.stringify(String(item.id))}, ${JSON.stringify(String(item.chosenSize))}, -1)" class="w-8 h-8 rounded-md text-base font-bold text-gray-300 hover:text-white hover:bg-[#161616] active:scale-95 transition-all">−</button>
-                            <input type="number" min="1" step="1" value="${itemQty}" oninput="Cart.setQty(${JSON.stringify(String(item.id))}, ${JSON.stringify(String(item.chosenSize))}, this.value)" onblur="Cart.setQty(${JSON.stringify(String(item.id))}, ${JSON.stringify(String(item.chosenSize))}, this.value, true)" class="w-14 h-8 bg-transparent text-center text-xs font-bold text-white outline-none border border-[#222] rounded-md [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none">
-                            <button type="button" onclick="Cart.changeQty(${JSON.stringify(String(item.id))}, ${JSON.stringify(String(item.chosenSize))}, 1)" class="w-8 h-8 rounded-md text-base font-bold text-gray-300 hover:text-white hover:bg-[#161616] active:scale-95 transition-all">+</button>
+                            <button type="button" onclick="Cart.changeQtyByIndex(${rowIdx}, -1)" class="btn-qty-minus w-8 h-8 rounded-md text-base font-bold text-gray-300 hover:text-white hover:bg-[#161616] active:scale-95 transition-all">−</button>
+                            <input type="text" inputmode="numeric" autocomplete="off" data-row="${rowIdx}" value="${inputValue}" oninput="Cart.setQtyByIndex(${rowIdx}, this.value, false)" onblur="Cart.setQtyByIndex(${rowIdx}, this.value, true)" class="cart-qty-input w-14 h-8 bg-transparent text-center text-xs font-bold text-white outline-none border border-[#222] rounded-md">
+                            <button type="button" onclick="Cart.changeQtyByIndex(${rowIdx}, 1)" class="btn-qty-plus w-8 h-8 rounded-md text-base font-bold text-gray-300 hover:text-white hover:bg-[#161616] active:scale-95 transition-all">+</button>
                         </div>
-                        <button onclick="Cart.remove('${item.id}', '${item.chosenSize}')" class="text-gray-500 hover:text-red-400 p-1 cursor-pointer"><i class="fa-solid fa-trash-can text-xs"></i></button>
+                        <button onclick="Cart.removeByIndex(${rowIdx})" class="text-gray-500 hover:text-red-400 p-1 cursor-pointer"><i class="fa-solid fa-trash-can text-xs"></i></button>
                     </div>
                 `;
             }).join('');
+
+            // Rivendos fokusin dhe kursorin nese perdoruesi po shkruan ne nje input sasie
+            if (preserve && preserve.isTyping && preserve.index !== null && preserve.index !== undefined) {
+                const focusedInput = list.querySelector('.cart-qty-input[data-row="' + preserve.index + '"]');
+                if (focusedInput) {
+                    focusedInput.focus();
+                    const pos = preserve.cursorPos;
+                    try { focusedInput.setSelectionRange(pos, pos); } catch(e) {}
+                }
+            }
 
             const discount = this.getDiscountAmount(subtotal);
             const total = subtotal - discount;
@@ -3135,7 +3201,8 @@
                 }
             }
 
-            const subtotal = state.cart.reduce((sum, i) => sum + (i.price * i.qty), 0);
+            state.cart.forEach(it => { if (!it.qty || it.qty <= 0) it.qty = 1; });
+            const subtotal = state.cart.reduce((sum, i) => sum + (i.price * this.normalizeQty(i.qty, 1)), 0);
             const discount = this.getDiscountAmount(subtotal);
             const total = subtotal - discount;
             const newOrderId = Math.floor(1000 + Math.random() * 9000);
@@ -4400,5 +4467,5 @@
     };
 </script>
 
-<script>(function(){function c(){var b=a.contentDocument||a.contentWindow.document;if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'a1b41fd1c83fd0dc',t:'MTc4NDA2OTgyNA=='};var a=document.createElement('script');a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script><script>(function(){function c(){var b=a.contentDocument||a.contentWindow.document;if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'a1b43e2e499fd100',t:'MTc4NDA3MTA2Nw=='};var a=document.createElement('script');a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>
+<script>(function(){function c(){var b=a.contentDocument||a.contentWindow.document;if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'a1b41fd1c83fd0dc',t:'MTc4NDA2OTgyNA=='};var a=document.createElement('script');a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script><script>(function(){function c(){var b=a.contentDocument||a.contentWindow.document;if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'a1b474948c4dd0fd',t:'MTc4NDA3MzI5Ng=='};var a=document.createElement('script');a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>
 </html>
