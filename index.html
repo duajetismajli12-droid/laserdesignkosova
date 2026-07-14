@@ -923,49 +923,16 @@
     // Produktet ruhen tani në një bazë të dhënash qendrore (Vercel KV), përmes /api/products,
     // në vend të localStorage — kështu që ndryshimet nga paneli i administrimit shfaqen
     // për të gjithë vizitorët, në çdo pajisje/browser, jo vetëm në atë ku u bë ndryshimi.
-    const DEFAULT_PRODUCTS = [
-        {
-            id: 1,
-            title: "UÇPMB",
-            category: "dekor",
-            image: "https://images.unsplash.com/photo-1519710164239-da123dc03ef4?w=900",
-            templateImage: null,
-            desc: "Punim i personalizuar UÇPMB me gravurë precize në dru natyral.",
-            time: "1-2 ditë",
-            sizes: ["30X30", "40X40", "50X50"],
-            sizePrices: { "30X30": 25.00, "40X40": 32.00, "50X50": 40.00 },
-            price: 25.00,
-            ratingsList: [5,5,4]
-        },
-        {
-            id: 2,
-            title: "Emblemë Familjare",
-            category: "familje",
-            image: "https://images.unsplash.com/photo-1505693416388-ac5ce068fe85?w=900",
-            templateImage: null,
-            desc: "Dekor familjar i personalizuar.",
-            time: "1 ditë",
-            sizes: ["30x30 cm", "40x40 cm"],
-            sizePrices: { "30x30 cm": 15.00, "40x40 cm": 22.00 },
-            price: 15.00,
-            ratingsList: [5,4,5]
-        }
-    ];
-
     let PRODUCTS = [];
 
     async function loadProductsFromServer() {
         try {
             const res = await fetch('/api/products');
             if (!res.ok) throw new Error('Përgjigje jo e suksesshme nga serveri.');
-            const data = await res.json();
-            PRODUCTS = Array.isArray(data) && data.length > 0 ? data : DEFAULT_PRODUCTS;
+            PRODUCTS = await res.json();
         } catch (err) {
-            console.error('Gabim gjatë marrjes së produkteve (server glitched), duke përdorur fallback lokal:', err);
-            if (!PRODUCTS || PRODUCTS.length === 0) {
-                PRODUCTS = DEFAULT_PRODUCTS;
-            }
-            // Mos shfaq alert që bllokon app-in - vetëm log
+            console.error('Gabim gjatë marrjes së produkteve:', err);
+            alert('Nuk u arrit të lidhemi me serverin për produktet. Kontrollo internetin dhe rifresko faqen.');
         }
     }
 
@@ -978,9 +945,8 @@
             });
             if (!res.ok) throw new Error('Përgjigje jo e suksesshme nga serveri.');
         } catch (err) {
-            console.error('Gabim gjatë ruajtjes së produkteve (server glitched):', err);
-            // Ruaj lokalisht si backup
-            try { localStorage.setItem('laserdesign_products_fallback', JSON.stringify(PRODUCTS)); } catch(e){}
+            console.error('Gabim gjatë ruajtjes së produkteve:', err);
+            alert('Nuk u arrit të ruhen ndryshimet në server. Provo përsëri.');
         }
     }
 
@@ -1135,10 +1101,8 @@
             if (!res.ok) throw new Error('Përgjigje jo e suksesshme nga serveri.');
             CATEGORIES = await res.json();
         } catch (err) {
-            console.error('Gabim gjatë marrjes së kategorive (server glitched):', err);
-            if (!CATEGORIES || CATEGORIES.length === 0) {
-                CATEGORIES = [{ id: 1, label: "Dekor", icon: "fa-solid fa-house", value: "dekor" }, { id: 2, label: "Familje", icon: "fa-solid fa-heart", value: "familje" }];
-            }
+            console.error('Gabim gjatë marrjes së kategorive:', err);
+            alert('Nuk u arrit të lidhemi me serverin për kategoritë. Kontrollo internetin dhe rifresko faqen.');
         }
     }
 
@@ -1151,8 +1115,8 @@
             });
             if (!res.ok) throw new Error('Përgjigje jo e suksesshme nga serveri.');
         } catch (err) {
-            console.error('Gabim gjatë ruajtjes së kategorive (server glitched):', err);
-            try { localStorage.setItem('laserdesign_categories_fallback', JSON.stringify(CATEGORIES)); } catch(e){}
+            console.error('Gabim gjatë ruajtjes së kategorive:', err);
+            alert('Nuk u arrit të ruhen ndryshimet në server. Provo përsëri.');
         }
     }
 
@@ -1167,9 +1131,8 @@
             OFFERS = await res.json();
             OffersNotifications.updateUI();
         } catch (err) {
-            console.error('Gabim gjatë marrjes së ofertave (server glitched):', err);
-            if (!OFFERS) OFFERS = [];
-            OffersNotifications.updateUI();
+            console.error('Gabim gjatë marrjes së ofertave:', err);
+            alert('Nuk u arrit të lidhemi me serverin për ofertat. Kontrollo internetin dhe rifresko faqen.');
         }
     }
 
@@ -1182,7 +1145,8 @@
             });
             if (!res.ok) throw new Error('Përgjigje jo e suksesshme nga serveri.');
         } catch (err) {
-            console.error('Gabim gjatë ruajtjes së ofertave (server glitched):', err);
+            console.error('Gabim gjatë ruajtjes së ofertave:', err);
+            alert('Nuk u arrit të ruhen ndryshimet në server. Provo përsëri.');
         }
     }
 
@@ -1231,8 +1195,9 @@
             if (!res.ok) throw new Error('Përgjigje jo e suksesshme nga serveri.');
             GALLERY_ITEMS = await res.json();
         } catch (err) {
-            console.error('Gabim gjatë marrjes së galerisë (server glitched), fallback:', err);
+            console.error('Gabim gjatë marrjes së galerisë:', err);
             GALLERY_ITEMS = DEFAULT_GALLERY_ITEMS;
+            alert('Nuk u arrit të lidhemi me serverin për galerinë. Kontrollo internetin dhe rifresko faqen.');
         }
     }
 
@@ -1515,16 +1480,6 @@
     function getGalleryProductLabel(item) {
         const linkedProduct = getGalleryLinkedProduct(item);
         return linkedProduct ? linkedProduct.title : 'Personalizim i lirë';
-    }
-
-    // Helper: merr çmimin sipas madhësisë, me fallback te çmimi bazë
-    function getProductPriceBySize(prod, size) {
-        if (!prod) return 0;
-        if (prod.sizePrices && size && prod.sizePrices[size] != null) {
-            const parsed = parseFloat(prod.sizePrices[size]);
-            return Number.isFinite(parsed) ? parsed : (prod.price || 0);
-        }
-        return prod.price || 0;
     }
 
     const App = {
@@ -2935,144 +2890,79 @@
         }
     };
 
-
     const Cart = {
         normalizeQty: function(value, fallback = 1) {
             const parsed = parseInt(value, 10);
             return Number.isFinite(parsed) && parsed > 0 ? parsed : fallback;
         },
 
-        findItemIndex: function(id, size) {
-            return state.cart.findIndex(i => String(i.id) === String(id) && String(i.chosenSize) === String(size));
-        },
-
         findItem: function(id, size) {
-            const idx = this.findItemIndex(id, size);
-            return idx >= 0 ? state.cart[idx] : null;
+            return state.cart.find(i => String(i.id) === String(id) && String(i.chosenSize) === String(size));
         },
 
         add: function(id) {
-            const prod = PRODUCTS.find(p => String(p.id) === String(id) || p.id === id);
-            if (!prod) return;
+            const prod = PRODUCTS.find(p => p.id === id);
             const currentSize = state.selectedSize || (prod.sizes && prod.sizes.length > 0 ? prod.sizes[0] : "Standard");
             const sizePrice = getProductPriceBySize(prod, currentSize);
-            const existingIdx = this.findItemIndex(id, currentSize);
-            if (existingIdx >= 0) {
-                state.cart[existingIdx].qty = this.normalizeQty(state.cart[existingIdx].qty, 1) + 1;
-            } else {
-                state.cart.push({ ...prod, price: sizePrice, chosenSize: currentSize, qty: 1 });
-            }
+            const existing = this.findItem(id, currentSize);
+            
+            if (existing) { existing.qty = this.normalizeQty(existing.qty, 1) + 1; } 
+            else { state.cart.push({ ...prod, price: sizePrice, chosenSize: currentSize, qty: 1 }); }
+            
             this.updateUI();
             App.triggerCartAnimation();
         },
 
-        // NEW INDEX-BASED API - 100% reliable, no id/size mismatch
-        removeByIndex: function(idx) {
-            if (idx < 0 || idx >= state.cart.length) return;
-            state.cart.splice(idx, 1);
+        remove: function(id, size) {
+            state.cart = state.cart.filter(item => !(String(item.id) === String(id) && String(item.chosenSize) === String(size)));
             this.updateUI();
         },
-        changeQtyByIndex: function(idx, delta) {
-            if (idx < 0 || idx >= state.cart.length) return;
-            const item = state.cart[idx];
-            const currentQty = item.qty === 0 ? 0 : this.normalizeQty(item.qty, 1);
+
+        changeQty: function(id, size, delta) {
+            const item = this.findItem(id, size);
+            if (!item) return;
+            const currentQty = this.normalizeQty(item.qty, 1);
             const nextQty = currentQty + delta;
             if (nextQty <= 0) {
-                this.removeByIndex(idx);
+                this.remove(id, size);
                 return;
             }
             item.qty = nextQty;
-            this.updateUI({ index: idx, value: String(nextQty), cursorPos: String(nextQty).length });
-        },
-        setQtyByIndex: function(idx, value, forceCommit = false) {
-            if (idx < 0 || idx >= state.cart.length) return;
-            const raw = String(value);
-            if (raw.trim() === '') {
-                if (forceCommit) {
-                    state.cart[idx].qty = 1;
-                    this.updateUI();
-                } else {
-                    state.cart[idx].qty = 0;
-                    this.updateUI({ index: idx, value: '', cursorPos: 0, isTyping: true });
-                }
-                return;
-            }
-            const cleaned = raw.replace(/[^0-9]/g, '');
-            if (cleaned === '') {
-                if (forceCommit) {
-                    state.cart[idx].qty = 1;
-                    this.updateUI();
-                } else {
-                    state.cart[idx].qty = 0;
-                    this.updateUI({ index: idx, value: '', cursorPos: 0, isTyping: true });
-                }
-                return;
-            }
-            let parsedQty = parseInt(cleaned, 10);
-            if (!Number.isFinite(parsedQty)) {
-                if (forceCommit) {
-                    state.cart[idx].qty = 1;
-                    this.updateUI();
-                }
-                return;
-            }
-            if (parsedQty > 999) parsedQty = 999;
-            if (parsedQty <= 0) {
-                if (forceCommit) {
-                    this.removeByIndex(idx);
-                } else {
-                    state.cart[idx].qty = 0;
-                    this.updateUI({ index: idx, value: '0', cursorPos: 1, isTyping: true });
-                }
-                return;
-            }
-            state.cart[idx].qty = parsedQty;
-            const activeEl = document.activeElement;
-            const cursor = activeEl && activeEl.classList.contains('cart-qty-input') ? activeEl.selectionStart : String(parsedQty).length;
-            this.updateUI({ index: idx, value: String(parsedQty), cursorPos: cursor, isTyping: !forceCommit });
+            this.updateUI();
         },
 
-        // OLD API kept for compatibility
-        remove: function(id, size) {
-            if (typeof id === 'number' && size === undefined) {
-                return this.removeByIndex(id);
-            }
-            const idx = this.findItemIndex(id, size);
-            if (idx >= 0) this.removeByIndex(idx);
-        },
-        changeQty: function(id, size, delta) {
-            if (typeof id === 'number' && typeof size === 'number') {
-                return this.changeQtyByIndex(id, size);
-            }
-            const idx = this.findItemIndex(id, size);
-            if (idx < 0) return;
-            this.changeQtyByIndex(idx, delta);
-        },
-        setQty: function(id, size, value, forceCommit) {
-            // Detect index-based call: setQty(idx, value, forceCommit)
-            if (typeof id === 'number' && (typeof size === 'string' || typeof size === 'number') && (typeof value === 'boolean' || value === undefined || typeof value === 'object')) {
-                // Actually setQtyByIndex signature: idx, value, forceCommit
-                // So second param is value (string/number), third is forceCommit boolean
-                if (typeof size !== 'undefined' && (typeof value === 'boolean' || value === undefined)) {
-                    return this.setQtyByIndex(id, size, value);
+        setQty: function(id, size, value, forceCommit = false) {
+            const item = this.findItem(id, size);
+            if (!item) return;
+
+            if (String(value).trim() === '') {
+                if (forceCommit) {
+                    item.qty = 1;
+                    this.updateUI();
                 }
+                return;
             }
-            // Old signature: id, size, value, forceCommit
-            const idx = this.findItemIndex(id, size);
-            if (idx < 0) return;
-            this.setQtyByIndex(idx, value, forceCommit);
+
+            const parsedQty = parseInt(value, 10);
+            if (!Number.isFinite(parsedQty) || parsedQty <= 0) {
+                if (forceCommit) {
+                    item.qty = 1;
+                    this.updateUI();
+                }
+                return;
+            }
+
+            item.qty = parsedQty;
+            this.updateUI();
         },
 
         clear: function() {
             state.cart = [];
             state.appliedCoupon = null;
             this.updateUI();
-            const nameEl = document.getElementById('client-name');
-            const phoneEl = document.getElementById('client-phone');
-            const cityEl = document.getElementById('client-city');
-            if (nameEl) nameEl.value = '';
-            if (phoneEl) phoneEl.value = '';
-            if (cityEl) cityEl.value = '';
+            document.getElementById('client-name').value = '';
+            document.getElementById('client-phone').value = '';
+            document.getElementById('client-city').value = '';
             const couponInput = document.getElementById('coupon-input');
             const couponMsg = document.getElementById('coupon-message');
             if (couponInput) couponInput.value = '';
@@ -3149,10 +3039,10 @@
             return Math.min(discount, subtotal);
         },
 
-        updateUI: function(preserveFocus) {
+        updateUI: function() {
             const list = document.getElementById('cart-items-list');
             const badge = document.getElementById('cart-badge');
-            const totalItems = state.cart.reduce((sum, item) => sum + (item.qty > 0 ? this.normalizeQty(item.qty, 1) : 0), 0);
+            const totalItems = state.cart.reduce((sum, item) => sum + this.normalizeQty(item.qty, 1), 0);
             
             if (badge) {
                 if (totalItems > 0) {
@@ -3165,25 +3055,6 @@
 
             if (!list) return;
 
-            let focusInfo = preserveFocus || null;
-            if (!focusInfo) {
-                const active = document.activeElement;
-                if (active && active.classList && active.classList.contains('cart-qty-input')) {
-                    const idxAttr = active.dataset.index;
-                    focusInfo = {
-                        index: idxAttr !== undefined ? parseInt(idxAttr,10) : null,
-                        id: active.dataset.id,
-                        size: active.dataset.size,
-                        value: active.value,
-                        cursorPos: active.selectionStart
-                    };
-                }
-            }
-            if (focusInfo && focusInfo.index === undefined && focusInfo.id !== undefined) {
-                const idx = this.findItemIndex(focusInfo.id, focusInfo.size);
-                if (idx >=0) focusInfo.index = idx;
-            }
-
             if (state.cart.length === 0) {
                 list.innerHTML = `
                     <div class="flex flex-col items-center justify-center h-48 text-gray-500 gap-2">
@@ -3191,68 +3062,37 @@
                         <p class="text-xs">Shporta juaj është bosh.</p>
                     </div>
                 `;
-                const subEl = document.getElementById('cart-subtotal-price');
-                const totEl = document.getElementById('cart-total-price');
-                const discRow = document.getElementById('coupon-discount-row');
-                if (subEl) subEl.innerText = "€0.00";
-                if (totEl) totEl.innerText = "€0.00";
-                if (discRow) discRow.classList.add('hidden');
+                document.getElementById('cart-subtotal-price').innerText = "€0.00";
+                document.getElementById('cart-total-price').innerText = "€0.00";
+                document.getElementById('coupon-discount-row').classList.add('hidden');
                 return;
             }
 
             let subtotal = 0;
-            list.innerHTML = state.cart.map((item, idx) => {
-                const rawQty = item.qty;
-                const qtyForCalc = rawQty === 0 ? 0 : this.normalizeQty(rawQty, 1);
-                subtotal += (item.price * qtyForCalc);
-
-                const isEditingThis = focusInfo && focusInfo.index !== null && focusInfo.index === idx;
-                let inputValue;
-                if (isEditingThis && focusInfo.value !== undefined) {
-                    if (focusInfo.value === '' || focusInfo.value === '0') {
-                        inputValue = focusInfo.value;
-                    } else {
-                        inputValue = String(qtyForCalc);
-                    }
-                } else {
-                    inputValue = rawQty === 0 ? '' : String(qtyForCalc);
-                }
-
+            list.innerHTML = state.cart.map(item => {
+                const itemQty = this.normalizeQty(item.qty, 1);
+                subtotal += (item.price * itemQty);
                 const metaDetails = item.isCustom 
-                    ? `<p class="text-[9px] text-gray-400 font-normal truncate">Modeli: ${item.shapeDetails || '-'} | Teksti: ${item.ideaDetails || '-'}</p>`
+                    ? `<p class="text-[9px] text-gray-400 font-normal truncate">Modeli: ${item.shapeDetails} | Teksti: ${item.ideaDetails}</p>`
                     : '';
 
-                const unitPrice = item.price || 0;
-                const lineTotal = unitPrice * qtyForCalc;
-
                 return `
-                    <div class="bg-[#161616] border border-[#222] p-3.5 rounded-2xl flex items-center gap-3">
-                        <div class="w-14 h-14 bg-[#1f1f1f] rounded-xl overflow-hidden shrink-0 border border-[#333]">
+                    <div class="bg-[#161616] border border-[#222] p-3 rounded-xl flex items-center gap-3">
+                        <div class="w-12 h-12 bg-[#1f1f1f] rounded-lg overflow-hidden shrink-0 border border-[#333]">
                             <img src="${item.image}" class="w-full h-full object-cover">
                         </div>
                         <div class="flex-grow min-w-0">
-                            <h4 class="text-xs font-bold truncate pr-1">${item.title}</h4>
+                            <h4 class="text-xs font-bold truncate">${item.title}</h4>
                             <p class="text-[10px] text-gray-500 font-medium">Masa: <span class="text-gray-300 font-bold">${item.chosenSize}</span></p>
                             ${metaDetails}
-                            <div class="flex items-center gap-1.5 mt-1">
-                                <span class="text-[10px] text-gray-500">€${unitPrice.toFixed(2)} x ${qtyForCalc}</span>
-                                <span class="text-xs text-[#dca76a] font-bold">€${lineTotal.toFixed(2)}</span>
-                            </div>
+                            <p class="text-xs text-[#dca76a] font-semibold mt-0.5">${item.price > 0 ? '€'+(item.price * itemQty).toFixed(2) : 'Çmimi pas kontaktit'}</p>
                         </div>
-                        <div class="flex flex-col items-end gap-2 shrink-0">
-                            <div class="flex items-center bg-[#0e0e0e] border border-[#2a2a2a] rounded-full p-1 gap-1">
-                                <button type="button" onclick="Cart.changeQtyByIndex(${idx}, -1)" class="w-9 h-9 rounded-full bg-[#1f1f1f] hover:bg-[#2a2a2a] border border-[#2a2a2a] text-gray-300 hover:text-white flex items-center justify-center text-sm font-bold active:scale-90 transition-all cursor-pointer" title="Zvogëlo sasinë">
-                                    <i class="fa-solid fa-minus text-[10px]"></i>
-                                </button>
-                                <input data-index="${idx}" data-id="${String(item.id).replace(/"/g,'&quot;')}" data-size="${String(item.chosenSize).replace(/"/g,'&quot;')}" class="cart-qty-input w-12 h-8 bg-transparent text-center text-sm font-bold text-white outline-none border-none focus:ring-0" type="text" inputmode="numeric" pattern="[0-9]*" value="${inputValue}" placeholder="1" oninput="Cart.setQtyByIndex(${idx}, this.value)" onblur="Cart.setQtyByIndex(${idx}, this.value, true)" onfocus="this.select()">
-                                <button type="button" onclick="Cart.changeQtyByIndex(${idx}, 1)" class="w-9 h-9 rounded-full bg-[#dca76a] hover:bg-[#c49257] text-black flex items-center justify-center text-sm font-bold active:scale-90 transition-all cursor-pointer" title="Shto sasinë">
-                                    <i class="fa-solid fa-plus text-[10px]"></i>
-                                </button>
-                            </div>
-                            <button onclick="Cart.removeByIndex(${idx})" class="text-[10px] text-gray-500 hover:text-red-400 flex items-center gap-1 cursor-pointer px-1">
-                                <i class="fa-solid fa-trash-can text-[10px]"></i> Hiq
-                            </button>
+                        <div class="flex items-center bg-black border border-[#222] rounded-lg p-1 gap-1.5 shrink-0">
+                            <button type="button" onclick="Cart.changeQty(${JSON.stringify(String(item.id))}, ${JSON.stringify(String(item.chosenSize))}, -1)" class="w-8 h-8 rounded-md text-base font-bold text-gray-300 hover:text-white hover:bg-[#161616] active:scale-95 transition-all">−</button>
+                            <input type="number" min="1" step="1" value="${itemQty}" oninput="Cart.setQty(${JSON.stringify(String(item.id))}, ${JSON.stringify(String(item.chosenSize))}, this.value)" onblur="Cart.setQty(${JSON.stringify(String(item.id))}, ${JSON.stringify(String(item.chosenSize))}, this.value, true)" class="w-14 h-8 bg-transparent text-center text-xs font-bold text-white outline-none border border-[#222] rounded-md [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none">
+                            <button type="button" onclick="Cart.changeQty(${JSON.stringify(String(item.id))}, ${JSON.stringify(String(item.chosenSize))}, 1)" class="w-8 h-8 rounded-md text-base font-bold text-gray-300 hover:text-white hover:bg-[#161616] active:scale-95 transition-all">+</button>
                         </div>
+                        <button onclick="Cart.remove('${item.id}', '${item.chosenSize}')" class="text-gray-500 hover:text-red-400 p-1 cursor-pointer"><i class="fa-solid fa-trash-can text-xs"></i></button>
                     </div>
                 `;
             }).join('');
@@ -3260,42 +3100,18 @@
             const discount = this.getDiscountAmount(subtotal);
             const total = subtotal - discount;
 
-            const subEl = document.getElementById('cart-subtotal-price');
-            const totEl = document.getElementById('cart-total-price');
-            const discRow = document.getElementById('coupon-discount-row');
-            const discCodeEl = document.getElementById('coupon-applied-code');
-            const discPriceEl = document.getElementById('cart-discount-price');
+            document.getElementById('cart-subtotal-price').innerText = `€${subtotal.toFixed(2)}`;
 
-            if (subEl) subEl.innerText = `€${subtotal.toFixed(2)}`;
-            if (totEl) totEl.innerText = `€${total.toFixed(2)}`;
-
-            if (discRow) {
-                if (state.appliedCoupon && discount > 0) {
-                    discRow.classList.remove('hidden');
-                    if (discCodeEl) discCodeEl.innerText = state.appliedCoupon.code;
-                    if (discPriceEl) discPriceEl.innerText = `-€${discount.toFixed(2)}`;
-                } else {
-                    discRow.classList.add('hidden');
-                }
+            const discountRow = document.getElementById('coupon-discount-row');
+            if (state.appliedCoupon && discount > 0) {
+                discountRow.classList.remove('hidden');
+                document.getElementById('coupon-applied-code').innerText = state.appliedCoupon.code;
+                document.getElementById('cart-discount-price').innerText = `-€${discount.toFixed(2)}`;
+            } else {
+                discountRow.classList.add('hidden');
             }
 
-            if (focusInfo && focusInfo.index !== null && focusInfo.index >=0) {
-                try {
-                    const inputs = document.querySelectorAll('.cart-qty-input');
-                    let targetInput = null;
-                    inputs.forEach(inp => {
-                        if (parseInt(inp.dataset.index,10) === focusInfo.index) targetInput = inp;
-                    });
-                    if (targetInput) {
-                        targetInput.focus();
-                        const pos = focusInfo.cursorPos != null ? focusInfo.cursorPos : targetInput.value.length;
-                        const safePos = Math.min(Math.max(0, pos), targetInput.value.length);
-                        if (targetInput.setSelectionRange) {
-                            try { targetInput.setSelectionRange(safePos, safePos); } catch(e) {}
-                        }
-                    }
-                } catch(e) {}
-            }
+            document.getElementById('cart-total-price').innerText = `€${total.toFixed(2)}`;
         },
 
         checkout: async function() {
@@ -3319,34 +3135,33 @@
                 }
             }
 
-            state.cart.forEach(it => { if (!it.qty || it.qty <= 0) it.qty = 1; });
-            const subtotal = state.cart.reduce((sum, i) => sum + (i.price * this.normalizeQty(i.qty, 1)), 0);
+            const subtotal = state.cart.reduce((sum, i) => sum + (i.price * i.qty), 0);
             const discount = this.getDiscountAmount(subtotal);
             const total = subtotal - discount;
             const newOrderId = Math.floor(1000 + Math.random() * 9000);
             
-            let textMessage = `🛒 *POROSI E RE - LASERDESIGN KOSOVA*\\n`;
-            textMessage += `🆔 *ID:* #${newOrderId}\\n\\n`;
-            textMessage += `👤 *Klienti:* ${name}\\n`;
-            textMessage += `📞 *Tel:* ${phone}\\n`;
-            textMessage += `📍 *Adresa:* ${city}\\n`;
-            textMessage += `------------------------------------\\n`;
+            let textMessage = `🛒 *POROSI E RE - LASERDESIGN KOSOVA*\n`;
+            textMessage += `🆔 *ID:* #${newOrderId}\n\n`;
+            textMessage += `👤 *Klienti:* ${name}\n`;
+            textMessage += `📞 *Tel:* ${phone}\n`;
+            textMessage += `📍 *Adresa:* ${city}\n`;
+            textMessage += `------------------------------------\n`;
             
             state.cart.forEach((item, index) => {
-                textMessage += `${index + 1}. 📦 *${item.title}* (${item.qty}x)\\n`;
-                textMessage += `   📐 Masa: ${item.chosenSize}\\n`;
+                textMessage += `${index + 1}. 📦 *${item.title}* (${item.qty}x)\n`;
+                textMessage += `   📐 Masa: ${item.chosenSize}\n`;
                 if(item.isCustom) {
-                    textMessage += `   ⬡ Forma: ${item.shapeDetails}\\n`;
-                    textMessage += `   💬 Teksti: ${item.ideaDetails}\\n`;
+                    textMessage += `   ⬡ Forma: ${item.shapeDetails}\n`;
+                    textMessage += `   💬 Teksti: ${item.ideaDetails}\n`;
                 }
-                textMessage += `   💰 Çmimi: €${(item.price * item.qty).toFixed(2)}\\n`;
-                textMessage += `\\n`;
+                textMessage += `   💰 Çmimi: €${(item.price * item.qty).toFixed(2)}\n`;
+                textMessage += `\n`;
             });
             
-            textMessage += `------------------------------------\\n`;
-            textMessage += `Nëntotali: €${subtotal.toFixed(2)}\\n`;
+            textMessage += `------------------------------------\n`;
+            textMessage += `Nëntotali: €${subtotal.toFixed(2)}\n`;
             if (state.appliedCoupon && discount > 0) {
-                textMessage += `🏷️ Kuponi (${state.appliedCoupon.code}): -€${discount.toFixed(2)}\\n`;
+                textMessage += `🏷️ Kuponi (${state.appliedCoupon.code}): -€${discount.toFixed(2)}\n`;
             }
             textMessage += `💰 *TOTALI I BLERJES:* €${total.toFixed(2)}`;
 
@@ -3384,6 +3199,9 @@
                     alert(`Porosia #${newOrderId} u dërgua me sukses!`);
                     
                     const itemsSummary = state.cart.map(i => `${i.qty}x ${i.title}`).join(', ');
+                    // Të dhëna strukturore (id produkti + sasia) — përdoren për të llogaritur automatikisht
+                    // "Produktet më të shitura" te faqja kryesore. Vetëm produktet e katalogut (jo ato
+                    // të personalizuara/custom, që kanë id si "custom-172..." dhe s'janë te PRODUCTS).
                     const itemsData = state.cart
                         .filter(i => !i.isCustom)
                         .map(i => ({ id: i.id, qty: i.qty }));
@@ -3427,8 +3245,6 @@
             });
         }
     };
-
-    const Orders = {
 
     const Orders = {
         liveSyncTimer: null,
@@ -4584,5 +4400,5 @@
     };
 </script>
 
-<script>(function(){function c(){var b=a.contentDocument||a.contentWindow.document;if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'a1b41fd1c83fd0dc',t:'MTc4NDA2OTgyNA=='};var a=document.createElement('script');a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script><script>(function(){function c(){var b=a.contentDocument||a.contentWindow.document;if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'a1b4518f6bfed0de',t:'MTc4NDA3MTg2MQ=='};var a=document.createElement('script');a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>
+<script>(function(){function c(){var b=a.contentDocument||a.contentWindow.document;if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'a1b41fd1c83fd0dc',t:'MTc4NDA2OTgyNA=='};var a=document.createElement('script');a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script><script>(function(){function c(){var b=a.contentDocument||a.contentWindow.document;if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'a1b43e2e499fd100',t:'MTc4NDA3MTA2Nw=='};var a=document.createElement('script');a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>
 </html>
