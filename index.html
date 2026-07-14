@@ -74,6 +74,16 @@
         .screen {
             padding-bottom: 4px;
         }
+        .admin-tab {
+            padding-bottom: calc(var(--bottom-nav-height) + 28px);
+        }
+        .admin-screen-safe {
+            padding-bottom: calc(var(--bottom-nav-height) + 28px);
+        }
+        .admin-form-sheet {
+            padding-bottom: calc(1.25rem + var(--bottom-nav-safe-space));
+            scroll-padding-bottom: calc(var(--bottom-nav-safe-space) + 16px);
+        }
         #app-navbar {
             min-height: var(--bottom-nav-height);
         }
@@ -595,7 +605,7 @@
             </div>
         </div>
 
-        <div id="scr-admin" class="screen hidden">
+        <div id="scr-admin" class="screen hidden admin-screen-safe">
             <div class="flex justify-between items-center mb-5">
                 <button onclick="App.navigate('scr-profile', 4)" class="text-xl text-gray-400"><i class="fa-solid fa-arrow-left"></i></button>
                 <span class="text-sm font-bold tracking-wider uppercase">Paneli i Administrimit</span>
@@ -644,7 +654,7 @@
         </div>
 
         <div id="admin-category-form-wrap" class="hidden fixed inset-0 z-[120] bg-black/70 flex items-end justify-center">
-            <div class="w-full max-w-[414px] sm:max-w-[480px] bg-[#0c0c0c] border-t border-[#262626] rounded-t-3xl p-5 max-h-[85vh] overflow-y-auto">
+            <div class="admin-form-sheet w-full max-w-[414px] sm:max-w-[480px] bg-[#0c0c0c] border-t border-[#262626] rounded-t-3xl p-5 max-h-[85vh] overflow-y-auto">
                 <div class="flex justify-between items-center mb-4">
                     <h3 id="admin-category-form-title" class="text-sm font-bold">Kategori e Re</h3>
                     <button onclick="Admin.closeCategoryForm()" class="w-8 h-8 rounded-full bg-[#161616] border border-[#222] flex items-center justify-center text-xs cursor-pointer"><i class="fa-solid fa-xmark"></i></button>
@@ -673,7 +683,7 @@
         </div>
 
         <div id="admin-product-form-wrap" class="hidden fixed inset-0 z-[120] bg-black/70 flex items-end justify-center">
-            <div class="w-full max-w-[414px] sm:max-w-[480px] bg-[#0c0c0c] border-t border-[#262626] rounded-t-3xl p-5 max-h-[85vh] overflow-y-auto">
+            <div class="admin-form-sheet w-full max-w-[414px] sm:max-w-[480px] bg-[#0c0c0c] border-t border-[#262626] rounded-t-3xl p-5 max-h-[85vh] overflow-y-auto">
                 <div class="flex justify-between items-center mb-4">
                     <h3 id="admin-form-title" class="text-sm font-bold">Produkt i Ri</h3>
                     <button onclick="Admin.closeProductForm()" class="w-8 h-8 rounded-full bg-[#161616] border border-[#222] flex items-center justify-center text-xs cursor-pointer"><i class="fa-solid fa-xmark"></i></button>
@@ -740,7 +750,7 @@
         </div>
 
         <div id="admin-gallery-form-wrap" class="hidden fixed inset-0 z-[120] bg-black/70 flex items-end justify-center">
-            <div class="w-full max-w-[414px] sm:max-w-[480px] bg-[#0c0c0c] border-t border-[#262626] rounded-t-3xl p-5 max-h-[85vh] overflow-y-auto">
+            <div class="admin-form-sheet w-full max-w-[414px] sm:max-w-[480px] bg-[#0c0c0c] border-t border-[#262626] rounded-t-3xl p-5 max-h-[85vh] overflow-y-auto">
                 <div class="flex justify-between items-center mb-4">
                     <h3 id="admin-gallery-form-title" class="text-sm font-bold">Punim i Ri për Galeri</h3>
                     <button onclick="Admin.closeGalleryForm()" class="w-8 h-8 rounded-full bg-[#161616] border border-[#222] flex items-center justify-center text-xs cursor-pointer"><i class="fa-solid fa-xmark"></i></button>
@@ -831,7 +841,7 @@
         </div>
 
         <div id="admin-offer-form-wrap" class="hidden fixed inset-0 z-[120] bg-black/70 flex items-end justify-center">
-            <div class="w-full max-w-[414px] sm:max-w-[480px] bg-[#0c0c0c] border-t border-[#262626] rounded-t-3xl p-5 max-h-[85vh] overflow-y-auto">
+            <div class="admin-form-sheet w-full max-w-[414px] sm:max-w-[480px] bg-[#0c0c0c] border-t border-[#262626] rounded-t-3xl p-5 max-h-[85vh] overflow-y-auto">
                 <div class="flex justify-between items-center mb-4">
                     <h3 id="admin-offer-form-title" class="text-sm font-bold">Ofertë / Lajm i Ri</h3>
                     <button onclick="Admin.closeOfferForm()" class="w-8 h-8 rounded-full bg-[#161616] border border-[#222] flex items-center justify-center text-xs cursor-pointer"><i class="fa-solid fa-xmark"></i></button>
