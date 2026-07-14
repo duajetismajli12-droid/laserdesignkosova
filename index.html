@@ -1,3 +1,5 @@
+===== index.html =====
+
 <!DOCTYPE html>
 <html lang="sq">
 <head>
@@ -1193,6 +1195,43 @@
             console.error('Gabim gjatë ruajtjes së galerisë:', err);
             alert('Nuk u arrit të ruhen ndryshimet e galerisë në server. Provo përsëri.');
         }
+    }
+
+    // Porositë për admin ruhen në server, që të shihen nga të gjitha pajisjet.
+    let SERVER_ORDERS = [];
+
+    async function loadOrdersFromServer() {
+        try {
+            const res = await fetch('/api/orders');
+            if (!res.ok) throw new Error('Përgjigje jo e suksesshme nga serveri.');
+            SERVER_ORDERS = await res.json();
+            if (!Array.isArray(SERVER_ORDERS)) SERVER_ORDERS = [];
+            return SERVER_ORDERS;
+        } catch (err) {
+            console.error('Gabim gjatë marrjes së porosive nga serveri:', err);
+            return [];
+        }
+    }
+
+    async function saveOrdersToServer() {
+        try {
+            const res = await fetch('/api/orders', {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(SERVER_ORDERS)
+            });
+            if (!res.ok) throw new Error('Përgjigje jo e suksesshme nga serveri.');
+            return true;
+        } catch (err) {
+            console.error('Gabim gjatë ruajtjes së porosive në server:', err);
+            return false;
+        }
+    }
+
+    async function addOrderToServer(orderData) {
+        await loadOrdersFromServer();
+        SERVER_ORDERS.unshift(orderData);
+        return await saveOrdersToServer();
     }
 
     // Fjalëkalimi i panelit të administrimit — NDËRROJENI këtë me diçka tuajën!
@@ -2998,11 +3037,27 @@
 
                     const savedOrders = localStorage.getItem('laserdesign_orders');
                     let currentOrders = savedOrders ? JSON.parse(savedOrders) : [];
+                    const orderRecord = {
+                        id: newOrderId,
+                        date: "Sot",
+                        items: itemsSummary,
+                        itemsData: itemsData,
+                        total: total,
+                        status: "NË PROCES",
+                        statusColor: "text-[#dca76a]",
+                        customerName: name,
+                        customerPhone: phone,
+                        customerCity: city,
+                        couponCode: state.appliedCoupon ? state.appliedCoupon.code : null
+                    };
                     
-                    currentOrders.unshift({
-                        id: newOrderId, date: "Sot", items: itemsSummary, itemsData: itemsData, total: total, status: "NË PROCES", statusColor: "text-[#dca76a]"
-                    });
+                    currentOrders.unshift(orderRecord);
                     localStorage.setItem('laserdesign_orders', JSON.stringify(currentOrders));
+
+                    const serverSaved = await addOrderToServer(orderRecord);
+                    if (!serverSaved) {
+                        alert("Porosia u ruajt në këtë pajisje, por nuk u sinkronizua në server. Admini mund të mos e shohë nga pajisje të tjera derisa serveri të funksionojë.");
+                    }
 
                     this.clear();
                     Orders.render();
@@ -3913,13 +3968,14 @@
 
         // ---------- POROSITË ----------
 
-        renderOrders: function() {
-            const savedOrders = localStorage.getItem('laserdesign_orders');
-            const orders = savedOrders ? JSON.parse(savedOrders) : [];
+        renderOrders: async function() {
             const container = document.getElementById('admin-orders-list');
             if (!container) return;
 
-            if (orders.length === 0) {
+            container.innerHTML = `<p class="text-center text-[11px] text-gray-600 py-6">Duke i ngarkuar porositë...</p>`;
+            const orders = await loadOrdersFromServer();
+
+            if (!orders.length) {
                 container.innerHTML = `<p class="text-center text-[11px] text-gray-600 py-6">Nuk ka porosi akoma.</p>`;
                 return;
             }
@@ -3930,7 +3986,10 @@
                         <span class="text-xs font-bold text-gray-200">Porosia #${o.id}</span>
                         <button onclick="Admin.deleteOrder(${o.id})" class="text-gray-500 hover:text-red-400 text-xs cursor-pointer"><i class="fa-solid fa-trash-can"></i></button>
                     </div>
-                    <div class="text-[10px] text-gray-500 mb-2">Data: ${o.date}</div>
+                    <div class="text-[10px] text-gray-500 mb-1">Data: ${o.date}</div>
+                    ${o.customerName ? `<div class="text-[10px] text-gray-500 mb-1">Klienti: ${o.customerName}</div>` : ''}
+                    ${o.customerPhone ? `<div class="text-[10px] text-gray-500 mb-1">Tel: ${o.customerPhone}</div>` : ''}
+                    ${o.customerCity ? `<div class="text-[10px] text-gray-500 mb-2">Adresa: ${o.customerCity}</div>` : ''}
                     <div class="text-xs text-gray-400 mb-2">${o.items}</div>
                     <div class="text-xs font-bold text-[#dca76a] mb-3 pt-2 border-t border-[#222]/60">Totali: €${o.total.toFixed(2)}</div>
                     <select onchange="Admin.updateOrderStatus(${o.id}, this.value)" class="w-full bg-[#121212] border border-[#222] rounded-lg px-2.5 py-2 text-[11px] outline-none focus:border-[#dca76a]/50 font-bold ${o.statusColor}">
@@ -3940,26 +3999,47 @@
             `).join('');
         },
 
-        updateOrderStatus: function(id, newStatus) {
-            const savedOrders = localStorage.getItem('laserdesign_orders');
-            let orders = savedOrders ? JSON.parse(savedOrders) : [];
-            const order = orders.find(o => o.id === id);
+        updateOrderStatus: async function(id, newStatus) {
+            await loadOrdersFromServer();
+            const order = SERVER_ORDERS.find(o => o.id === id);
             if (!order) return;
 
             order.status = newStatus;
             order.statusColor = this.STATUS_COLORS[newStatus] || "text-gray-400";
-            localStorage.setItem('laserdesign_orders', JSON.stringify(orders));
+            const saved = await saveOrdersToServer();
+            if (!saved) {
+                alert("Ndryshimi i statusit nuk u ruajt në server. Provo përsëri.");
+                return;
+            }
+
+            const savedOrders = localStorage.getItem('laserdesign_orders');
+            let localOrders = savedOrders ? JSON.parse(savedOrders) : [];
+            const localOrder = localOrders.find(o => o.id === id);
+            if (localOrder) {
+                localOrder.status = order.status;
+                localOrder.statusColor = order.statusColor;
+                localStorage.setItem('laserdesign_orders', JSON.stringify(localOrders));
+            }
 
             this.renderOrders();
             Orders.render();
         },
 
-        deleteOrder: function(id) {
+        deleteOrder: async function(id) {
             if (!confirm("A jeni i sigurt që doni ta fshini këtë porosi?")) return;
+
+            await loadOrdersFromServer();
+            SERVER_ORDERS = SERVER_ORDERS.filter(o => o.id !== id);
+            const saved = await saveOrdersToServer();
+            if (!saved) {
+                alert("Fshirja e porosisë nuk u ruajt në server. Provo përsëri.");
+                return;
+            }
+
             const savedOrders = localStorage.getItem('laserdesign_orders');
-            let orders = savedOrders ? JSON.parse(savedOrders) : [];
-            orders = orders.filter(o => o.id !== id);
-            localStorage.setItem('laserdesign_orders', JSON.stringify(orders));
+            let localOrders = savedOrders ? JSON.parse(savedOrders) : [];
+            localOrders = localOrders.filter(o => o.id !== id);
+            localStorage.setItem('laserdesign_orders', JSON.stringify(localOrders));
 
             this.renderOrders();
             Orders.render();
@@ -4082,5 +4162,5 @@
     };
 </script>
 
-<script>(function(){function c(){var b=a.contentDocument||a.contentWindow.document;if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'a1b3bbea1d4c254b',t:'MTc4NDA2NTczMg=='};var a=document.createElement('script');a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>
+</body>
 </html>
