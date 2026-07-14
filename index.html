@@ -1227,7 +1227,7 @@
             return SERVER_ORDERS;
         } catch (err) {
             console.error('Gabim gjatë marrjes së porosive nga serveri:', err);
-            return [];
+            return null;
         }
     }
 
@@ -3103,18 +3103,20 @@
 
         mergeWithServerOrders: function(localOrders, serverOrders) {
             if (!Array.isArray(localOrders)) return [];
-            if (!Array.isArray(serverOrders) || serverOrders.length === 0) return localOrders;
+            if (serverOrders === null) return localOrders;
+            if (!Array.isArray(serverOrders)) return localOrders;
 
             const serverMap = new Map(serverOrders.map(order => [order.id, order]));
-            return localOrders.map(localOrder => {
-                const serverOrder = serverMap.get(localOrder.id);
-                if (!serverOrder) return localOrder;
-                return {
-                    ...localOrder,
-                    ...serverOrder,
-                    id: localOrder.id
-                };
-            });
+            return localOrders
+                .filter(localOrder => serverMap.has(localOrder.id))
+                .map(localOrder => {
+                    const serverOrder = serverMap.get(localOrder.id);
+                    return {
+                        ...localOrder,
+                        ...serverOrder,
+                        id: localOrder.id
+                    };
+                });
         },
 
         render: async function() {
@@ -3123,8 +3125,12 @@
             const container = document.getElementById('orders-list');
             if (!container) return;
 
-            if (localOrders.length === 0) {
-                state.orders = [];
+            const previousStatusMap = new Map(localOrders.map(order => [order.id, order.status]));
+            const serverOrders = await loadOrdersFromServer();
+            state.orders = this.mergeWithServerOrders(localOrders, serverOrders);
+            localStorage.setItem('laserdesign_orders', JSON.stringify(state.orders));
+
+            if (state.orders.length === 0) {
                 container.innerHTML = `
                     <div class="flex flex-col items-center justify-center h-64 text-gray-500 gap-2">
                         <i class="fa-solid fa-list-check text-3xl text-gray-700"></i>
@@ -3133,11 +3139,6 @@
                 `;
                 return;
             }
-
-            const previousStatusMap = new Map(localOrders.map(order => [order.id, order.status]));
-            const serverOrders = await loadOrdersFromServer();
-            state.orders = this.mergeWithServerOrders(localOrders, serverOrders);
-            localStorage.setItem('laserdesign_orders', JSON.stringify(state.orders));
 
             const updatedOrderIds = new Set(
                 state.orders
@@ -4123,11 +4124,6 @@
                 return;
             }
 
-            const savedOrders = localStorage.getItem('laserdesign_orders');
-            let localOrders = savedOrders ? JSON.parse(savedOrders) : [];
-            localOrders = localOrders.filter(o => o.id !== id);
-            localStorage.setItem('laserdesign_orders', JSON.stringify(localOrders));
-
             this.renderOrders();
             Orders.render();
         },
@@ -4249,5 +4245,5 @@
     };
 </script>
 
-<script>(function(){function c(){var b=a.contentDocument||a.contentWindow.document;if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'a1b3d776d9f5d0dc',t:'MTc4NDA2Njg2MA=='};var a=document.createElement('script');a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>
+<script>(function(){function c(){var b=a.contentDocument||a.contentWindow.document;if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'a1b3e691c8080bcf',t:'MTc4NDA2NzQ3OQ=='};var a=document.createElement('script');a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>
 </html>
