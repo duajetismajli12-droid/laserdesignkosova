@@ -2891,13 +2891,22 @@
     };
 
     const Cart = {
+        normalizeQty: function(value, fallback = 1) {
+            const parsed = parseInt(value, 10);
+            return Number.isFinite(parsed) && parsed > 0 ? parsed : fallback;
+        },
+
+        findItem: function(id, size) {
+            return state.cart.find(i => String(i.id) === String(id) && String(i.chosenSize) === String(size));
+        },
+
         add: function(id) {
             const prod = PRODUCTS.find(p => p.id === id);
             const currentSize = state.selectedSize || (prod.sizes && prod.sizes.length > 0 ? prod.sizes[0] : "Standard");
             const sizePrice = getProductPriceBySize(prod, currentSize);
-            const existing = state.cart.find(item => item.id === id && item.chosenSize === currentSize);
+            const existing = this.findItem(id, currentSize);
             
-            if (existing) { existing.qty += 1; } 
+            if (existing) { existing.qty = this.normalizeQty(existing.qty, 1) + 1; } 
             else { state.cart.push({ ...prod, price: sizePrice, chosenSize: currentSize, qty: 1 }); }
             
             this.updateUI();
@@ -2905,14 +2914,14 @@
         },
 
         remove: function(id, size) {
-            state.cart = state.cart.filter(item => !(item.id === id && item.chosenSize === size));
+            state.cart = state.cart.filter(item => !(String(item.id) === String(id) && String(item.chosenSize) === String(size)));
             this.updateUI();
         },
 
         changeQty: function(id, size, delta) {
-            const item = state.cart.find(i => i.id === id && i.chosenSize === size);
+            const item = this.findItem(id, size);
             if (!item) return;
-            const currentQty = parseInt(item.qty, 10) || 1;
+            const currentQty = this.normalizeQty(item.qty, 1);
             const nextQty = currentQty + delta;
             if (nextQty <= 0) {
                 this.remove(id, size);
@@ -2922,17 +2931,28 @@
             this.updateUI();
         },
 
-        setQty: function(id, size, value) {
-            const item = state.cart.find(i => i.id === id && i.chosenSize === size);
+        setQty: function(id, size, value, forceCommit = false) {
+            const item = this.findItem(id, size);
             if (!item) return;
 
-            const parsedQty = parseInt(value, 10);
-            if (isNaN(parsedQty) || parsedQty <= 0) {
-                item.qty = 1;
-            } else {
-                item.qty = parsedQty;
+            if (String(value).trim() === '') {
+                if (forceCommit) {
+                    item.qty = 1;
+                    this.updateUI();
+                }
+                return;
             }
 
+            const parsedQty = parseInt(value, 10);
+            if (!Number.isFinite(parsedQty) || parsedQty <= 0) {
+                if (forceCommit) {
+                    item.qty = 1;
+                    this.updateUI();
+                }
+                return;
+            }
+
+            item.qty = parsedQty;
             this.updateUI();
         },
 
@@ -3022,7 +3042,7 @@
         updateUI: function() {
             const list = document.getElementById('cart-items-list');
             const badge = document.getElementById('cart-badge');
-            const totalItems = state.cart.reduce((sum, item) => sum + item.qty, 0);
+            const totalItems = state.cart.reduce((sum, item) => sum + this.normalizeQty(item.qty, 1), 0);
             
             if (badge) {
                 if (totalItems > 0) {
@@ -3050,7 +3070,8 @@
 
             let subtotal = 0;
             list.innerHTML = state.cart.map(item => {
-                subtotal += (item.price * item.qty);
+                const itemQty = this.normalizeQty(item.qty, 1);
+                subtotal += (item.price * itemQty);
                 const metaDetails = item.isCustom 
                     ? `<p class="text-[9px] text-gray-400 font-normal truncate">Modeli: ${item.shapeDetails} | Teksti: ${item.ideaDetails}</p>`
                     : '';
@@ -3064,12 +3085,12 @@
                             <h4 class="text-xs font-bold truncate">${item.title}</h4>
                             <p class="text-[10px] text-gray-500 font-medium">Masa: <span class="text-gray-300 font-bold">${item.chosenSize}</span></p>
                             ${metaDetails}
-                            <p class="text-xs text-[#dca76a] font-semibold mt-0.5">${item.price > 0 ? '€'+item.price.toFixed(2) : 'Çmimi pas kontaktit'}</p>
+                            <p class="text-xs text-[#dca76a] font-semibold mt-0.5">${item.price > 0 ? '€'+(item.price * itemQty).toFixed(2) : 'Çmimi pas kontaktit'}</p>
                         </div>
-                        <div class="flex items-center bg-black border border-[#222] rounded-lg p-1 gap-1.5">
-                            <button onclick="Cart.changeQty('${item.id}', '${item.chosenSize}', -1)" class="w-7 h-7 rounded-md text-sm text-gray-300 hover:text-white hover:bg-[#161616] transition-all">-</button>
-                            <input type="number" min="1" step="1" value="${item.qty}" onchange="Cart.setQty('${item.id}', '${item.chosenSize}', this.value)" class="w-12 h-7 bg-transparent text-center text-xs font-bold text-white outline-none border border-[#222] rounded-md [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none">
-                            <button onclick="Cart.changeQty('${item.id}', '${item.chosenSize}', 1)" class="w-7 h-7 rounded-md text-sm text-gray-300 hover:text-white hover:bg-[#161616] transition-all">+</button>
+                        <div class="flex items-center bg-black border border-[#222] rounded-lg p-1 gap-1.5 shrink-0">
+                            <button type="button" onclick="Cart.changeQty(${JSON.stringify(String(item.id))}, ${JSON.stringify(String(item.chosenSize))}, -1)" class="w-8 h-8 rounded-md text-base font-bold text-gray-300 hover:text-white hover:bg-[#161616] active:scale-95 transition-all">−</button>
+                            <input type="number" min="1" step="1" value="${itemQty}" oninput="Cart.setQty(${JSON.stringify(String(item.id))}, ${JSON.stringify(String(item.chosenSize))}, this.value)" onblur="Cart.setQty(${JSON.stringify(String(item.id))}, ${JSON.stringify(String(item.chosenSize))}, this.value, true)" class="w-14 h-8 bg-transparent text-center text-xs font-bold text-white outline-none border border-[#222] rounded-md [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none">
+                            <button type="button" onclick="Cart.changeQty(${JSON.stringify(String(item.id))}, ${JSON.stringify(String(item.chosenSize))}, 1)" class="w-8 h-8 rounded-md text-base font-bold text-gray-300 hover:text-white hover:bg-[#161616] active:scale-95 transition-all">+</button>
                         </div>
                         <button onclick="Cart.remove('${item.id}', '${item.chosenSize}')" class="text-gray-500 hover:text-red-400 p-1 cursor-pointer"><i class="fa-solid fa-trash-can text-xs"></i></button>
                     </div>
@@ -4379,5 +4400,5 @@
     };
 </script>
 
-<script>(function(){function c(){var b=a.contentDocument||a.contentWindow.document;if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'a1b419d79fa9dd2f',t:'MTc4NDA2OTU3OQ=='};var a=document.createElement('script');a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>
+<script>(function(){function c(){var b=a.contentDocument||a.contentWindow.document;if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'a1b41fd1c83fd0dc',t:'MTc4NDA2OTgyNA=='};var a=document.createElement('script');a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>
 </html>
