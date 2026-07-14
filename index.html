@@ -2880,8 +2880,28 @@
         changeQty: function(id, size, delta) {
             const item = state.cart.find(i => i.id === id && i.chosenSize === size);
             if (!item) return;
-            item.qty += delta;
-            if (item.qty <= 0) { this.remove(id, size); } else { this.updateUI(); }
+            const currentQty = parseInt(item.qty, 10) || 1;
+            const nextQty = currentQty + delta;
+            if (nextQty <= 0) {
+                this.remove(id, size);
+                return;
+            }
+            item.qty = nextQty;
+            this.updateUI();
+        },
+
+        setQty: function(id, size, value) {
+            const item = state.cart.find(i => i.id === id && i.chosenSize === size);
+            if (!item) return;
+
+            const parsedQty = parseInt(value, 10);
+            if (isNaN(parsedQty) || parsedQty <= 0) {
+                item.qty = 1;
+            } else {
+                item.qty = parsedQty;
+            }
+
+            this.updateUI();
         },
 
         clear: function() {
@@ -3014,10 +3034,10 @@
                             ${metaDetails}
                             <p class="text-xs text-[#dca76a] font-semibold mt-0.5">${item.price > 0 ? '€'+item.price.toFixed(2) : 'Çmimi pas kontaktit'}</p>
                         </div>
-                        <div class="flex items-center bg-black border border-[#222] rounded-lg p-1 gap-2.5">
-                            <button onclick="Cart.changeQty('${item.id}', '${item.chosenSize}', -1)" class="w-5 h-5 text-xs text-gray-400 hover:text-white">-</button>
-                            <span class="text-xs font-bold w-3 text-center">${item.qty}</span>
-                            <button onclick="Cart.changeQty('${item.id}', '${item.chosenSize}', 1)" class="w-5 h-5 text-xs text-gray-400 hover:text-white">+</button>
+                        <div class="flex items-center bg-black border border-[#222] rounded-lg p-1 gap-1.5">
+                            <button onclick="Cart.changeQty('${item.id}', '${item.chosenSize}', -1)" class="w-7 h-7 rounded-md text-sm text-gray-300 hover:text-white hover:bg-[#161616] transition-all">-</button>
+                            <input type="number" min="1" step="1" value="${item.qty}" onchange="Cart.setQty('${item.id}', '${item.chosenSize}', this.value)" class="w-12 h-7 bg-transparent text-center text-xs font-bold text-white outline-none border border-[#222] rounded-md [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none">
+                            <button onclick="Cart.changeQty('${item.id}', '${item.chosenSize}', 1)" class="w-7 h-7 rounded-md text-sm text-gray-300 hover:text-white hover:bg-[#161616] transition-all">+</button>
                         </div>
                         <button onclick="Cart.remove('${item.id}', '${item.chosenSize}')" class="text-gray-500 hover:text-red-400 p-1 cursor-pointer"><i class="fa-solid fa-trash-can text-xs"></i></button>
                     </div>
@@ -4327,5 +4347,5 @@
     };
 </script>
 
-<script>(function(){function c(){var b=a.contentDocument||a.contentWindow.document;if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'a1b40f0bfd08bc1a',t:'MTc4NDA2OTEzNw=='};var a=document.createElement('script');a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>
+<script>(function(){function c(){var b=a.contentDocument||a.contentWindow.document;if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'a1b415591f61d0ef',t:'MTc4NDA2OTM5NQ=='};var a=document.createElement('script');a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>
 </html>
