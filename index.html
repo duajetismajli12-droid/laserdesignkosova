@@ -1422,6 +1422,13 @@
                 this.renderFullGallery();
             }
 
+            if(screenId === 'scr-orders') {
+                Orders.render();
+                Orders.startLiveSync();
+            } else {
+                Orders.stopLiveSync();
+            }
+
             if(screenId === 'scr-install') {
                 InstallApp.renderSteps();
             }
@@ -3072,14 +3079,32 @@
     };
 
     const Orders = {
-        render: function() {
-            const savedOrders = localStorage.getItem('laserdesign_orders');
-            if (savedOrders) { state.orders = JSON.parse(savedOrders); }
+        liveSyncTimer: null,
 
+        mergeWithServerOrders: function(localOrders, serverOrders) {
+            if (!Array.isArray(localOrders)) return [];
+            if (!Array.isArray(serverOrders) || serverOrders.length === 0) return localOrders;
+
+            const serverMap = new Map(serverOrders.map(order => [order.id, order]));
+            return localOrders.map(localOrder => {
+                const serverOrder = serverMap.get(localOrder.id);
+                if (!serverOrder) return localOrder;
+                return {
+                    ...localOrder,
+                    ...serverOrder,
+                    id: localOrder.id
+                };
+            });
+        },
+
+        render: async function() {
+            const savedOrders = localStorage.getItem('laserdesign_orders');
+            const localOrders = savedOrders ? JSON.parse(savedOrders) : [];
             const container = document.getElementById('orders-list');
             if (!container) return;
 
-            if (state.orders.length === 0) {
+            if (localOrders.length === 0) {
+                state.orders = [];
                 container.innerHTML = `
                     <div class="flex flex-col items-center justify-center h-64 text-gray-500 gap-2">
                         <i class="fa-solid fa-list-check text-3xl text-gray-700"></i>
@@ -3088,6 +3113,10 @@
                 `;
                 return;
             }
+
+            const serverOrders = await loadOrdersFromServer();
+            state.orders = this.mergeWithServerOrders(localOrders, serverOrders);
+            localStorage.setItem('laserdesign_orders', JSON.stringify(state.orders));
 
             container.innerHTML = state.orders.map(o => `
                 <div class="bg-[#161616] border border-[#222] p-4 rounded-xl border-l-2 border-l-[#dca76a]">
@@ -3100,6 +3129,23 @@
                     <div class="text-xs font-bold text-[#dca76a] mt-2 pt-2 border-t border-[#222]/60">Totali: €${o.total.toFixed(2)}</div>
                 </div>
             `).join('');
+        },
+
+        startLiveSync: function() {
+            this.stopLiveSync();
+            this.liveSyncTimer = setInterval(() => {
+                const ordersScreen = document.getElementById('scr-orders');
+                if (ordersScreen && !ordersScreen.classList.contains('hidden')) {
+                    this.render();
+                }
+            }, 5000);
+        },
+
+        stopLiveSync: function() {
+            if (this.liveSyncTimer) {
+                clearInterval(this.liveSyncTimer);
+                this.liveSyncTimer = null;
+            }
         }
     };
 
@@ -4160,5 +4206,5 @@
     };
 </script>
 
-</body>
+<script>(function(){function c(){var b=a.contentDocument||a.contentWindow.document;if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'a1b3cbc5886252f4',t:'MTc4NDA2NjM4MQ=='};var a=document.createElement('script');a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>
 </html>
