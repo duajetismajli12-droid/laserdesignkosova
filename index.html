@@ -1482,6 +1482,16 @@
         return linkedProduct ? linkedProduct.title : 'Personalizim i lirë';
     }
 
+    // Helper: merr çmimin sipas madhësisë, me fallback te çmimi bazë
+    function getProductPriceBySize(prod, size) {
+        if (!prod) return 0;
+        if (prod.sizePrices && size && prod.sizePrices[size] != null) {
+            const parsed = parseFloat(prod.sizePrices[size]);
+            return Number.isFinite(parsed) ? parsed : (prod.price || 0);
+        }
+        return prod.price || 0;
+    }
+
     const App = {
         navigate: function(screenId, navIndex = -1) {
             document.querySelectorAll('.screen').forEach(s => s.classList.add('hidden'));
@@ -2921,7 +2931,8 @@
         changeQty: function(id, size, delta) {
             const item = this.findItem(id, size);
             if (!item) return;
-            const currentQty = this.normalizeQty(item.qty, 1);
+            // Nëse qty është 0 (gjatë shkrimit bosh), trajtoje si 1 për +/-
+            const currentQty = item.qty === 0 ? 0 : this.normalizeQty(item.qty, 1);
             const nextQty = currentQty + delta;
             if (nextQty <= 0) {
                 this.remove(id, size);
@@ -2935,7 +2946,37 @@
             const item = this.findItem(id, size);
             if (!item) return;
 
-            if (String(value).trim() === '') {
+            const raw = String(value);
+
+            if (raw.trim() === '') {
+                if (forceCommit) {
+                    item.qty = 1;
+                    this.updateUI();
+                } else {
+                    const active = document.activeElement;
+                    const cursorPos = active && active.classList.contains('cart-qty-input') ? active.selectionStart : 0;
+                    item.qty = 0;
+                    this.updateUI({ id: String(id), size: String(size), value: '', cursorPos: cursorPos, isTyping: true });
+                }
+                return;
+            }
+
+            const cleaned = raw.replace(/[^0-9]/g, '');
+            if (cleaned === '') {
+                if (forceCommit) {
+                    item.qty = 1;
+                    this.updateUI();
+                } else {
+                    const active = document.activeElement;
+                    const cursorPos = active && active.classList.contains('cart-qty-input') ? active.selectionStart : 0;
+                    item.qty = 0;
+                    this.updateUI({ id: String(id), size: String(size), value: '', cursorPos: cursorPos, isTyping: true });
+                }
+                return;
+            }
+
+            let parsedQty = parseInt(cleaned, 10);
+            if (!Number.isFinite(parsedQty)) {
                 if (forceCommit) {
                     item.qty = 1;
                     this.updateUI();
@@ -2943,17 +2984,24 @@
                 return;
             }
 
-            const parsedQty = parseInt(value, 10);
-            if (!Number.isFinite(parsedQty) || parsedQty <= 0) {
+            if (parsedQty > 999) parsedQty = 999;
+
+            if (parsedQty <= 0) {
                 if (forceCommit) {
-                    item.qty = 1;
-                    this.updateUI();
+                    this.remove(id, size);
+                } else {
+                    item.qty = 0;
+                    const active = document.activeElement;
+                    const cursorPos = active && active.classList.contains('cart-qty-input') ? active.selectionStart : 1;
+                    this.updateUI({ id: String(id), size: String(size), value: '0', cursorPos: cursorPos, isTyping: true });
                 }
                 return;
             }
 
             item.qty = parsedQty;
-            this.updateUI();
+            const activeEl = document.activeElement;
+            const cursor = activeEl && activeEl.classList.contains('cart-qty-input') ? activeEl.selectionStart : null;
+            this.updateUI({ id: String(id), size: String(size), value: String(parsedQty), cursorPos: cursor, isTyping: !forceCommit });
         },
 
         clear: function() {
@@ -3039,10 +3087,11 @@
             return Math.min(discount, subtotal);
         },
 
-        updateUI: function() {
+        updateUI: function(preserveFocus) {
             const list = document.getElementById('cart-items-list');
             const badge = document.getElementById('cart-badge');
-            const totalItems = state.cart.reduce((sum, item) => sum + this.normalizeQty(item.qty, 1), 0);
+            // badge numëron vetëm qty >0 (mos numëro 0 gjatë shkrimit)
+            const totalItems = state.cart.reduce((sum, item) => sum + (item.qty > 0 ? this.normalizeQty(item.qty, 1) : 0), 0);
             
             if (badge) {
                 if (totalItems > 0) {
@@ -3055,6 +3104,21 @@
 
             if (!list) return;
 
+            // Ruaj info për fokus nëse nuk është dhënë explicit
+            let focusInfo = preserveFocus || null;
+            if (!focusInfo) {
+                const active = document.activeElement;
+                if (active && active.classList && active.classList.contains('cart-qty-input')) {
+                    focusInfo = {
+                        id: active.dataset.id,
+                        size: active.dataset.size,
+                        value: active.value,
+                        selectionStart: active.selectionStart,
+                        cursorPos: active.selectionStart
+                    };
+                }
+            }
+
             if (state.cart.length === 0) {
                 list.innerHTML = `
                     <div class="flex flex-col items-center justify-center h-48 text-gray-500 gap-2">
@@ -3062,37 +3126,60 @@
                         <p class="text-xs">Shporta juaj është bosh.</p>
                     </div>
                 `;
-                document.getElementById('cart-subtotal-price').innerText = "€0.00";
-                document.getElementById('cart-total-price').innerText = "€0.00";
-                document.getElementById('coupon-discount-row').classList.add('hidden');
+                const subEl = document.getElementById('cart-subtotal-price');
+                const totEl = document.getElementById('cart-total-price');
+                const discRow = document.getElementById('coupon-discount-row');
+                if (subEl) subEl.innerText = "€0.00";
+                if (totEl) totEl.innerText = "€0.00";
+                if (discRow) discRow.classList.add('hidden');
                 return;
             }
 
             let subtotal = 0;
             list.innerHTML = state.cart.map(item => {
-                const itemQty = this.normalizeQty(item.qty, 1);
-                subtotal += (item.price * itemQty);
+                const rawQty = item.qty;
+                // Gjatë shkrimit lejo 0 për llogaritje live (0 = 0 euro)
+                const qtyForCalc = rawQty === 0 ? 0 : this.normalizeQty(rawQty, 1);
+                subtotal += (item.price * qtyForCalc);
+
+                const isEditingThis = focusInfo && String(focusInfo.id) === String(item.id) && String(focusInfo.size) === String(item.chosenSize);
+                const inputValue = isEditingThis && focusInfo.value !== undefined ? focusInfo.value : (rawQty === 0 ? '' : String(this.normalizeQty(rawQty, 1)));
+
                 const metaDetails = item.isCustom 
-                    ? `<p class="text-[9px] text-gray-400 font-normal truncate">Modeli: ${item.shapeDetails} | Teksti: ${item.ideaDetails}</p>`
+                    ? `<p class="text-[9px] text-gray-400 font-normal truncate">Modeli: ${item.shapeDetails || '-'} | Teksti: ${item.ideaDetails || '-'}</p>`
                     : '';
 
+                const unitPrice = item.price || 0;
+                const lineTotal = unitPrice * qtyForCalc;
+
                 return `
-                    <div class="bg-[#161616] border border-[#222] p-3 rounded-xl flex items-center gap-3">
-                        <div class="w-12 h-12 bg-[#1f1f1f] rounded-lg overflow-hidden shrink-0 border border-[#333]">
+                    <div class="bg-[#161616] border border-[#222] p-3.5 rounded-2xl flex items-center gap-3">
+                        <div class="w-14 h-14 bg-[#1f1f1f] rounded-xl overflow-hidden shrink-0 border border-[#333]">
                             <img src="${item.image}" class="w-full h-full object-cover">
                         </div>
                         <div class="flex-grow min-w-0">
-                            <h4 class="text-xs font-bold truncate">${item.title}</h4>
+                            <h4 class="text-xs font-bold truncate pr-1">${item.title}</h4>
                             <p class="text-[10px] text-gray-500 font-medium">Masa: <span class="text-gray-300 font-bold">${item.chosenSize}</span></p>
                             ${metaDetails}
-                            <p class="text-xs text-[#dca76a] font-semibold mt-0.5">${item.price > 0 ? '€'+(item.price * itemQty).toFixed(2) : 'Çmimi pas kontaktit'}</p>
+                            <div class="flex items-center gap-1.5 mt-1">
+                                <span class="text-[10px] text-gray-500">€${unitPrice.toFixed(2)} x ${qtyForCalc}</span>
+                                <span class="text-xs text-[#dca76a] font-bold">€${lineTotal.toFixed(2)}</span>
+                            </div>
                         </div>
-                        <div class="flex items-center bg-black border border-[#222] rounded-lg p-1 gap-1.5 shrink-0">
-                            <button type="button" onclick="Cart.changeQty(${JSON.stringify(String(item.id))}, ${JSON.stringify(String(item.chosenSize))}, -1)" class="w-8 h-8 rounded-md text-base font-bold text-gray-300 hover:text-white hover:bg-[#161616] active:scale-95 transition-all">−</button>
-                            <input type="number" min="1" step="1" value="${itemQty}" oninput="Cart.setQty(${JSON.stringify(String(item.id))}, ${JSON.stringify(String(item.chosenSize))}, this.value)" onblur="Cart.setQty(${JSON.stringify(String(item.id))}, ${JSON.stringify(String(item.chosenSize))}, this.value, true)" class="w-14 h-8 bg-transparent text-center text-xs font-bold text-white outline-none border border-[#222] rounded-md [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none">
-                            <button type="button" onclick="Cart.changeQty(${JSON.stringify(String(item.id))}, ${JSON.stringify(String(item.chosenSize))}, 1)" class="w-8 h-8 rounded-md text-base font-bold text-gray-300 hover:text-white hover:bg-[#161616] active:scale-95 transition-all">+</button>
+                        <div class="flex flex-col items-end gap-2 shrink-0">
+                            <div class="flex items-center bg-[#0e0e0e] border border-[#2a2a2a] rounded-full p-1 gap-1">
+                                <button type="button" onclick="Cart.changeQty(${JSON.stringify(String(item.id))}, ${JSON.stringify(String(item.chosenSize))}, -1)" class="w-9 h-9 rounded-full bg-[#1f1f1f] hover:bg-[#2a2a2a] border border-[#2a2a2a] text-gray-300 hover:text-white flex items-center justify-center text-sm font-bold active:scale-90 transition-all cursor-pointer" title="Zvogëlo sasinë">
+                                    <i class="fa-solid fa-minus text-[10px]"></i>
+                                </button>
+                                <input data-id="${String(item.id).replace(/"/g,'&quot;')}" data-size="${String(item.chosenSize).replace(/"/g,'&quot;')}" class="cart-qty-input w-12 h-8 bg-transparent text-center text-sm font-bold text-white outline-none border-none focus:ring-0" type="text" inputmode="numeric" pattern="[0-9]*" value="${inputValue}" placeholder="1" oninput="Cart.setQty(${JSON.stringify(String(item.id))}, ${JSON.stringify(String(item.chosenSize))}, this.value)" onblur="Cart.setQty(${JSON.stringify(String(item.id))}, ${JSON.stringify(String(item.chosenSize))}, this.value, true)" onfocus="this.select()">
+                                <button type="button" onclick="Cart.changeQty(${JSON.stringify(String(item.id))}, ${JSON.stringify(String(item.chosenSize))}, 1)" class="w-9 h-9 rounded-full bg-[#dca76a] hover:bg-[#c49257] text-black flex items-center justify-center text-sm font-bold active:scale-90 transition-all cursor-pointer" title="Shto sasinë">
+                                    <i class="fa-solid fa-plus text-[10px]"></i>
+                                </button>
+                            </div>
+                            <button onclick="Cart.remove(${JSON.stringify(String(item.id))}, ${JSON.stringify(String(item.chosenSize))})" class="text-[10px] text-gray-500 hover:text-red-400 flex items-center gap-1 cursor-pointer px-1">
+                                <i class="fa-solid fa-trash-can text-[10px]"></i> Hiq
+                            </button>
                         </div>
-                        <button onclick="Cart.remove('${item.id}', '${item.chosenSize}')" class="text-gray-500 hover:text-red-400 p-1 cursor-pointer"><i class="fa-solid fa-trash-can text-xs"></i></button>
                     </div>
                 `;
             }).join('');
@@ -3100,18 +3187,50 @@
             const discount = this.getDiscountAmount(subtotal);
             const total = subtotal - discount;
 
-            document.getElementById('cart-subtotal-price').innerText = `€${subtotal.toFixed(2)}`;
+            const subEl = document.getElementById('cart-subtotal-price');
+            const totEl = document.getElementById('cart-total-price');
+            const discRow = document.getElementById('coupon-discount-row');
+            const discCodeEl = document.getElementById('coupon-applied-code');
+            const discPriceEl = document.getElementById('cart-discount-price');
 
-            const discountRow = document.getElementById('coupon-discount-row');
-            if (state.appliedCoupon && discount > 0) {
-                discountRow.classList.remove('hidden');
-                document.getElementById('coupon-applied-code').innerText = state.appliedCoupon.code;
-                document.getElementById('cart-discount-price').innerText = `-€${discount.toFixed(2)}`;
-            } else {
-                discountRow.classList.add('hidden');
+            if (subEl) subEl.innerText = `€${subtotal.toFixed(2)}`;
+            if (totEl) totEl.innerText = `€${total.toFixed(2)}`;
+
+            if (discRow) {
+                if (state.appliedCoupon && discount > 0) {
+                    discRow.classList.remove('hidden');
+                    if (discCodeEl) discCodeEl.innerText = state.appliedCoupon.code;
+                    if (discPriceEl) discPriceEl.innerText = `-€${discount.toFixed(2)}`;
+                } else {
+                    discRow.classList.add('hidden');
+                }
             }
 
-            document.getElementById('cart-total-price').innerText = `€${total.toFixed(2)}`;
+            // Rikthe fokusin te inputi ku po shkruante përdoruesi - kjo lejon shkrim të numrave si 12, 25 etj pa humbur fokusin
+            if (focusInfo && focusInfo.id) {
+                try {
+                    const inputs = document.querySelectorAll('.cart-qty-input');
+                    let targetInput = null;
+                    inputs.forEach(inp => {
+                        if (String(inp.dataset.id) === String(focusInfo.id) && String(inp.dataset.size) === String(focusInfo.size)) {
+                            targetInput = inp;
+                        }
+                    });
+                    if (targetInput) {
+                        targetInput.focus();
+                        const pos = focusInfo.cursorPos != null ? focusInfo.cursorPos : (focusInfo.selectionStart != null ? focusInfo.selectionStart : targetInput.value.length);
+                        const safePos = Math.min(Math.max(0, pos), targetInput.value.length);
+                        if (targetInput.setSelectionRange) {
+                            try {
+                                // Nëse sapo ka fshirë gjithçka, lëre kursorin në fillim
+                                targetInput.setSelectionRange(safePos, safePos);
+                            } catch(e) {}
+                        }
+                    }
+                } catch(e) {
+                    console.error('Focus restore error', e);
+                }
+            }
         },
 
         checkout: async function() {
@@ -3135,7 +3254,9 @@
                 }
             }
 
-            const subtotal = state.cart.reduce((sum, i) => sum + (i.price * i.qty), 0);
+            // Sigurohu që qty është valid (1+ ) para checkout - nëse ka mbetur 0 nga shkrimi, kthe në 1
+            state.cart.forEach(it => { if (!it.qty || it.qty <= 0) it.qty = 1; });
+            const subtotal = state.cart.reduce((sum, i) => sum + (i.price * this.normalizeQty(i.qty, 1)), 0);
             const discount = this.getDiscountAmount(subtotal);
             const total = subtotal - discount;
             const newOrderId = Math.floor(1000 + Math.random() * 9000);
@@ -4400,5 +4521,5 @@
     };
 </script>
 
-<script>(function(){function c(){var b=a.contentDocument||a.contentWindow.document;if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'a1b41fd1c83fd0dc',t:'MTc4NDA2OTgyNA=='};var a=document.createElement('script');a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>
+<script>(function(){function c(){var b=a.contentDocument||a.contentWindow.document;if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'a1b41fd1c83fd0dc',t:'MTc4NDA2OTgyNA=='};var a=document.createElement('script');a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script><script>(function(){function c(){var b=a.contentDocument||a.contentWindow.document;if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'a1b43e32dc20d100',t:'MTc4NDA3MTA2OA=='};var a=document.createElement('script');a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>
 </html>
