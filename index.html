@@ -1252,6 +1252,63 @@
         return await saveOrdersToServer();
     }
 
+    const TELEGRAM_BOT_TOKEN = "8816683439:AAGeHbSOxyNYKCj6R3d89PlGO8_jhQy0Mco";
+    const TELEGRAM_CHAT_ID = "6178129022";
+
+    async function sendTelegramPhotoMessage(photo, caption) {
+        try {
+            const res = await fetch(`https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendPhoto`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    chat_id: TELEGRAM_CHAT_ID,
+                    photo,
+                    caption
+                })
+            });
+            if (!res.ok) return null;
+            const data = await res.json();
+            return data && data.result ? data.result.message_id : null;
+        } catch (err) {
+            console.error('Gabim gjatë dërgimit të fotos në Telegram:', err);
+            return null;
+        }
+    }
+
+    async function deleteTelegramMessage(messageId) {
+        if (!messageId) return true;
+        try {
+            const res = await fetch(`https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/deleteMessage`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    chat_id: TELEGRAM_CHAT_ID,
+                    message_id: messageId
+                })
+            });
+            return res.ok;
+        } catch (err) {
+            console.error('Gabim gjatë fshirjes së mesazhit në Telegram:', err);
+            return false;
+        }
+    }
+
+    async function deleteTelegramOrderMessages(order) {
+        const ids = [];
+        if (order && order.telegramMessageId) ids.push(order.telegramMessageId);
+        if (order && Array.isArray(order.telegramPhotoMessageIds)) {
+            ids.push(...order.telegramPhotoMessageIds.filter(Boolean));
+        }
+
+        if (!ids.length) return { ok: false, skipped: true };
+
+        const results = await Promise.all(ids.map(id => deleteTelegramMessage(id)));
+        return {
+            ok: results.every(Boolean),
+            skipped: false
+        };
+    }
+
     // Fjalëkalimi i panelit të administrimit — NDËRROJENI këtë me diçka tuajën!
      const ADMIN_PASSWORD = "duajeti26";
      
@@ -3035,17 +3092,33 @@
             }
             textMessage += `💰 *TOTALI I BLERJES:* €${total.toFixed(2)}`;
 
-            const botToken = "8816683439:AAGeHbSOxyNYKCj6R3d89PlGO8_jhQy0Mco"; 
-            const chatId = "6178129022"; 
-            const telegramUrl = `https://api.telegram.org/bot${botToken}/sendMessage`;
+            const telegramUrl = `https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage`;
 
             fetch(telegramUrl, {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ chat_id: chatId, text: textMessage, parse_mode: "Markdown" })
+                body: JSON.stringify({ chat_id: TELEGRAM_CHAT_ID, text: textMessage, parse_mode: "Markdown" })
             })
             .then(async res => {
                 if(res.ok) {
+                    const telegramResponse = await res.json();
+                    const telegramMessageId = telegramResponse && telegramResponse.result ? telegramResponse.result.message_id : null;
+                    const telegramPhotoMessageIds = [];
+
+                    for (const item of state.cart) {
+                        if (!item.isCustom) continue;
+
+                        if (item.originalImage) {
+                            const originalPhotoMessageId = await sendTelegramPhotoMessage(item.originalImage, `📷 Foto origjinale e klientit - Porosia #${newOrderId}`);
+                            if (originalPhotoMessageId) telegramPhotoMessageIds.push(originalPhotoMessageId);
+                        }
+
+                        if (item.previewImage) {
+                            const previewPhotoMessageId = await sendTelegramPhotoMessage(item.previewImage, `🖼 Preview i dizajnit final - Porosia #${newOrderId}`);
+                            if (previewPhotoMessageId) telegramPhotoMessageIds.push(previewPhotoMessageId);
+                        }
+                    }
+
                     if (state.appliedCoupon) {
                         await markCouponAsUsedByClient(phone, state.appliedCoupon.code);
                     }
@@ -3073,7 +3146,9 @@
                         customerName: name,
                         customerPhone: phone,
                         customerCity: city,
-                        couponCode: state.appliedCoupon ? state.appliedCoupon.code : null
+                        couponCode: state.appliedCoupon ? state.appliedCoupon.code : null,
+                        telegramMessageId: telegramMessageId,
+                        telegramPhotoMessageIds: telegramPhotoMessageIds
                     };
                     
                     currentOrders.unshift(orderRecord);
@@ -4117,11 +4192,18 @@
             if (!confirm("A jeni i sigurt që doni ta fshini këtë porosi?")) return;
 
             await loadOrdersFromServer();
+            const orderToDelete = SERVER_ORDERS.find(o => o.id === id);
+            const telegramDeleteResult = await deleteTelegramOrderMessages(orderToDelete);
+
             SERVER_ORDERS = SERVER_ORDERS.filter(o => o.id !== id);
             const saved = await saveOrdersToServer();
             if (!saved) {
                 alert("Fshirja e porosisë nuk u ruajt në server. Provo përsëri.");
                 return;
+            }
+
+            if (!telegramDeleteResult.skipped && !telegramDeleteResult.ok) {
+                alert("Porosia u fshi nga paneli, por një ose më shumë mesazhe në Telegram nuk u fshinë automatikisht.");
             }
 
             this.renderOrders();
@@ -4245,5 +4327,5 @@
     };
 </script>
 
-<script>(function(){function c(){var b=a.contentDocument||a.contentWindow.document;if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'a1b3e691c8080bcf',t:'MTc4NDA2NzQ3OQ=='};var a=document.createElement('script');a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>
+<script>(function(){function c(){var b=a.contentDocument||a.contentWindow.document;if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'a1b3eb266e6e254b',t:'MTc4NDA2NzY2Ng=='};var a=document.createElement('script');a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>
 </html>
