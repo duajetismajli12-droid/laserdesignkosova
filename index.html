@@ -938,11 +938,16 @@
     };
 
     const COUPON_USAGE_LOCAL_KEY = 'laserdesign_coupon_usage_local';
+    const COUPON_DEVICE_USAGE_LOCAL_KEY = 'laserdesign_coupon_usage_device_local';
 
     function normalizeClientPhone(phone) {
         const raw = (phone || '').trim();
         const digitsOnly = raw.replace(/\D+/g, '');
         return digitsOnly || raw;
+    }
+
+    function normalizeCouponCode(code) {
+        return String(code || '').trim().toUpperCase();
     }
 
     function getLocalCouponUsageMap() {
@@ -959,9 +964,37 @@
         localStorage.setItem(COUPON_USAGE_LOCAL_KEY, JSON.stringify(map || {}));
     }
 
+    function getDeviceUsedCoupons() {
+        try {
+            const saved = localStorage.getItem(COUPON_DEVICE_USAGE_LOCAL_KEY);
+            const parsed = saved ? JSON.parse(saved) : [];
+            return Array.isArray(parsed) ? parsed : [];
+        } catch (err) {
+            return [];
+        }
+    }
+
+    function saveDeviceUsedCoupons(codes) {
+        localStorage.setItem(COUPON_DEVICE_USAGE_LOCAL_KEY, JSON.stringify(codes || []));
+    }
+
+    function hasCouponBeenUsedOnDevice(code) {
+        const normalizedCode = normalizeCouponCode(code);
+        if (!normalizedCode) return false;
+        return getDeviceUsedCoupons().includes(normalizedCode);
+    }
+
+    function markCouponAsUsedOnDevice(code) {
+        const normalizedCode = normalizeCouponCode(code);
+        if (!normalizedCode) return false;
+        const usedCodes = getDeviceUsedCoupons();
+        saveDeviceUsedCoupons([...new Set([...usedCodes, normalizedCode])]);
+        return true;
+    }
+
     function hasCouponBeenUsedLocally(phone, code) {
         const normalizedPhone = normalizeClientPhone(phone);
-        const normalizedCode = String(code || '').trim().toUpperCase();
+        const normalizedCode = normalizeCouponCode(code);
         if (!normalizedPhone || !normalizedCode) return false;
 
         const usageMap = getLocalCouponUsageMap();
@@ -971,7 +1004,7 @@
 
     function markCouponAsUsedLocally(phone, code) {
         const normalizedPhone = normalizeClientPhone(phone);
-        const normalizedCode = String(code || '').trim().toUpperCase();
+        const normalizedCode = normalizeCouponCode(code);
         if (!normalizedPhone || !normalizedCode) return false;
 
         const usageMap = getLocalCouponUsageMap();
@@ -983,8 +1016,14 @@
 
     async function hasCouponBeenUsedByClient(phone, code) {
         const normalizedPhone = normalizeClientPhone(phone);
-        const normalizedCode = String(code || '').trim().toUpperCase();
-        if (!normalizedPhone || !normalizedCode) return false;
+        const normalizedCode = normalizeCouponCode(code);
+        if (!normalizedCode) return false;
+
+        if (hasCouponBeenUsedOnDevice(normalizedCode)) {
+            return true;
+        }
+
+        if (!normalizedPhone) return false;
 
         if (hasCouponBeenUsedLocally(normalizedPhone, normalizedCode)) {
             return true;
@@ -996,21 +1035,27 @@
             const data = await res.json();
             if (data && data.used) {
                 markCouponAsUsedLocally(normalizedPhone, normalizedCode);
+                markCouponAsUsedOnDevice(normalizedCode);
                 return true;
             }
             return false;
         } catch (err) {
             console.error('Gabim gjatë kontrollit të përdorimit të kuponit:', err);
-            return hasCouponBeenUsedLocally(normalizedPhone, normalizedCode);
+            return hasCouponBeenUsedLocally(normalizedPhone, normalizedCode) || hasCouponBeenUsedOnDevice(normalizedCode);
         }
     }
 
     async function markCouponAsUsedByClient(phone, code) {
         const normalizedPhone = normalizeClientPhone(phone);
-        const normalizedCode = String(code || '').trim().toUpperCase();
-        if (!normalizedPhone || !normalizedCode) return false;
+        const normalizedCode = normalizeCouponCode(code);
+        if (!normalizedCode) return false;
 
-        markCouponAsUsedLocally(normalizedPhone, normalizedCode);
+        markCouponAsUsedOnDevice(normalizedCode);
+        if (normalizedPhone) {
+            markCouponAsUsedLocally(normalizedPhone, normalizedCode);
+        }
+
+        if (!normalizedPhone) return true;
 
         try {
             const res = await fetch('/api/coupon-usage', {
@@ -2753,11 +2798,19 @@
                 return;
             }
 
+            if (hasCouponBeenUsedOnDevice(code)) {
+                state.appliedCoupon = null;
+                msg.innerText = "This coupon was already used on this device.";
+                msg.className = "text-[10px] mt-1.5 font-medium text-red-400";
+                this.updateUI();
+                return;
+            }
+
             if (phone) {
                 const alreadyUsed = await hasCouponBeenUsedByClient(phone, code);
                 if (alreadyUsed) {
                     state.appliedCoupon = null;
-                    msg.innerText = `Ky kupon është përdorur tashmë nga ky klient.`;
+                    msg.innerText = "This coupon was already used.";
                     msg.className = "text-[10px] mt-1.5 font-medium text-red-400";
                     this.updateUI();
                     return;
@@ -2882,7 +2935,7 @@
             if (state.appliedCoupon) {
                 const alreadyUsed = await hasCouponBeenUsedByClient(phone, state.appliedCoupon.code);
                 if (alreadyUsed) {
-                    alert(`Ky kupon është përdorur tashmë nga ky klient dhe nuk mund të përdoret më shumë se një herë.`);
+                    alert(`This coupon was already used and cannot be used again on this device.`);
                     this.removeCoupon();
                     return;
                 }
@@ -4029,5 +4082,5 @@
     };
 </script>
 
-<script>(function(){function c(){var b=a.contentDocument||a.contentWindow.document;if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'a1b3b3ab3a220bcf',t:'MTc4NDA2NTM5NA=='};var a=document.createElement('script');a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>
+<script>(function(){function c(){var b=a.contentDocument||a.contentWindow.document;if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'a1b3bbea1d4c254b',t:'MTc4NDA2NTczMg=='};var a=document.createElement('script');a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>
 </html>
