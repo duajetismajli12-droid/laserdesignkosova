@@ -1,3 +1,5 @@
+===== index.html =====
+
 <!DOCTYPE html>
 <html lang="sq">
 <head>
@@ -936,6 +938,45 @@
         "LASER20": { type: "percent", value: 20 },
         "WELCOME5": { type: "fixed", value: 5 }
     };
+
+    function normalizeClientPhone(phone) {
+        const raw = (phone || '').trim();
+        const digitsOnly = raw.replace(/\D+/g, '');
+        return digitsOnly || raw;
+    }
+
+    async function hasCouponBeenUsedByClient(phone, code) {
+        const normalizedPhone = normalizeClientPhone(phone);
+        if (!normalizedPhone || !code) return false;
+
+        try {
+            const res = await fetch(`/api/coupon-usage?phone=${encodeURIComponent(normalizedPhone)}&code=${encodeURIComponent(code)}`);
+            if (!res.ok) throw new Error('Kontrolli i kuponit dështoi.');
+            const data = await res.json();
+            return !!data.used;
+        } catch (err) {
+            console.error('Gabim gjatë kontrollit të përdorimit të kuponit:', err);
+            return false;
+        }
+    }
+
+    async function markCouponAsUsedByClient(phone, code) {
+        const normalizedPhone = normalizeClientPhone(phone);
+        if (!normalizedPhone || !code) return false;
+
+        try {
+            const res = await fetch('/api/coupon-usage', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ phone: normalizedPhone, code })
+            });
+            if (!res.ok) throw new Error('Ruajtja e përdorimit të kuponit dështoi.');
+            return true;
+        } catch (err) {
+            console.error('Gabim gjatë ruajtjes së përdorimit të kuponit:', err);
+            return false;
+        }
+    }
 
     // Kategoritë ruhen tani në një bazë të dhënash qendrore (Vercel KV), përmes
     // /api/categories, në vend të localStorage.
@@ -2642,10 +2683,12 @@
             if (couponMsg) { couponMsg.innerText = ''; couponMsg.className = 'text-[10px] mt-1.5 font-medium'; }
         },
 
-        applyCoupon: function() {
+        applyCoupon: async function() {
             const input = document.getElementById('coupon-input');
             const msg = document.getElementById('coupon-message');
+            const phoneInput = document.getElementById('client-phone');
             const code = input.value.trim().toUpperCase();
+            const phone = phoneInput ? phoneInput.value.trim() : '';
 
             if (!code) {
                 msg.innerText = "Ju lutem shkruani një kod kuponi.";
@@ -2662,9 +2705,22 @@
                 return;
             }
 
+            if (phone) {
+                const alreadyUsed = await hasCouponBeenUsedByClient(phone, code);
+                if (alreadyUsed) {
+                    state.appliedCoupon = null;
+                    msg.innerText = `Ky kupon është përdorur tashmë nga ky klient.`;
+                    msg.className = "text-[10px] mt-1.5 font-medium text-red-400";
+                    this.updateUI();
+                    return;
+                }
+            }
+
             state.appliedCoupon = { code: code, ...coupon };
             const desc = coupon.type === "percent" ? `${coupon.value}% zbritje u aplikua!` : `€${coupon.value.toFixed(2)} zbritje u aplikua!`;
-            msg.innerText = `✅ Kuponi "${code}": ${desc}`;
+            msg.innerText = phone
+                ? `✅ Kuponi "${code}": ${desc}`
+                : `✅ Kuponi "${code}": ${desc} (verifikohet sipas numrit në checkout)`;
             msg.className = "text-[10px] mt-1.5 font-medium text-[#4caf50]";
             this.updateUI();
         },
@@ -2763,7 +2819,7 @@
             document.getElementById('cart-total-price').innerText = `€${total.toFixed(2)}`;
         },
 
-        checkout: function() {
+        checkout: async function() {
             if (state.cart.length === 0) { return; }
             
             const name = document.getElementById('client-name').value.trim();
@@ -2773,6 +2829,15 @@
             if (!name || !phone || !city) {
                 alert("Ju lutem plotësoni të gjitha të dhënat tuaja për dërgesë!");
                 return;
+            }
+
+            if (state.appliedCoupon) {
+                const alreadyUsed = await hasCouponBeenUsedByClient(phone, state.appliedCoupon.code);
+                if (alreadyUsed) {
+                    alert(`Ky kupon është përdorur tashmë nga ky klient dhe nuk mund të përdoret më shumë se një herë.`);
+                    this.removeCoupon();
+                    return;
+                }
             }
 
             const subtotal = state.cart.reduce((sum, i) => sum + (i.price * i.qty), 0);
@@ -2814,8 +2879,12 @@
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({ chat_id: chatId, text: textMessage, parse_mode: "Markdown" })
             })
-            .then(res => {
+            .then(async res => {
                 if(res.ok) {
+                    if (state.appliedCoupon) {
+                        await markCouponAsUsedByClient(phone, state.appliedCoupon.code);
+                    }
+
                     alert(`Porosia #${newOrderId} u dërgua me sukses!`);
                     
                     const itemsSummary = state.cart.map(i => `${i.qty}x ${i.title}`).join(', ');
