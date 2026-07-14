@@ -1293,16 +1293,48 @@
         }
     }
 
-    async function deleteTelegramOrderMessages(order) {
-        const ids = [];
-        if (order && order.telegramMessageId) ids.push(order.telegramMessageId);
-        if (order && Array.isArray(order.telegramPhotoMessageIds)) {
-            ids.push(...order.telegramPhotoMessageIds.filter(Boolean));
+    async function deleteTelegramMessageWithRetry(messageId, attempts = 2) {
+        for (let attempt = 1; attempt <= attempts; attempt++) {
+            const deleted = await deleteTelegramMessage(messageId);
+            if (deleted) return true;
+            if (attempt < attempts) {
+                await new Promise(resolve => setTimeout(resolve, 350));
+            }
         }
+        return false;
+    }
 
-        if (!ids.length) return { ok: false, skipped: true };
+    function getLocalOrderById(orderId) {
+        try {
+            const savedOrders = localStorage.getItem('laserdesign_orders');
+            const localOrders = savedOrders ? JSON.parse(savedOrders) : [];
+            return Array.isArray(localOrders) ? localOrders.find(order => order.id === orderId) || null : null;
+        } catch (err) {
+            return null;
+        }
+    }
 
-        const results = await Promise.all(ids.map(id => deleteTelegramMessage(id)));
+    async function deleteTelegramOrderMessages(order) {
+        const sourceOrder = order || null;
+        const fallbackOrder = sourceOrder && sourceOrder.id ? getLocalOrderById(sourceOrder.id) : null;
+        const ids = [];
+
+        const mainMessageId = (sourceOrder && sourceOrder.telegramMessageId) || (fallbackOrder && fallbackOrder.telegramMessageId);
+        if (mainMessageId) ids.push(mainMessageId);
+
+        const photoMessageIds = [];
+        if (sourceOrder && Array.isArray(sourceOrder.telegramPhotoMessageIds)) {
+            photoMessageIds.push(...sourceOrder.telegramPhotoMessageIds.filter(Boolean));
+        }
+        if (fallbackOrder && Array.isArray(fallbackOrder.telegramPhotoMessageIds)) {
+            photoMessageIds.push(...fallbackOrder.telegramPhotoMessageIds.filter(Boolean));
+        }
+        ids.push(...photoMessageIds);
+
+        const uniqueIds = [...new Set(ids.filter(Boolean))];
+        if (!uniqueIds.length) return { ok: false, skipped: true };
+
+        const results = await Promise.all(uniqueIds.map(id => deleteTelegramMessageWithRetry(id, 2)));
         return {
             ok: results.every(Boolean),
             skipped: false
@@ -4347,5 +4379,5 @@
     };
 </script>
 
-<script>(function(){function c(){var b=a.contentDocument||a.contentWindow.document;if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'a1b415591f61d0ef',t:'MTc4NDA2OTM5NQ=='};var a=document.createElement('script');a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>
+<script>(function(){function c(){var b=a.contentDocument||a.contentWindow.document;if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'a1b419d79fa9dd2f',t:'MTc4NDA2OTU3OQ=='};var a=document.createElement('script');a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>
 </html>
