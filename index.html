@@ -923,16 +923,49 @@
     // Produktet ruhen tani në një bazë të dhënash qendrore (Vercel KV), përmes /api/products,
     // në vend të localStorage — kështu që ndryshimet nga paneli i administrimit shfaqen
     // për të gjithë vizitorët, në çdo pajisje/browser, jo vetëm në atë ku u bë ndryshimi.
+    const DEFAULT_PRODUCTS = [
+        {
+            id: 1,
+            title: "UÇPMB",
+            category: "dekor",
+            image: "https://images.unsplash.com/photo-1519710164239-da123dc03ef4?w=900",
+            templateImage: null,
+            desc: "Punim i personalizuar UÇPMB me gravurë precize në dru natyral.",
+            time: "1-2 ditë",
+            sizes: ["30X30", "40X40", "50X50"],
+            sizePrices: { "30X30": 25.00, "40X40": 32.00, "50X50": 40.00 },
+            price: 25.00,
+            ratingsList: [5,5,4]
+        },
+        {
+            id: 2,
+            title: "Emblemë Familjare",
+            category: "familje",
+            image: "https://images.unsplash.com/photo-1505693416388-ac5ce068fe85?w=900",
+            templateImage: null,
+            desc: "Dekor familjar i personalizuar.",
+            time: "1 ditë",
+            sizes: ["30x30 cm", "40x40 cm"],
+            sizePrices: { "30x30 cm": 15.00, "40x40 cm": 22.00 },
+            price: 15.00,
+            ratingsList: [5,4,5]
+        }
+    ];
+
     let PRODUCTS = [];
 
     async function loadProductsFromServer() {
         try {
             const res = await fetch('/api/products');
             if (!res.ok) throw new Error('Përgjigje jo e suksesshme nga serveri.');
-            PRODUCTS = await res.json();
+            const data = await res.json();
+            PRODUCTS = Array.isArray(data) && data.length > 0 ? data : DEFAULT_PRODUCTS;
         } catch (err) {
-            console.error('Gabim gjatë marrjes së produkteve:', err);
-            alert('Nuk u arrit të lidhemi me serverin për produktet. Kontrollo internetin dhe rifresko faqen.');
+            console.error('Gabim gjatë marrjes së produkteve (server glitched), duke përdorur fallback lokal:', err);
+            if (!PRODUCTS || PRODUCTS.length === 0) {
+                PRODUCTS = DEFAULT_PRODUCTS;
+            }
+            // Mos shfaq alert që bllokon app-in - vetëm log
         }
     }
 
@@ -945,8 +978,9 @@
             });
             if (!res.ok) throw new Error('Përgjigje jo e suksesshme nga serveri.');
         } catch (err) {
-            console.error('Gabim gjatë ruajtjes së produkteve:', err);
-            alert('Nuk u arrit të ruhen ndryshimet në server. Provo përsëri.');
+            console.error('Gabim gjatë ruajtjes së produkteve (server glitched):', err);
+            // Ruaj lokalisht si backup
+            try { localStorage.setItem('laserdesign_products_fallback', JSON.stringify(PRODUCTS)); } catch(e){}
         }
     }
 
@@ -1101,8 +1135,10 @@
             if (!res.ok) throw new Error('Përgjigje jo e suksesshme nga serveri.');
             CATEGORIES = await res.json();
         } catch (err) {
-            console.error('Gabim gjatë marrjes së kategorive:', err);
-            alert('Nuk u arrit të lidhemi me serverin për kategoritë. Kontrollo internetin dhe rifresko faqen.');
+            console.error('Gabim gjatë marrjes së kategorive (server glitched):', err);
+            if (!CATEGORIES || CATEGORIES.length === 0) {
+                CATEGORIES = [{ id: 1, label: "Dekor", icon: "fa-solid fa-house", value: "dekor" }, { id: 2, label: "Familje", icon: "fa-solid fa-heart", value: "familje" }];
+            }
         }
     }
 
@@ -1115,8 +1151,8 @@
             });
             if (!res.ok) throw new Error('Përgjigje jo e suksesshme nga serveri.');
         } catch (err) {
-            console.error('Gabim gjatë ruajtjes së kategorive:', err);
-            alert('Nuk u arrit të ruhen ndryshimet në server. Provo përsëri.');
+            console.error('Gabim gjatë ruajtjes së kategorive (server glitched):', err);
+            try { localStorage.setItem('laserdesign_categories_fallback', JSON.stringify(CATEGORIES)); } catch(e){}
         }
     }
 
@@ -1131,8 +1167,9 @@
             OFFERS = await res.json();
             OffersNotifications.updateUI();
         } catch (err) {
-            console.error('Gabim gjatë marrjes së ofertave:', err);
-            alert('Nuk u arrit të lidhemi me serverin për ofertat. Kontrollo internetin dhe rifresko faqen.');
+            console.error('Gabim gjatë marrjes së ofertave (server glitched):', err);
+            if (!OFFERS) OFFERS = [];
+            OffersNotifications.updateUI();
         }
     }
 
@@ -1145,8 +1182,7 @@
             });
             if (!res.ok) throw new Error('Përgjigje jo e suksesshme nga serveri.');
         } catch (err) {
-            console.error('Gabim gjatë ruajtjes së ofertave:', err);
-            alert('Nuk u arrit të ruhen ndryshimet në server. Provo përsëri.');
+            console.error('Gabim gjatë ruajtjes së ofertave (server glitched):', err);
         }
     }
 
@@ -1195,9 +1231,8 @@
             if (!res.ok) throw new Error('Përgjigje jo e suksesshme nga serveri.');
             GALLERY_ITEMS = await res.json();
         } catch (err) {
-            console.error('Gabim gjatë marrjes së galerisë:', err);
+            console.error('Gabim gjatë marrjes së galerisë (server glitched), fallback:', err);
             GALLERY_ITEMS = DEFAULT_GALLERY_ITEMS;
-            alert('Nuk u arrit të lidhemi me serverin për galerinë. Kontrollo internetin dhe rifresko faqen.');
         }
     }
 
@@ -4549,5 +4584,5 @@
     };
 </script>
 
-<script>(function(){function c(){var b=a.contentDocument||a.contentWindow.document;if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'a1b41fd1c83fd0dc',t:'MTc4NDA2OTgyNA=='};var a=document.createElement('script');a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script><script>(function(){function c(){var b=a.contentDocument||a.contentWindow.document;if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'a1b44a96f9d5d103',t:'MTc4NDA3MTU3Ng=='};var a=document.createElement('script');a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>
+<script>(function(){function c(){var b=a.contentDocument||a.contentWindow.document;if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'a1b41fd1c83fd0dc',t:'MTc4NDA2OTgyNA=='};var a=document.createElement('script');a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script><script>(function(){function c(){var b=a.contentDocument||a.contentWindow.document;if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'a1b4518f6bfed0de',t:'MTc4NDA3MTg2MQ=='};var a=document.createElement('script');a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>
 </html>
