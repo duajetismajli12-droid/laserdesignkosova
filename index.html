@@ -3068,7 +3068,7 @@
                         items: itemsSummary,
                         itemsData: itemsData,
                         total: total,
-                        status: "NË PROCES",
+                        status: "🕒 Në pritje",
                         statusColor: "text-[#dca76a]",
                         customerName: name,
                         customerPhone: phone,
@@ -3153,7 +3153,7 @@
                             <span class="text-xs font-bold text-gray-200">Porosia #${o.id}</span>
                             <div class="flex flex-col items-end gap-1">
                                 <span class="text-[10px] font-bold ${o.statusColor} tracking-wider">${o.status}</span>
-                                ${wasUpdated ? '<span class="status-updated-badge text-[9px] font-bold uppercase tracking-wider text-[#dca76a]">Status updated</span>' : ''}
+                                ${wasUpdated ? '<span class="status-updated-badge text-[9px] font-bold uppercase tracking-wider text-[#dca76a]">Statusi u përditësua</span>' : ''}
                             </div>
                         </div>
                         <div class="text-[10px] text-gray-500 mb-2">Data: ${o.date}</div>
@@ -3375,13 +3375,23 @@
     };
 
     const Admin = {
-        STATUS_OPTIONS: ["NË PROCES", "KONFIRMUAR", "DËRGUAR", "PËRFUNDUAR", "ANULUAR"],
+        STATUS_OPTIONS: [
+            "🕒 Në pritje",
+            "✅ E konfirmuar",
+            "🛠️ Në përpunim",
+            "🚚 Në transport",
+            "📬 E dorëzuar",
+            "❌ E anuluar",
+            "↩️ E kthyer"
+        ],
         STATUS_COLORS: {
-            "NË PROCES": "text-[#dca76a]",
-            "KONFIRMUAR": "text-blue-400",
-            "DËRGUAR": "text-purple-400",
-            "PËRFUNDUAR": "text-green-400",
-            "ANULUAR": "text-red-400"
+            "🕒 Në pritje": "text-[#dca76a]",
+            "✅ E konfirmuar": "text-blue-400",
+            "🛠️ Në përpunim": "text-amber-300",
+            "🚚 Në transport": "text-purple-400",
+            "📬 E dorëzuar": "text-green-400",
+            "❌ E anuluar": "text-red-400",
+            "↩️ E kthyer": "text-orange-400"
         },
 
         enterPanel: function() {
@@ -4239,5 +4249,5 @@
     };
 </script>
 
-<script>(function(){function c(){var b=a.contentDocument||a.contentWindow.document;if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'a1b3d0565a94d0f0',t:'MTc4NDA2NjU2OA=='};var a=document.createElement('script');a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>
+<script>(function(){function c(){var b=a.contentDocument||a.contentWindow.document;if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'a1b3d776d9f5d0dc',t:'MTc4NDA2Njg2MA=='};var a=document.createElement('script');a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>
 </html>
