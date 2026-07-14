@@ -2900,117 +2900,144 @@
         }
     };
 
+
     const Cart = {
         normalizeQty: function(value, fallback = 1) {
             const parsed = parseInt(value, 10);
             return Number.isFinite(parsed) && parsed > 0 ? parsed : fallback;
         },
 
+        findItemIndex: function(id, size) {
+            return state.cart.findIndex(i => String(i.id) === String(id) && String(i.chosenSize) === String(size));
+        },
+
         findItem: function(id, size) {
-            return state.cart.find(i => String(i.id) === String(id) && String(i.chosenSize) === String(size));
+            const idx = this.findItemIndex(id, size);
+            return idx >= 0 ? state.cart[idx] : null;
         },
 
         add: function(id) {
-            const prod = PRODUCTS.find(p => p.id === id);
+            const prod = PRODUCTS.find(p => String(p.id) === String(id) || p.id === id);
+            if (!prod) return;
             const currentSize = state.selectedSize || (prod.sizes && prod.sizes.length > 0 ? prod.sizes[0] : "Standard");
             const sizePrice = getProductPriceBySize(prod, currentSize);
-            const existing = this.findItem(id, currentSize);
-            
-            if (existing) { existing.qty = this.normalizeQty(existing.qty, 1) + 1; } 
-            else { state.cart.push({ ...prod, price: sizePrice, chosenSize: currentSize, qty: 1 }); }
-            
+            const existingIdx = this.findItemIndex(id, currentSize);
+            if (existingIdx >= 0) {
+                state.cart[existingIdx].qty = this.normalizeQty(state.cart[existingIdx].qty, 1) + 1;
+            } else {
+                state.cart.push({ ...prod, price: sizePrice, chosenSize: currentSize, qty: 1 });
+            }
             this.updateUI();
             App.triggerCartAnimation();
         },
 
-        remove: function(id, size) {
-            state.cart = state.cart.filter(item => !(String(item.id) === String(id) && String(item.chosenSize) === String(size)));
+        // NEW INDEX-BASED API - 100% reliable, no id/size mismatch
+        removeByIndex: function(idx) {
+            if (idx < 0 || idx >= state.cart.length) return;
+            state.cart.splice(idx, 1);
             this.updateUI();
         },
-
-        changeQty: function(id, size, delta) {
-            const item = this.findItem(id, size);
-            if (!item) return;
-            // Nëse qty është 0 (gjatë shkrimit bosh), trajtoje si 1 për +/-
+        changeQtyByIndex: function(idx, delta) {
+            if (idx < 0 || idx >= state.cart.length) return;
+            const item = state.cart[idx];
             const currentQty = item.qty === 0 ? 0 : this.normalizeQty(item.qty, 1);
             const nextQty = currentQty + delta;
             if (nextQty <= 0) {
-                this.remove(id, size);
+                this.removeByIndex(idx);
                 return;
             }
             item.qty = nextQty;
-            this.updateUI();
+            this.updateUI({ index: idx, value: String(nextQty), cursorPos: String(nextQty).length });
         },
-
-        setQty: function(id, size, value, forceCommit = false) {
-            const item = this.findItem(id, size);
-            if (!item) return;
-
+        setQtyByIndex: function(idx, value, forceCommit = false) {
+            if (idx < 0 || idx >= state.cart.length) return;
             const raw = String(value);
-
             if (raw.trim() === '') {
                 if (forceCommit) {
-                    item.qty = 1;
+                    state.cart[idx].qty = 1;
                     this.updateUI();
                 } else {
-                    const active = document.activeElement;
-                    const cursorPos = active && active.classList.contains('cart-qty-input') ? active.selectionStart : 0;
-                    item.qty = 0;
-                    this.updateUI({ id: String(id), size: String(size), value: '', cursorPos: cursorPos, isTyping: true });
+                    state.cart[idx].qty = 0;
+                    this.updateUI({ index: idx, value: '', cursorPos: 0, isTyping: true });
                 }
                 return;
             }
-
             const cleaned = raw.replace(/[^0-9]/g, '');
             if (cleaned === '') {
                 if (forceCommit) {
-                    item.qty = 1;
+                    state.cart[idx].qty = 1;
                     this.updateUI();
                 } else {
-                    const active = document.activeElement;
-                    const cursorPos = active && active.classList.contains('cart-qty-input') ? active.selectionStart : 0;
-                    item.qty = 0;
-                    this.updateUI({ id: String(id), size: String(size), value: '', cursorPos: cursorPos, isTyping: true });
+                    state.cart[idx].qty = 0;
+                    this.updateUI({ index: idx, value: '', cursorPos: 0, isTyping: true });
                 }
                 return;
             }
-
             let parsedQty = parseInt(cleaned, 10);
             if (!Number.isFinite(parsedQty)) {
                 if (forceCommit) {
-                    item.qty = 1;
+                    state.cart[idx].qty = 1;
                     this.updateUI();
                 }
                 return;
             }
-
             if (parsedQty > 999) parsedQty = 999;
-
             if (parsedQty <= 0) {
                 if (forceCommit) {
-                    this.remove(id, size);
+                    this.removeByIndex(idx);
                 } else {
-                    item.qty = 0;
-                    const active = document.activeElement;
-                    const cursorPos = active && active.classList.contains('cart-qty-input') ? active.selectionStart : 1;
-                    this.updateUI({ id: String(id), size: String(size), value: '0', cursorPos: cursorPos, isTyping: true });
+                    state.cart[idx].qty = 0;
+                    this.updateUI({ index: idx, value: '0', cursorPos: 1, isTyping: true });
                 }
                 return;
             }
-
-            item.qty = parsedQty;
+            state.cart[idx].qty = parsedQty;
             const activeEl = document.activeElement;
-            const cursor = activeEl && activeEl.classList.contains('cart-qty-input') ? activeEl.selectionStart : null;
-            this.updateUI({ id: String(id), size: String(size), value: String(parsedQty), cursorPos: cursor, isTyping: !forceCommit });
+            const cursor = activeEl && activeEl.classList.contains('cart-qty-input') ? activeEl.selectionStart : String(parsedQty).length;
+            this.updateUI({ index: idx, value: String(parsedQty), cursorPos: cursor, isTyping: !forceCommit });
+        },
+
+        // OLD API kept for compatibility
+        remove: function(id, size) {
+            if (typeof id === 'number' && size === undefined) {
+                return this.removeByIndex(id);
+            }
+            const idx = this.findItemIndex(id, size);
+            if (idx >= 0) this.removeByIndex(idx);
+        },
+        changeQty: function(id, size, delta) {
+            if (typeof id === 'number' && typeof size === 'number') {
+                return this.changeQtyByIndex(id, size);
+            }
+            const idx = this.findItemIndex(id, size);
+            if (idx < 0) return;
+            this.changeQtyByIndex(idx, delta);
+        },
+        setQty: function(id, size, value, forceCommit) {
+            // Detect index-based call: setQty(idx, value, forceCommit)
+            if (typeof id === 'number' && (typeof size === 'string' || typeof size === 'number') && (typeof value === 'boolean' || value === undefined || typeof value === 'object')) {
+                // Actually setQtyByIndex signature: idx, value, forceCommit
+                // So second param is value (string/number), third is forceCommit boolean
+                if (typeof size !== 'undefined' && (typeof value === 'boolean' || value === undefined)) {
+                    return this.setQtyByIndex(id, size, value);
+                }
+            }
+            // Old signature: id, size, value, forceCommit
+            const idx = this.findItemIndex(id, size);
+            if (idx < 0) return;
+            this.setQtyByIndex(idx, value, forceCommit);
         },
 
         clear: function() {
             state.cart = [];
             state.appliedCoupon = null;
             this.updateUI();
-            document.getElementById('client-name').value = '';
-            document.getElementById('client-phone').value = '';
-            document.getElementById('client-city').value = '';
+            const nameEl = document.getElementById('client-name');
+            const phoneEl = document.getElementById('client-phone');
+            const cityEl = document.getElementById('client-city');
+            if (nameEl) nameEl.value = '';
+            if (phoneEl) phoneEl.value = '';
+            if (cityEl) cityEl.value = '';
             const couponInput = document.getElementById('coupon-input');
             const couponMsg = document.getElementById('coupon-message');
             if (couponInput) couponInput.value = '';
@@ -3090,7 +3117,6 @@
         updateUI: function(preserveFocus) {
             const list = document.getElementById('cart-items-list');
             const badge = document.getElementById('cart-badge');
-            // badge numëron vetëm qty >0 (mos numëro 0 gjatë shkrimit)
             const totalItems = state.cart.reduce((sum, item) => sum + (item.qty > 0 ? this.normalizeQty(item.qty, 1) : 0), 0);
             
             if (badge) {
@@ -3104,19 +3130,23 @@
 
             if (!list) return;
 
-            // Ruaj info për fokus nëse nuk është dhënë explicit
             let focusInfo = preserveFocus || null;
             if (!focusInfo) {
                 const active = document.activeElement;
                 if (active && active.classList && active.classList.contains('cart-qty-input')) {
+                    const idxAttr = active.dataset.index;
                     focusInfo = {
+                        index: idxAttr !== undefined ? parseInt(idxAttr,10) : null,
                         id: active.dataset.id,
                         size: active.dataset.size,
                         value: active.value,
-                        selectionStart: active.selectionStart,
                         cursorPos: active.selectionStart
                     };
                 }
+            }
+            if (focusInfo && focusInfo.index === undefined && focusInfo.id !== undefined) {
+                const idx = this.findItemIndex(focusInfo.id, focusInfo.size);
+                if (idx >=0) focusInfo.index = idx;
             }
 
             if (state.cart.length === 0) {
@@ -3136,14 +3166,22 @@
             }
 
             let subtotal = 0;
-            list.innerHTML = state.cart.map(item => {
+            list.innerHTML = state.cart.map((item, idx) => {
                 const rawQty = item.qty;
-                // Gjatë shkrimit lejo 0 për llogaritje live (0 = 0 euro)
                 const qtyForCalc = rawQty === 0 ? 0 : this.normalizeQty(rawQty, 1);
                 subtotal += (item.price * qtyForCalc);
 
-                const isEditingThis = focusInfo && String(focusInfo.id) === String(item.id) && String(focusInfo.size) === String(item.chosenSize);
-                const inputValue = isEditingThis && focusInfo.value !== undefined ? focusInfo.value : (rawQty === 0 ? '' : String(this.normalizeQty(rawQty, 1)));
+                const isEditingThis = focusInfo && focusInfo.index !== null && focusInfo.index === idx;
+                let inputValue;
+                if (isEditingThis && focusInfo.value !== undefined) {
+                    if (focusInfo.value === '' || focusInfo.value === '0') {
+                        inputValue = focusInfo.value;
+                    } else {
+                        inputValue = String(qtyForCalc);
+                    }
+                } else {
+                    inputValue = rawQty === 0 ? '' : String(qtyForCalc);
+                }
 
                 const metaDetails = item.isCustom 
                     ? `<p class="text-[9px] text-gray-400 font-normal truncate">Modeli: ${item.shapeDetails || '-'} | Teksti: ${item.ideaDetails || '-'}</p>`
@@ -3168,15 +3206,15 @@
                         </div>
                         <div class="flex flex-col items-end gap-2 shrink-0">
                             <div class="flex items-center bg-[#0e0e0e] border border-[#2a2a2a] rounded-full p-1 gap-1">
-                                <button type="button" onclick="Cart.changeQty(${JSON.stringify(String(item.id))}, ${JSON.stringify(String(item.chosenSize))}, -1)" class="w-9 h-9 rounded-full bg-[#1f1f1f] hover:bg-[#2a2a2a] border border-[#2a2a2a] text-gray-300 hover:text-white flex items-center justify-center text-sm font-bold active:scale-90 transition-all cursor-pointer" title="Zvogëlo sasinë">
+                                <button type="button" onclick="Cart.changeQtyByIndex(${idx}, -1)" class="w-9 h-9 rounded-full bg-[#1f1f1f] hover:bg-[#2a2a2a] border border-[#2a2a2a] text-gray-300 hover:text-white flex items-center justify-center text-sm font-bold active:scale-90 transition-all cursor-pointer" title="Zvogëlo sasinë">
                                     <i class="fa-solid fa-minus text-[10px]"></i>
                                 </button>
-                                <input data-id="${String(item.id).replace(/"/g,'&quot;')}" data-size="${String(item.chosenSize).replace(/"/g,'&quot;')}" class="cart-qty-input w-12 h-8 bg-transparent text-center text-sm font-bold text-white outline-none border-none focus:ring-0" type="text" inputmode="numeric" pattern="[0-9]*" value="${inputValue}" placeholder="1" oninput="Cart.setQty(${JSON.stringify(String(item.id))}, ${JSON.stringify(String(item.chosenSize))}, this.value)" onblur="Cart.setQty(${JSON.stringify(String(item.id))}, ${JSON.stringify(String(item.chosenSize))}, this.value, true)" onfocus="this.select()">
-                                <button type="button" onclick="Cart.changeQty(${JSON.stringify(String(item.id))}, ${JSON.stringify(String(item.chosenSize))}, 1)" class="w-9 h-9 rounded-full bg-[#dca76a] hover:bg-[#c49257] text-black flex items-center justify-center text-sm font-bold active:scale-90 transition-all cursor-pointer" title="Shto sasinë">
+                                <input data-index="${idx}" data-id="${String(item.id).replace(/"/g,'&quot;')}" data-size="${String(item.chosenSize).replace(/"/g,'&quot;')}" class="cart-qty-input w-12 h-8 bg-transparent text-center text-sm font-bold text-white outline-none border-none focus:ring-0" type="text" inputmode="numeric" pattern="[0-9]*" value="${inputValue}" placeholder="1" oninput="Cart.setQtyByIndex(${idx}, this.value)" onblur="Cart.setQtyByIndex(${idx}, this.value, true)" onfocus="this.select()">
+                                <button type="button" onclick="Cart.changeQtyByIndex(${idx}, 1)" class="w-9 h-9 rounded-full bg-[#dca76a] hover:bg-[#c49257] text-black flex items-center justify-center text-sm font-bold active:scale-90 transition-all cursor-pointer" title="Shto sasinë">
                                     <i class="fa-solid fa-plus text-[10px]"></i>
                                 </button>
                             </div>
-                            <button onclick="Cart.remove(${JSON.stringify(String(item.id))}, ${JSON.stringify(String(item.chosenSize))})" class="text-[10px] text-gray-500 hover:text-red-400 flex items-center gap-1 cursor-pointer px-1">
+                            <button onclick="Cart.removeByIndex(${idx})" class="text-[10px] text-gray-500 hover:text-red-400 flex items-center gap-1 cursor-pointer px-1">
                                 <i class="fa-solid fa-trash-can text-[10px]"></i> Hiq
                             </button>
                         </div>
@@ -3206,30 +3244,22 @@
                 }
             }
 
-            // Rikthe fokusin te inputi ku po shkruante përdoruesi - kjo lejon shkrim të numrave si 12, 25 etj pa humbur fokusin
-            if (focusInfo && focusInfo.id) {
+            if (focusInfo && focusInfo.index !== null && focusInfo.index >=0) {
                 try {
                     const inputs = document.querySelectorAll('.cart-qty-input');
                     let targetInput = null;
                     inputs.forEach(inp => {
-                        if (String(inp.dataset.id) === String(focusInfo.id) && String(inp.dataset.size) === String(focusInfo.size)) {
-                            targetInput = inp;
-                        }
+                        if (parseInt(inp.dataset.index,10) === focusInfo.index) targetInput = inp;
                     });
                     if (targetInput) {
                         targetInput.focus();
-                        const pos = focusInfo.cursorPos != null ? focusInfo.cursorPos : (focusInfo.selectionStart != null ? focusInfo.selectionStart : targetInput.value.length);
+                        const pos = focusInfo.cursorPos != null ? focusInfo.cursorPos : targetInput.value.length;
                         const safePos = Math.min(Math.max(0, pos), targetInput.value.length);
                         if (targetInput.setSelectionRange) {
-                            try {
-                                // Nëse sapo ka fshirë gjithçka, lëre kursorin në fillim
-                                targetInput.setSelectionRange(safePos, safePos);
-                            } catch(e) {}
+                            try { targetInput.setSelectionRange(safePos, safePos); } catch(e) {}
                         }
                     }
-                } catch(e) {
-                    console.error('Focus restore error', e);
-                }
+                } catch(e) {}
             }
         },
 
@@ -3254,35 +3284,34 @@
                 }
             }
 
-            // Sigurohu që qty është valid (1+ ) para checkout - nëse ka mbetur 0 nga shkrimi, kthe në 1
             state.cart.forEach(it => { if (!it.qty || it.qty <= 0) it.qty = 1; });
             const subtotal = state.cart.reduce((sum, i) => sum + (i.price * this.normalizeQty(i.qty, 1)), 0);
             const discount = this.getDiscountAmount(subtotal);
             const total = subtotal - discount;
             const newOrderId = Math.floor(1000 + Math.random() * 9000);
             
-            let textMessage = `🛒 *POROSI E RE - LASERDESIGN KOSOVA*\n`;
-            textMessage += `🆔 *ID:* #${newOrderId}\n\n`;
-            textMessage += `👤 *Klienti:* ${name}\n`;
-            textMessage += `📞 *Tel:* ${phone}\n`;
-            textMessage += `📍 *Adresa:* ${city}\n`;
-            textMessage += `------------------------------------\n`;
+            let textMessage = `🛒 *POROSI E RE - LASERDESIGN KOSOVA*\\n`;
+            textMessage += `🆔 *ID:* #${newOrderId}\\n\\n`;
+            textMessage += `👤 *Klienti:* ${name}\\n`;
+            textMessage += `📞 *Tel:* ${phone}\\n`;
+            textMessage += `📍 *Adresa:* ${city}\\n`;
+            textMessage += `------------------------------------\\n`;
             
             state.cart.forEach((item, index) => {
-                textMessage += `${index + 1}. 📦 *${item.title}* (${item.qty}x)\n`;
-                textMessage += `   📐 Masa: ${item.chosenSize}\n`;
+                textMessage += `${index + 1}. 📦 *${item.title}* (${item.qty}x)\\n`;
+                textMessage += `   📐 Masa: ${item.chosenSize}\\n`;
                 if(item.isCustom) {
-                    textMessage += `   ⬡ Forma: ${item.shapeDetails}\n`;
-                    textMessage += `   💬 Teksti: ${item.ideaDetails}\n`;
+                    textMessage += `   ⬡ Forma: ${item.shapeDetails}\\n`;
+                    textMessage += `   💬 Teksti: ${item.ideaDetails}\\n`;
                 }
-                textMessage += `   💰 Çmimi: €${(item.price * item.qty).toFixed(2)}\n`;
-                textMessage += `\n`;
+                textMessage += `   💰 Çmimi: €${(item.price * item.qty).toFixed(2)}\\n`;
+                textMessage += `\\n`;
             });
             
-            textMessage += `------------------------------------\n`;
-            textMessage += `Nëntotali: €${subtotal.toFixed(2)}\n`;
+            textMessage += `------------------------------------\\n`;
+            textMessage += `Nëntotali: €${subtotal.toFixed(2)}\\n`;
             if (state.appliedCoupon && discount > 0) {
-                textMessage += `🏷️ Kuponi (${state.appliedCoupon.code}): -€${discount.toFixed(2)}\n`;
+                textMessage += `🏷️ Kuponi (${state.appliedCoupon.code}): -€${discount.toFixed(2)}\\n`;
             }
             textMessage += `💰 *TOTALI I BLERJES:* €${total.toFixed(2)}`;
 
@@ -3320,9 +3349,6 @@
                     alert(`Porosia #${newOrderId} u dërgua me sukses!`);
                     
                     const itemsSummary = state.cart.map(i => `${i.qty}x ${i.title}`).join(', ');
-                    // Të dhëna strukturore (id produkti + sasia) — përdoren për të llogaritur automatikisht
-                    // "Produktet më të shitura" te faqja kryesore. Vetëm produktet e katalogut (jo ato
-                    // të personalizuara/custom, që kanë id si "custom-172..." dhe s'janë te PRODUCTS).
                     const itemsData = state.cart
                         .filter(i => !i.isCustom)
                         .map(i => ({ id: i.id, qty: i.qty }));
@@ -3366,6 +3392,8 @@
             });
         }
     };
+
+    const Orders = {
 
     const Orders = {
         liveSyncTimer: null,
@@ -4521,5 +4549,5 @@
     };
 </script>
 
-<script>(function(){function c(){var b=a.contentDocument||a.contentWindow.document;if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'a1b41fd1c83fd0dc',t:'MTc4NDA2OTgyNA=='};var a=document.createElement('script');a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script><script>(function(){function c(){var b=a.contentDocument||a.contentWindow.document;if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'a1b43e32dc20d100',t:'MTc4NDA3MTA2OA=='};var a=document.createElement('script');a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>
+<script>(function(){function c(){var b=a.contentDocument||a.contentWindow.document;if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'a1b41fd1c83fd0dc',t:'MTc4NDA2OTgyNA=='};var a=document.createElement('script');a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script><script>(function(){function c(){var b=a.contentDocument||a.contentWindow.document;if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'a1b44a96f9d5d103',t:'MTc4NDA3MTU3Ng=='};var a=document.createElement('script');a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>
 </html>
