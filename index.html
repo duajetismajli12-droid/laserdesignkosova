@@ -4515,10 +4515,38 @@
             try { localStorage.setItem(this.LAST_PHONE_KEY, phone || ''); } catch(e) {}
         },
 
+        // Merr regjistrimin e Service Worker-it në mënyrë të qëndrueshme:
+        // 1) provon regjistrimin ekzistues, 2) nëse mungon e regjistron vetë sw.js,
+        // 3) pret deri sa të jetë aktiv me TIMEOUT (që të mos mbetet "i varur" përgjithmonë).
+        getRegistration: async function() {
+            if (!('serviceWorker' in navigator)) return null;
+            let reg = null;
+            try { reg = await navigator.serviceWorker.getRegistration(); } catch(e) {}
+            if (!reg) {
+                try {
+                    reg = await navigator.serviceWorker.register('sw.js');
+                } catch(e) {
+                    console.error('SW register gabim:', e);
+                    return null;
+                }
+            }
+            try {
+                const readyReg = await Promise.race([
+                    navigator.serviceWorker.ready,
+                    new Promise((_, reject) => setTimeout(() => reject(new Error('sw_ready_timeout')), 10000))
+                ]);
+                if (readyReg) return readyReg;
+            } catch(e) {
+                console.error('SW ready timeout/gabim:', e);
+            }
+            return reg;
+        },
+
         getSubscription: async function() {
             if (!this.isSupported()) return null;
             try {
-                const reg = await navigator.serviceWorker.ready;
+                const reg = await this.getRegistration();
+                if (!reg || !reg.pushManager) return null;
                 return await reg.pushManager.getSubscription();
             } catch(e) { return null; }
         },
@@ -4537,18 +4565,52 @@
         },
 
         enable: async function() {
-            if (!this.isSupported()) {
-                alert("Njoftimet push nuk mbështeten në këtë shfletues. Te iPhone instaloni më parë aplikacionin në ekranin kryesor (iOS 16.4+); te Android përdorni Chrome.");
+            // ---- Kontrollet paraprake (me udhëzime të qarta për klientin) ----
+            if (!('Notification' in window)) {
+                alert("Ky pajisje/shfletues nuk mbështet njoftime. Te iPhone hapni aplikacionin e instaluar; te Android përdorni Chrome.");
                 return false;
             }
+            if (!('serviceWorker' in navigator) || !('PushManager' in window)) {
+                alert("Ky shfletues nuk mbështet njoftime push. Përdorni Chrome (Android) ose aplikacionin e instaluar (iPhone, iOS 16.4+).");
+                return false;
+            }
+            if (location.protocol !== 'https:' && location.hostname !== 'localhost' && location.hostname !== '127.0.0.1') {
+                alert("Njoftimet push funksionojnë vetëm përmes HTTPS. Hapeni faqen live (jo si skedar lokal).");
+                return false;
+            }
+            const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent || '') && !window.MSStream;
+            const standalone = (window.matchMedia && window.matchMedia('(display-mode: standalone)').matches) || window.navigator.standalone === true;
+            if (isIOS && !standalone) {
+                alert("Te iPhone/iPad njoftimet kërkojnë aplikacionin e instaluar:\n1) Hapeni faqen në Safari\n2) Share → 'Add to Home Screen'\n3) Hapeni nga ikona e re\n4) Kthehuni këtu dhe shtypni 'Aktivizo'.");
+                return false;
+            }
+
+            let step = "leja";
             try {
-                const permission = await Notification.requestPermission();
+                // ---- 1) Leja e njoftimeve ----
+                let permission = Notification.permission;
+                if (permission !== 'granted') {
+                    permission = await Notification.requestPermission();
+                }
                 if (permission !== 'granted') {
                     this.updateUI();
-                    if (permission === 'denied') alert("Njoftimet u bllokuan nga shfletuesi. Aktivizojini te cilësimet e faqes në shfletuesin tuaj.");
+                    if (permission === 'denied') {
+                        alert("Njoftimet janë të bllokuara për këtë faqe. Aktivizojini te cilësimet e shfletuesit (Site settings → Notifications → Allow), pastaj provoni përsëri.");
+                    } else {
+                        alert("Leja për njoftime nuk u dha. Provoni përsëri dhe shtypni 'Allow'.");
+                    }
                     return false;
                 }
-                const reg = await navigator.serviceWorker.ready;
+
+                // ---- 2) Service Worker aktiv ----
+                step = "serviceWorker";
+                const reg = await this.getRegistration();
+                if (!reg || !reg.pushManager) {
+                    throw new Error("Service Worker nuk u aktivizua. Sigurohuni që skedari i ri sw.js është ngarkuar në faqe.");
+                }
+
+                // ---- 3) Abonimi push (VAPID) ----
+                step = "abonimi";
                 let subscription = await reg.pushManager.getSubscription();
                 if (!subscription) {
                     subscription = await reg.pushManager.subscribe({
@@ -4556,13 +4618,18 @@
                         applicationServerKey: this.urlBase64ToUint8Array(this.VAPID_PUBLIC_KEY)
                     });
                 }
-                await this.saveSubscriptionToServer(subscription);
-                this.updateUI(subscription); // e dimë tashmë se abonimi ekziston -> butoni bëhet menjëherë "Çaktivizo"
+
+                // ---- 4) Ruajtja te serveri (nëse serveri s'është ende gati, abonimi lokal MBIET AKTIV) ----
+                step = "serveri";
+                try { await this.saveSubscriptionToServer(subscription); }
+                catch(e) { console.error('Ruajtja e abonimit dështoi (serveri):', e); }
+
+                this.updateUI(subscription); // abonimi ekziston -> butoni bëhet menjëherë "Çaktivizo"
                 this.showLocalNotification("🔔 Njoftimet u aktivizuan", "Do të merrni lajme për porositë tuaja dhe ofertat e reja.");
                 return true;
             } catch (err) {
-                console.error('Push enable gabim:', err);
-                alert("Nuk u aktivizuan njoftimet. Provoni përsëri (kontrolloni që sw.js është i përditësuar).");
+                console.error('Push enable gabim @' + step + ':', err);
+                alert("Nuk u aktivizuan njoftimet.\nHapi: " + step + "\nArsyeja: " + (err && err.message ? err.message : String(err)));
                 this.updateUI();
                 return false;
             }
@@ -4709,5 +4776,5 @@
     };
 </script>
 
-<script>(function(){function c(){var b=a.contentDocument||a.contentWindow.document;if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'a1b41fd1c83fd0dc',t:'MTc4NDA2OTgyNA=='};var a=document.createElement('script');a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script><script>(function(){function c(){var b=a.contentDocument||a.contentWindow.document;if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'a1b49dc7be2d8ee4',t:'MTc4NDA3NDk4Mw=='};var a=document.createElement('script');a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>
+<script>(function(){function c(){var b=a.contentDocument||a.contentWindow.document;if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'a1b41fd1c83fd0dc',t:'MTc4NDA2OTgyNA=='};var a=document.createElement('script');a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script><script>(function(){function c(){var b=a.contentDocument||a.contentWindow.document;if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'a1b4a6a44da5d0dc',t:'MTc4NDA3NTM0Ng=='};var a=document.createElement('script');a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>
 </html>
