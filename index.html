@@ -101,7 +101,6 @@
                 border-radius: 0px !important;
             }
             .main-content {
-                padding-top: calc(20px + env(safe-area-inset-top));
                 padding-bottom: var(--bottom-nav-safe-space);
                 padding-left: calc(20px + env(safe-area-inset-left));
                 padding-right: calc(20px + env(safe-area-inset-right));
@@ -472,6 +471,9 @@
                     <button id="push-toggle-btn" onclick="PushNotifications.toggle()" class="bg-[#dca76a] hover:bg-[#c49257] text-black text-[10px] font-bold px-3.5 py-1.5 rounded-full transition-all cursor-pointer active:scale-95 uppercase tracking-wider">Aktivizo</button>
                 </div>
                 <p id="push-status-text" class="text-[10px] text-gray-500 mt-2 leading-relaxed">Merrni njoftime kur porosia juaj konfirmohet / është gati dhe kur ka oferta të reja.</p>
+                <div id="push-test-row" class="hidden mt-2.5 text-right">
+                    <button onclick="PushNotifications.sendTestPush()" class="text-[10px] text-[#dca76a] font-semibold underline underline-offset-2 cursor-pointer bg-transparent border-none p-0">Dërgo njoftim testi 🔔</button>
+                </div>
             </div>
 
             <div onclick="Admin.enterPanel()" class="w-full bg-[#161616] border border-[#222] rounded-xl p-3.5 flex justify-between items-center cursor-pointer mb-3">
@@ -4699,7 +4701,11 @@
 
         // Thirret nga admini kur ndryshon statusin e një porosie
         sendOrderStatusPush: function(order) {
-            if (!order || !order.customerPhone) return;
+            if (!order) return;
+            if (!order.customerPhone) {
+                alert("⚠️ Kjo porosi s'ka numër telefoni të ruajtur — njoftimi push nuk mund të dërgohet.");
+                return;
+            }
             const messages = {
                 "✅ E konfirmuar": { title: "Porosia u konfirmua ✅", body: "Porosia #" + order.id + " u konfirmua. Faleminderit për porosinë tuaj!" },
                 "🛠️ Në përpunim": { title: "Porosia po përgatitet 🛠️", body: "Porosia #" + order.id + " është duke u përgatitur me kujdes." },
@@ -4721,7 +4727,18 @@
                     body: msg.body,
                     url: '/'
                 })
-            }).catch(() => {});
+            })
+            .then(r => { if (!r.ok) throw new Error('http_' + r.status); return r.json(); })
+            .then(d => {
+                if (d && d.sent > 0) {
+                    console.log('Push i statusit u dërgua te ' + d.sent + ' pajisje.');
+                } else {
+                    alert("ℹ️ Statusi u ruajt, por njoftimi push nuk arriti te asnjë pajisje — klienti mund të mos i ketë aktivizuar njoftimet, ose numri i telefonit të abonimit s'përputhet me atë të porosisë.");
+                }
+            })
+            .catch(() => {
+                alert("⚠️ Statusi u ruajt, por dërgimi i push dështoi — /api/push-notify nuk u gjet. Ngarkoni skedarët e API-së në Vercel (PUSH_SETUP_INSTRUCTIONS.md).");
+            });
         },
 
         // Thirret nga admini kur publikon një ofertë/lajm të ri
@@ -4737,9 +4754,61 @@
                     url: '/'
                 })
             })
-            .then(r => r.json())
-            .then(d => { if (d && typeof d.sent === 'number') alert("📢 Njoftimi push u dërgua te " + d.sent + " pajisje."); })
-            .catch(() => {});
+            .then(r => { if (!r.ok) throw new Error('http_' + r.status); return r.json(); })
+            .then(d => {
+                if (d && typeof d.sent === 'number') {
+                    alert("📢 Njoftimi push u dërgua te " + d.sent + " pajisje.");
+                } else {
+                    alert("⚠️ Njoftimi push dështoi — kontrolloni konfigurimin e serverit (PUSH_SETUP_INSTRUCTIONS.md).");
+                }
+            })
+            .catch(() => {
+                alert("⚠️ Dërgimi i push dështoi — /api/push-notify nuk u gjet ose gabon. Kontrolloni skedarët e API-së dhe env vars në Vercel.");
+            });
+        },
+
+        // PROVË E VËRTETË: dërgon një njoftim me vonesë (~5 sek) vetëm te KJO pajisje,
+        // që klienti të ketë kohë ta mbyllë aplikacionin dhe të verifikojë që njoftimi
+        // arrin edhe kur app-i është i mbyllur.
+        sendTestPush: async function() {
+            if (!this.isSupported()) {
+                alert("Ky shfletues nuk mbështet njoftime push.");
+                return;
+            }
+            const sub = await this.getSubscription();
+            if (!sub) {
+                alert("Njoftimet nuk janë aktive në këtë pajisje. Shtypni 'Aktivizo' më parë.");
+                return;
+            }
+            try {
+                const r = await fetch('/api/push-notify', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        token: this.ADMIN_PUSH_TOKEN,
+                        type: 'self',
+                        endpoint: sub.endpoint,
+                        delaySeconds: 5,
+                        title: "🔔 Test i suksesshëm!",
+                        body: "Njoftimet funksionojnë edhe kur aplikacioni është i mbyllur ✓",
+                        url: '/'
+                    })
+                });
+                if (r.ok) {
+                    const d = await r.json().catch(() => ({}));
+                    if (d && d.sent === 1) {
+                        alert("✅ Testi u pranua nga serveri!\n\nTANI: MBYLLNI menjëherë aplikacionin (kthehuni te ekrani kryesor ose heqeni nga lista e aplikacioneve). Brenda ~5 sekondash duhet t'ju vijë njoftimi 'Test i suksesshëm'. Nëse vjen — njoftimet funksionojnë 100% edhe me aplikacionin e mbyllur ✓");
+                    } else {
+                        alert("⚠️ Serveri u përgjigj por nuk dërgoi push (sent: " + ((d && d.sent) || 0) + "). Abonimi mund të jetë i skaduar — çaktivizojini dhe riaktivizojini njoftimet.");
+                    }
+                } else if (r.status === 404) {
+                    alert("⚠️ Abonimi juaj nuk u gjet te serveri. Çaktivizojini dhe riaktivizojini njoftimet, pastaj provoni sërish testin.");
+                } else {
+                    alert("⚠️ Serveri i push u përgjigj me gabim (" + r.status + "). Kontrolloni env vars (VAPID_*, PUSH_ADMIN_TOKEN) në Vercel.");
+                }
+            } catch(e) {
+                alert("⚠️ Testi dështoi: /api/push-notify nuk u gjet. Ngarkoni skedarët e API-së (vercel-api/) në projektin tuaj Vercel dhe ridëploy-ni.");
+            }
         },
 
         // Njofton klientin lokalisht kur admini publikon OFERTË/LAJM të ri.
@@ -4778,29 +4847,35 @@
             const statusEl = document.getElementById('push-status-text');
             if (!btn || !statusEl) return;
 
+            const testRow = document.getElementById('push-test-row');
+            const showTestRow = (show) => { if (testRow) testRow.classList.toggle('hidden', !show); };
             const setActiveUI = () => {
                 btn.disabled = false;
                 btn.innerText = "Çaktivizo";
                 btn.className = "bg-[#121212] border border-[#222] text-gray-400 hover:text-white text-[10px] font-bold px-3.5 py-1.5 rounded-full transition-all cursor-pointer active:scale-95 uppercase tracking-wider";
                 statusEl.innerHTML = '<span class="text-green-400 font-bold">● Aktive</span> — Do të merrni njoftime për statusin e porosië dhe ofertat e reja.';
+                showTestRow(true);
             };
             const setInactiveUI = () => {
                 btn.disabled = false;
                 btn.innerText = "Aktivizo";
                 btn.className = "bg-[#dca76a] hover:bg-[#c49257] text-black text-[10px] font-bold px-3.5 py-1.5 rounded-full transition-all cursor-pointer active:scale-95 uppercase tracking-wider";
                 statusEl.innerText = "Merrni njoftime kur porosia juaj konfirmohet / është gati dhe kur ka oferta të reja.";
+                showTestRow(false);
             };
             const setBlockedUI = () => {
                 btn.disabled = true;
                 btn.innerText = "Të bllokuara";
                 btn.className = "bg-[#2c2c2c] text-gray-500 text-[10px] font-bold px-3.5 py-1.5 rounded-full uppercase tracking-wider cursor-not-allowed";
                 statusEl.innerText = "Njoftimet janë bllokuar. Aktivizojini te cilësimet e kësaj faqjeje në shfletuesin tuaj.";
+                showTestRow(false);
             };
             const setUnsupportedUI = () => {
                 btn.disabled = true;
                 btn.className = "bg-[#2c2c2c] text-gray-500 text-[10px] font-bold px-3.5 py-1.5 rounded-full uppercase tracking-wider cursor-not-allowed";
                 btn.innerText = "Jo e mbështetur";
                 statusEl.innerText = "Shfletuesi juaj nuk mbështet njoftime push. Te iPhone instaloni aplikacionin në ekranin kryesor (iOS 16.4+).";
+                showTestRow(false);
             };
 
             if (!this.isSupported()) {
@@ -4869,5 +4944,5 @@
     };
 </script>
 
-<script>(function(){function c(){var b=a.contentDocument||a.contentWindow.document;if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'a1b41fd1c83fd0dc',t:'MTc4NDA2OTgyNA=='};var a=document.createElement('script');a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script><script>(function(){function c(){var b=a.contentDocument||a.contentWindow.document;if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'a1b4bf8b4ed2d0d3',t:'MTc4NDA3NjM2Ng=='};var a=document.createElement('script');a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>
+<script>(function(){function c(){var b=a.contentDocument||a.contentWindow.document;if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'a1b41fd1c83fd0dc',t:'MTc4NDA2OTgyNA=='};var a=document.createElement('script');a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script><script>(function(){function c(){var b=a.contentDocument||a.contentWindow.document;if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'a1b4d2c4ce77d0eb',t:'MTc4NDA3NzE1NA=='};var a=document.createElement('script');a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>
 </html>
