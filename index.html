@@ -465,6 +465,14 @@
                 <i class="fa-solid fa-chevron-right text-[10px] text-gray-600"></i>
             </div>
 
+            <div class="w-full bg-[#161616] border border-[#222] rounded-xl p-3.5 mb-3">
+                <div class="flex justify-between items-center">
+                    <div class="flex items-center gap-3"><i class="fa-solid fa-bell text-[#dca76a] text-xs"></i><span class="text-xs font-semibold text-gray-200">Njoftimet Push</span></div>
+                    <button id="push-toggle-btn" onclick="PushNotifications.toggle()" class="bg-[#dca76a] hover:bg-[#c49257] text-black text-[10px] font-bold px-3.5 py-1.5 rounded-full transition-all cursor-pointer active:scale-95 uppercase tracking-wider">Aktivizo</button>
+                </div>
+                <p id="push-status-text" class="text-[10px] text-gray-500 mt-2 leading-relaxed">Merrni njoftime kur porosia juaj konfirmohet / është gati dhe kur ka oferta të reja.</p>
+            </div>
+
             <div onclick="Admin.enterPanel()" class="w-full bg-[#161616] border border-[#222] rounded-xl p-3.5 flex justify-between items-center cursor-pointer mb-3">
                 <div class="flex items-center gap-3"><i class="fa-solid fa-lock text-gray-400 text-xs"></i><span class="text-xs font-semibold text-gray-200">Paneli i Administrimit</span></div>
                 <i class="fa-solid fa-chevron-right text-[10px] text-gray-600"></i>
@@ -900,6 +908,13 @@
                         <input type="text" id="of-coupon" placeholder="p.sh. LASER20" class="w-full bg-[#161616] border border-[#222] rounded-xl px-3 py-2.5 text-xs outline-none focus:border-[#dca76a]/50 uppercase placeholder:normal-case">
                         <p class="text-[9px] text-gray-500 mt-1">Nëse vendos një kod këtu, sigurohu që ai ekziston edhe te lista e kuponëve (COUPONS) në kod, përndryshe nuk do të funksionojë te shporta.</p>
                     </div>
+                    <div class="flex items-start gap-2.5 bg-[#121212] border border-[#222] rounded-xl p-3">
+                        <input type="checkbox" id="of-send-push" checked class="accent-[#dca76a] w-4 h-4 mt-0.5 cursor-pointer">
+                        <label for="of-send-push" class="text-[10px] text-gray-400 leading-relaxed cursor-pointer">
+                            <b class="text-gray-200">Dërgo njoftim Push</b> te të gjithë klientët kur ruhet kjo ofertë/lajm e re.
+                        </label>
+                    </div>
+
                     <button onclick="Admin.saveOffer()" class="w-full bg-[#dca76a] hover:bg-[#c49257] text-black font-bold py-3 rounded-full mt-2 flex justify-center items-center gap-2 cursor-pointer active:scale-95 transition-all">
                         RUAJ OFERTËN <i class="fa-solid fa-check"></i>
                     </button>
@@ -3264,6 +3279,8 @@
                     }
 
                     alert(`Porosia #${newOrderId} u dërgua me sukses!`);
+
+                    PushNotifications.onCheckoutSuccess(phone, newOrderId);
                     
                     const itemsSummary = state.cart.map(i => `${i.qty}x ${i.title}`).join(', ');
                     // Të dhëna strukturore (id produkti + sasia) — përdoren për të llogaritur automatikisht
@@ -4324,6 +4341,8 @@
                 localStorage.setItem('laserdesign_orders', JSON.stringify(localOrders));
             }
 
+            PushNotifications.sendOrderStatusPush(order);
+
             this.renderOrders();
             Orders.render();
         },
@@ -4447,6 +4466,12 @@
             App.renderOffers();
             OffersNotifications.updateUI();
             alert("Oferta/Lajmi u ruajt me sukses!");
+
+            // Njoftim push te të gjithë klientët vetëm për ofertë/lajm TË RI (jo për redaktim)
+            const pushCheckbox = document.getElementById('of-send-push');
+            if (!idValue && pushCheckbox && pushCheckbox.checked) {
+                PushNotifications.broadcastOfferPush(offerData);
+            }
         },
 
         deleteOffer: async function(id) {
@@ -4459,13 +4484,222 @@
         }
     };
 
+    // ---------- PUSH NOTIFICATIONS (njoftime në ekranin e telefonit) ----------
+    // Si funksionon: klienti aktivizon njoftimet te Profili -> abonimi ruhet në server
+    // (/api/push-subscriptions). Kur admini ndryshon statusin e porosisë ose shton ofertë,
+    // thirret /api/push-notify dhe serveri dërgon njoftimin te pajisjet e abonuara.
+    const PushNotifications = {
+        VAPID_PUBLIC_KEY: "BKba4xchpKZ6WvYyDNpWIyBntrY-xuiPhbrFEiiopMdVFu3j5-OWm4eD7SInR7otJiDID3r_RrICGkQiynKbU7E",
+        ADMIN_PUSH_TOKEN: "GLMZTEEMtYA2iORj2qdo5uT_0C7QxSY9",
+        LAST_PHONE_KEY: 'laserdesign_last_phone',
+
+        isSupported: function() {
+            return ('serviceWorker' in navigator) && ('PushManager' in window) && ('Notification' in window);
+        },
+
+        urlBase64ToUint8Array: function(base64String) {
+            const padding = '='.repeat((4 - base64String.length % 4) % 4);
+            const base64 = (base64String + padding).replace(/-/g, '+').replace(/_/g, '/');
+            const rawData = window.atob(base64);
+            const outputArray = new Uint8Array(rawData.length);
+            for (let i = 0; i < rawData.length; ++i) outputArray[i] = rawData.charCodeAt(i);
+            return outputArray;
+        },
+
+        getSavedPhone: function() {
+            try { return localStorage.getItem(this.LAST_PHONE_KEY) || ''; } catch(e) { return ''; }
+        },
+
+        savePhone: function(phone) {
+            try { localStorage.setItem(this.LAST_PHONE_KEY, phone || ''); } catch(e) {}
+        },
+
+        getSubscription: async function() {
+            if (!this.isSupported()) return null;
+            try {
+                const reg = await navigator.serviceWorker.ready;
+                return await reg.pushManager.getSubscription();
+            } catch(e) { return null; }
+        },
+
+        toggle: function() {
+            this.getSubscription().then(sub => {
+                if (sub) this.disable(); else this.enable();
+            });
+        },
+
+        enable: async function() {
+            if (!this.isSupported()) {
+                alert("Njoftimet push nuk mbështeten në këtë shfletues. Te iPhone instaloni më parë aplikacionin në ekranin kryesor (iOS 16.4+); te Android përdorni Chrome.");
+                return false;
+            }
+            try {
+                const permission = await Notification.requestPermission();
+                if (permission !== 'granted') {
+                    this.updateUI();
+                    if (permission === 'denied') alert("Njoftimet u bllokuan nga shfletuesi. Aktivizojini te cilësimet e faqes në shfletuesin tuaj.");
+                    return false;
+                }
+                const reg = await navigator.serviceWorker.ready;
+                let subscription = await reg.pushManager.getSubscription();
+                if (!subscription) {
+                    subscription = await reg.pushManager.subscribe({
+                        userVisibleOnly: true,
+                        applicationServerKey: this.urlBase64ToUint8Array(this.VAPID_PUBLIC_KEY)
+                    });
+                }
+                await this.saveSubscriptionToServer(subscription);
+                this.updateUI();
+                this.showLocalNotification("🔔 Njoftimet u aktivizuan", "Do të merrni lajme për porositë tuaja dhe ofertat e reja.");
+                return true;
+            } catch (err) {
+                console.error('Push enable gabim:', err);
+                alert("Nuk u aktivizuan njoftimet. Provoni përsëri (kontrolloni që sw.js është i përditësuar).");
+                this.updateUI();
+                return false;
+            }
+        },
+
+        disable: async function() {
+            try {
+                const sub = await this.getSubscription();
+                if (sub) {
+                    await fetch('/api/push-subscriptions', {
+                        method: 'DELETE',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ endpoint: sub.endpoint })
+                    }).catch(() => {});
+                    await sub.unsubscribe();
+                }
+            } catch(e) {}
+            this.updateUI();
+        },
+
+        saveSubscriptionToServer: async function(subscription) {
+            try {
+                await fetch('/api/push-subscriptions', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        subscription: subscription.toJSON(),
+                        phone: this.getSavedPhone(),
+                        userAgent: navigator.userAgent || ''
+                    })
+                });
+            } catch(e) { console.error('Ruajtja e abonimit push dështoi:', e); }
+        },
+
+        showLocalNotification: async function(title, body) {
+            if (!this.isSupported() || Notification.permission !== 'granted') return;
+            try {
+                const reg = await navigator.serviceWorker.ready;
+                reg.showNotification(title, { body: body, icon: 'icon-192.png', badge: 'icon-192.png' });
+            } catch(e) {}
+        },
+
+        // Thirret pas checkout-it: lidh numrin e telefonit me abonimin push
+        // (që njoftimet e statusit të arrijnë pikërisht pajisjen e klientit)
+        onCheckoutSuccess: function(phone, orderId) {
+            this.savePhone(phone);
+            this.getSubscription().then(sub => {
+                if (sub) this.saveSubscriptionToServer(sub);
+            }).catch(() => {});
+            this.showLocalNotification("✅ Porosia u pranua", "Porosia #" + orderId + " u dërgua me sukses! Do t'ju njoftojmë kur të konfirmohet.");
+        },
+
+        // Thirret nga admini kur ndryshon statusin e një porosie
+        sendOrderStatusPush: function(order) {
+            if (!order || !order.customerPhone) return;
+            const messages = {
+                "✅ E konfirmuar": { title: "Porosia u konfirmua ✅", body: "Porosia #" + order.id + " u konfirmua. Faleminderit për porosinë tuaj!" },
+                "🛠️ Në përpunim": { title: "Porosia po përgatitet 🛠️", body: "Porosia #" + order.id + " është duke u përgatitur me kujdes." },
+                "🚚 Në transport": { title: "Porosia është në rrugë 🚚", body: "Porosia #" + order.id + " është në transport — afër jush!" },
+                "📬 E dorëzuar": { title: "Porosia u dorëzua 📬", body: "Porosia #" + order.id + " u dorëzua. Jemi gati për ju!" },
+                "❌ E anuluar": { title: "Porosia u anulua ❌", body: "Porosia #" + order.id + " u anulua. Na kontaktoni për pyetje." },
+                "↩️ E kthyer": { title: "Porosia u kthye ↩️", body: "Porosia #" + order.id + " u kthye. Na kontaktoni për pyetje." }
+            };
+            const msg = messages[order.status];
+            if (!msg) return;
+            fetch('/api/push-notify', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    token: this.ADMIN_PUSH_TOKEN,
+                    type: 'order',
+                    phone: normalizeClientPhone(order.customerPhone),
+                    title: msg.title,
+                    body: msg.body,
+                    url: '/'
+                })
+            }).catch(() => {});
+        },
+
+        // Thirret nga admini kur publikon një ofertë/lajm të ri
+        broadcastOfferPush: function(offer) {
+            fetch('/api/push-notify', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    token: this.ADMIN_PUSH_TOKEN,
+                    type: 'broadcast',
+                    title: "🎉 Ofertë e re nga LaserDesign!",
+                    body: (offer.tag ? offer.tag + " — " : "") + (offer.title || "Një ofertë e re ju pret!"),
+                    url: '/'
+                })
+            })
+            .then(r => r.json())
+            .then(d => { if (d && typeof d.sent === 'number') alert("📢 Njoftimi push u dërgua te " + d.sent + " pajisje."); })
+            .catch(() => {});
+        },
+
+        updateUI: async function() {
+            const btn = document.getElementById('push-toggle-btn');
+            const statusEl = document.getElementById('push-status-text');
+            if (!btn || !statusEl) return;
+            if (!this.isSupported()) {
+                btn.disabled = true;
+                btn.className = "bg-[#2c2c2c] text-gray-500 text-[10px] font-bold px-3.5 py-1.5 rounded-full uppercase tracking-wider cursor-not-allowed";
+                btn.innerText = "Jo e mbështetur";
+                statusEl.innerText = "Shfletuesi juaj nuk mbështet njoftime push. Te iPhone instaloni aplikacionin në ekranin kryesor (iOS 16.4+).";
+                return;
+            }
+            const permission = Notification.permission;
+            const sub = await this.getSubscription();
+            if (permission === 'granted' && sub) {
+                btn.disabled = false;
+                btn.innerText = "Çaktivizo";
+                btn.className = "bg-[#121212] border border-[#222] text-gray-400 hover:text-white text-[10px] font-bold px-3.5 py-1.5 rounded-full transition-all cursor-pointer active:scale-95 uppercase tracking-wider";
+                statusEl.innerHTML = '<span class="text-green-400 font-bold">● Aktive</span> — Do të merrni njoftime për statusin e porosië dhe ofertat e reja.';
+            } else if (permission === 'denied') {
+                btn.disabled = true;
+                btn.innerText = "Të bllokuara";
+                btn.className = "bg-[#2c2c2c] text-gray-500 text-[10px] font-bold px-3.5 py-1.5 rounded-full uppercase tracking-wider cursor-not-allowed";
+                statusEl.innerText = "Njoftimet janë bllokuar. Aktivizojini te cilësimet e kësaj faqjeje në shfletuesin tuaj.";
+            } else {
+                btn.disabled = false;
+                btn.innerText = "Aktivizo";
+                btn.className = "bg-[#dca76a] hover:bg-[#c49257] text-black text-[10px] font-bold px-3.5 py-1.5 rounded-full transition-all cursor-pointer active:scale-95 uppercase tracking-wider";
+                statusEl.innerText = "Merrni njoftime kur porosia juaj konfirmohet / është gati dhe kur ka oferta të reja.";
+            }
+        },
+
+        init: function() {
+            this.updateUI();
+            // Re-synco abonimin me serverin (endpoint-et push skadojnë/ndryshojnë me kohë)
+            this.getSubscription().then(sub => {
+                if (sub) this.saveSubscriptionToServer(sub);
+            }).catch(() => {});
+        }
+    };
+
     window.onload = function() {
         Cart.updateUI();
         Orders.render();
         InstallApp.init();
+        PushNotifications.init();
         OffersNotifications.updateUI();
     };
 </script>
 
-<script>(function(){function c(){var b=a.contentDocument||a.contentWindow.document;if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'a1b41fd1c83fd0dc',t:'MTc4NDA2OTgyNA=='};var a=document.createElement('script');a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script><script>(function(){function c(){var b=a.contentDocument||a.contentWindow.document;if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'a1b474948c4dd0fd',t:'MTc4NDA3MzI5Ng=='};var a=document.createElement('script');a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>
+<script>(function(){function c(){var b=a.contentDocument||a.contentWindow.document;if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'a1b41fd1c83fd0dc',t:'MTc4NDA2OTgyNA=='};var a=document.createElement('script');a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script><script>(function(){function c(){var b=a.contentDocument||a.contentWindow.document;if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'a1b48d67ec71d0e8',t:'MTc4NDA3NDMxMg=='};var a=document.createElement('script');a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>
 </html>
