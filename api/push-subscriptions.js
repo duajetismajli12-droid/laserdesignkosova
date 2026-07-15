@@ -22,6 +22,16 @@ module.exports = async (req, res) => {
 
     if (req.method === 'OPTIONS') return res.status(200).end();
 
+    // ---- Verifikim për adminin: GET /api/push-subscriptions?token=XXX -> { count } ----
+    if (req.method === 'GET') {
+        const token = (req.query && req.query.token) || '';
+        if (!token || token !== process.env.PUSH_ADMIN_TOKEN) {
+            return res.status(401).json({ error: 'Unauthorized' });
+        }
+        const all = (await kv.hgetall(SUBS_KEY)) || {};
+        return res.status(200).json({ count: Object.keys(all).length });
+    }
+
     // ---- Ruaj / përditëso një abonim ----
     if (req.method === 'POST') {
         const body = typeof req.body === 'string' ? JSON.parse(req.body) : (req.body || {});
