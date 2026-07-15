@@ -63,9 +63,13 @@ module.exports = async (req, res) => {
     const staleKeys = [];
     let sent = 0;
 
+    // urgency: high -> sistemi e zgjon pajisjen MENJËHERË edhe kur app-i është i mbyllur;
+    // TTL 1 orë -> push ruhet te shërbimi deri sa pajisja të vijë online.
+    const pushOptions = { TTL: 3600, urgency: 'high' };
+
     await Promise.all(entries.map(async ([key, rec]) => {
         try {
-            await webpush.sendNotification(rec.subscription, payload);
+            await webpush.sendNotification(rec.subscription, payload, pushOptions);
             sent++;
         } catch (err) {
             // 404/410 = abonimi nuk ekziston më -> pastroje
