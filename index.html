@@ -1535,6 +1535,7 @@
 
             if(screenId === 'scr-profile') {
                 this.renderFavorites();
+                PushNotifications.updateUI();
             }
 
             if(screenId === 'scr-offers') {
@@ -4524,7 +4525,14 @@
 
         toggle: function() {
             this.getSubscription().then(sub => {
-                if (sub) this.disable(); else this.enable();
+                if (sub) {
+                    // Njoftimet janë aktive -> pyet klientin nëse doni t'i çaktivizojë
+                    if (confirm("Njoftimet janë aktive. Dëshironi t'i çaktivizoni për këtë pajisje?")) {
+                        this.disable();
+                    }
+                } else {
+                    this.enable();
+                }
             });
         },
 
@@ -4549,7 +4557,7 @@
                     });
                 }
                 await this.saveSubscriptionToServer(subscription);
-                this.updateUI();
+                this.updateUI(subscription); // e dimë tashmë se abonimi ekziston -> butoni bëhet menjëherë "Çaktivizo"
                 this.showLocalNotification("🔔 Njoftimet u aktivizuan", "Do të merrni lajme për porositë tuaja dhe ofertat e reja.");
                 return true;
             } catch (err) {
@@ -4572,7 +4580,7 @@
                     await sub.unsubscribe();
                 }
             } catch(e) {}
-            this.updateUI();
+            this.updateUI(null); // abonimi u hoq -> butoni kthehet menjëherë në "Aktivizo"
         },
 
         saveSubscriptionToServer: async function(subscription) {
@@ -4652,7 +4660,7 @@
             .catch(() => {});
         },
 
-        updateUI: async function() {
+        updateUI: async function(knownSub) {
             const btn = document.getElementById('push-toggle-btn');
             const statusEl = document.getElementById('push-status-text');
             if (!btn || !statusEl) return;
@@ -4664,7 +4672,7 @@
                 return;
             }
             const permission = Notification.permission;
-            const sub = await this.getSubscription();
+            const sub = (typeof knownSub !== 'undefined') ? knownSub : await this.getSubscription();
             if (permission === 'granted' && sub) {
                 btn.disabled = false;
                 btn.innerText = "Çaktivizo";
@@ -4701,5 +4709,5 @@
     };
 </script>
 
-<script>(function(){function c(){var b=a.contentDocument||a.contentWindow.document;if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'a1b41fd1c83fd0dc',t:'MTc4NDA2OTgyNA=='};var a=document.createElement('script');a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script><script>(function(){function c(){var b=a.contentDocument||a.contentWindow.document;if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'a1b48d67ec71d0e8',t:'MTc4NDA3NDMxMg=='};var a=document.createElement('script');a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>
+<script>(function(){function c(){var b=a.contentDocument||a.contentWindow.document;if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'a1b41fd1c83fd0dc',t:'MTc4NDA2OTgyNA=='};var a=document.createElement('script');a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script><script>(function(){function c(){var b=a.contentDocument||a.contentWindow.document;if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'a1b49dc7be2d8ee4',t:'MTc4NDA3NDk4Mw=='};var a=document.createElement('script');a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>
 </html>
