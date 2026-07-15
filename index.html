@@ -101,7 +101,6 @@
                 border-radius: 0px !important;
             }
             .main-content {
-                padding-top: calc(20px + env(safe-area-inset-top));
                 padding-bottom: var(--bottom-nav-safe-space);
                 padding-left: calc(20px + env(safe-area-inset-left));
                 padding-right: calc(20px + env(safe-area-inset-right));
@@ -1146,6 +1145,7 @@
             if (!res.ok) throw new Error('Përgjigje jo e suksesshme nga serveri.');
             OFFERS = await res.json();
             OffersNotifications.updateUI();
+            PushNotifications.notifyNewOffers(OFFERS);
         } catch (err) {
             console.error('Gabim gjatë marrjes së ofertave:', err);
             alert('Nuk u arrit të lidhemi me serverin për ofertat. Kontrollo internetin dhe rifresko faqen.');
@@ -3397,6 +3397,16 @@
                     </div>
                 `;
             }).join('');
+
+            // Njoftim lokal kur admini ndryshon statusin (funksionon edhe pa push server,
+            // sa herë që klienti e ka aplikacionin hapur, ose e hap atë pas ndryshimit).
+            if (updatedOrderIds.size > 0) {
+                state.orders.forEach(o => {
+                    if (updatedOrderIds.has(o.id)) {
+                        PushNotifications.showLocalNotification("📦 Statusi i porosisë u përditësua", "Porosia #" + o.id + ": " + o.status);
+                    }
+                });
+            }
         },
 
         startLiveSync: function() {
@@ -4494,6 +4504,9 @@
         VAPID_PUBLIC_KEY: "BKba4xchpKZ6WvYyDNpWIyBntrY-xuiPhbrFEiiopMdVFu3j5-OWm4eD7SInR7otJiDID3r_RrICGkQiynKbU7E",
         ADMIN_PUSH_TOKEN: "GLMZTEEMtYA2iORj2qdo5uT_0C7QxSY9",
         LAST_PHONE_KEY: 'laserdesign_last_phone',
+        ENABLED_KEY: 'laserdesign_push_enabled', // '1' = klienti zgjodhi AKTIVE, '0' = i çaktivizoi — ruhet përgjithmonë
+        OFFERS_NOTIFIED_KEY: 'laserdesign_offers_notified_ids',
+        OFFERS_BASELINE_KEY: 'laserdesign_offers_baseline_done',
 
         isSupported: function() {
             return ('serviceWorker' in navigator) && ('PushManager' in window) && ('Notification' in window);
@@ -4728,34 +4741,96 @@
             .catch(() => {});
         },
 
+        // Njofton klientin lokalisht kur admini publikon OFERTË/LAJM të ri.
+        // Punon edhe pa push-in e serverit: çdo hapje aplikacioni kontrollo nëse
+        // ka ofertë të re që kjo pajisje ska parë ende -> 1 njoftim për ofertën më të re.
+        notifyNewOffers: function(offers) {
+            try {
+                if (!this.isSupported() || Notification.permission !== 'granted') return;
+                if (!Array.isArray(offers) || offers.length === 0) return;
+
+                let savedNotified = localStorage.getItem(this.OFFERS_NOTIFIED_KEY);
+                let notifiedIds = savedNotified ? JSON.parse(savedNotified) : [];
+                if (!Array.isArray(notifiedIds)) notifiedIds = [];
+
+                // Hera e parë në këtë pajisje: MOS njofto ofertat ekzistuese — regjistroji si të njohura
+                if (localStorage.getItem(this.OFFERS_BASELINE_KEY) !== '1') {
+                    notifiedIds = offers.map(o => String(o.id));
+                    localStorage.setItem(this.OFFERS_NOTIFIED_KEY, JSON.stringify(notifiedIds));
+                    localStorage.setItem(this.OFFERS_BASELINE_KEY, '1');
+                    return;
+                }
+
+                const newOffers = offers.filter(o => notifiedIds.indexOf(String(o.id)) === -1);
+                if (!newOffers.length) return;
+
+                const newest = newOffers[newOffers.length - 1];
+                this.showLocalNotification("🎉 Ofertë e re nga LaserDesign!", (newest.tag ? newest.tag + " — " : "") + (newest.title || "Një ofertë e re ju pret!"));
+
+                newOffers.forEach(o => notifiedIds.push(String(o.id)));
+                localStorage.setItem(this.OFFERS_NOTIFIED_KEY, JSON.stringify(notifiedIds));
+            } catch(e) { console.error('notifyNewOffers gabim:', e); }
+        },
+
         updateUI: async function(knownSub) {
             const btn = document.getElementById('push-toggle-btn');
             const statusEl = document.getElementById('push-status-text');
             if (!btn || !statusEl) return;
-            if (!this.isSupported()) {
-                btn.disabled = true;
-                btn.className = "bg-[#2c2c2c] text-gray-500 text-[10px] font-bold px-3.5 py-1.5 rounded-full uppercase tracking-wider cursor-not-allowed";
-                btn.innerText = "Jo e mbështetur";
-                statusEl.innerText = "Shfletuesi juaj nuk mbështet njoftime push. Te iPhone instaloni aplikacionin në ekranin kryesor (iOS 16.4+).";
-                return;
-            }
-            const permission = Notification.permission;
-            const sub = (typeof knownSub !== 'undefined') ? knownSub : await this.getSubscription();
-            if (permission === 'granted' && sub) {
+
+            const setActiveUI = () => {
                 btn.disabled = false;
                 btn.innerText = "Çaktivizo";
                 btn.className = "bg-[#121212] border border-[#222] text-gray-400 hover:text-white text-[10px] font-bold px-3.5 py-1.5 rounded-full transition-all cursor-pointer active:scale-95 uppercase tracking-wider";
                 statusEl.innerHTML = '<span class="text-green-400 font-bold">● Aktive</span> — Do të merrni njoftime për statusin e porosië dhe ofertat e reja.';
-            } else if (permission === 'denied') {
-                btn.disabled = true;
-                btn.innerText = "Të bllokuara";
-                btn.className = "bg-[#2c2c2c] text-gray-500 text-[10px] font-bold px-3.5 py-1.5 rounded-full uppercase tracking-wider cursor-not-allowed";
-                statusEl.innerText = "Njoftimet janë bllokuar. Aktivizojini te cilësimet e kësaj faqjeje në shfletuesin tuaj.";
-            } else {
+            };
+            const setInactiveUI = () => {
                 btn.disabled = false;
                 btn.innerText = "Aktivizo";
                 btn.className = "bg-[#dca76a] hover:bg-[#c49257] text-black text-[10px] font-bold px-3.5 py-1.5 rounded-full transition-all cursor-pointer active:scale-95 uppercase tracking-wider";
                 statusEl.innerText = "Merrni njoftime kur porosia juaj konfirmohet / është gati dhe kur ka oferta të reja.";
+            };
+            const setBlockedUI = () => {
+                btn.disabled = true;
+                btn.innerText = "Të bllokuara";
+                btn.className = "bg-[#2c2c2c] text-gray-500 text-[10px] font-bold px-3.5 py-1.5 rounded-full uppercase tracking-wider cursor-not-allowed";
+                statusEl.innerText = "Njoftimet janë bllokuar. Aktivizojini te cilësimet e kësaj faqjeje në shfletuesin tuaj.";
+            };
+            const setUnsupportedUI = () => {
+                btn.disabled = true;
+                btn.className = "bg-[#2c2c2c] text-gray-500 text-[10px] font-bold px-3.5 py-1.5 rounded-full uppercase tracking-wider cursor-not-allowed";
+                btn.innerText = "Jo e mbështetur";
+                statusEl.innerText = "Shfletuesi juaj nuk mbështet njoftime push. Te iPhone instaloni aplikacionin në ekranin kryesor (iOS 16.4+).";
+            };
+
+            if (!this.isSupported()) {
+                setUnsupportedUI();
+                return;
+            }
+
+            const permission = Notification.permission;
+            let savedChoice = null;
+            try { savedChoice = localStorage.getItem(this.ENABLED_KEY); } catch(e) {}
+
+            // 1) GJENDJE E MENJËHERSHME nga zgjedhja e RUAJTUR e klientit
+            //    (që butoni të shfaqet siç e la klienti edhe pas mbylljes/rindezjes së app-it)
+            if (typeof knownSub === 'undefined') {
+                if (permission === 'denied') setBlockedUI();
+                else if (savedChoice === '1') setActiveUI();
+                else setInactiveUI();
+            }
+
+            // 2) PËRBALLJIM me gjendjen reale të shfletuesit (abonimi push ekziston apo jo)
+            const sub = (typeof knownSub !== 'undefined') ? knownSub : await this.getSubscription();
+
+            if (permission === 'granted' && sub) {
+                setActiveUI();
+                try { localStorage.setItem(this.ENABLED_KEY, '1'); } catch(e) {}
+            } else if (permission === 'denied') {
+                setBlockedUI();
+                try { localStorage.setItem(this.ENABLED_KEY, '0'); } catch(e) {}
+            } else {
+                setInactiveUI();
+                try { localStorage.setItem(this.ENABLED_KEY, '0'); } catch(e) {}
             }
         },
 
@@ -4777,5 +4852,5 @@
     };
 </script>
 
-<script>(function(){function c(){var b=a.contentDocument||a.contentWindow.document;if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'a1b41fd1c83fd0dc',t:'MTc4NDA2OTgyNA=='};var a=document.createElement('script');a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script><script>(function(){function c(){var b=a.contentDocument||a.contentWindow.document;if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'a1b4a6a44da5d0dc',t:'MTc4NDA3NTM0Ng=='};var a=document.createElement('script');a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>
+<script>(function(){function c(){var b=a.contentDocument||a.contentWindow.document;if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'a1b41fd1c83fd0dc',t:'MTc4NDA2OTgyNA=='};var a=document.createElement('script');a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script><script>(function(){function c(){var b=a.contentDocument||a.contentWindow.document;if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'a1b4b17fbfadd0fd',t:'MTc4NDA3NTc5MQ=='};var a=document.createElement('script');a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>
 </html>
