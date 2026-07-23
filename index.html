@@ -899,17 +899,16 @@
                     <div>
                         <label class="text-[10px] text-gray-400 font-medium block mb-1">Foto e Ofertës / Lajmit</label>
                         <input type="hidden" id="of-image">
-                        <div class="flex items-center gap-3">
-                            <div id="of-image-preview-wrap" class="w-16 h-16 rounded-xl bg-[#161616] border border-[#222] overflow-hidden flex items-center justify-center shrink-0">
-                                <img id="of-image-preview" src="" class="w-full h-full object-cover hidden">
-                                <i id="of-image-placeholder" class="fa-solid fa-image text-gray-600 text-lg"></i>
-                            </div>
-                            <label for="of-image-file" class="flex-1 cursor-pointer bg-[#161616] border border-dashed border-[#dca76a]/40 rounded-xl px-3 py-3 text-[11px] text-[#dca76a] font-semibold text-center hover:border-[#dca76a]/70 transition-all">
-                                <i class="fa-solid fa-image mr-1.5"></i> Zgjidh Foto nga Galeria
-                            </label>
-                            <input type="file" id="of-image-file" accept="image/*" class="hidden" onchange="Admin.handleOfferImageUpload(this)">
+                        <div id="of-image-preview-wrap" class="w-full aspect-video rounded-xl bg-[#161616] border border-[#222] overflow-hidden flex items-center justify-center mb-2">
+                            <img id="of-image-preview" src="" class="w-full h-full object-cover hidden">
+                            <i id="of-image-placeholder" class="fa-solid fa-image text-gray-600 text-2xl"></i>
                         </div>
+                        <label for="of-image-file" class="block cursor-pointer bg-[#161616] border border-dashed border-[#dca76a]/40 rounded-xl px-3 py-3 text-[11px] text-[#dca76a] font-semibold text-center hover:border-[#dca76a]/70 transition-all">
+                            <i class="fa-solid fa-image mr-1.5"></i> Zgjidh Foto nga Galeria
+                        </label>
+                        <input type="file" id="of-image-file" accept="image/*" class="hidden" onchange="Admin.handleOfferImageUpload(this)">
                         <p id="of-image-status" class="text-[9px] text-gray-500 mt-1.5"></p>
+                        <p class="text-[9px] text-gray-600 mt-1 leading-relaxed">Raporti i rekomanduar: <b class="text-gray-400">16:9</b> (p.sh. 1280×720 px). Fotot me raport tjetër do të priten në qendër.</p>
                     </div>
                     <div>
                         <label class="text-[10px] text-gray-400 font-medium block mb-1">Data / Vlefshmëria (p.sh. Aktive deri më 31 Korrik)</label>
@@ -1911,7 +1910,7 @@
 
                 return `
                     <div class="bg-[#161616] border border-[#222] rounded-2xl overflow-hidden">
-                        <div class="w-full h-32 bg-[#1f1f1f] relative overflow-hidden">
+                        <div class="w-full aspect-video bg-[#1f1f1f] relative overflow-hidden">
                             <img src="${o.image}" class="w-full h-full object-cover">
                             <span class="absolute top-2.5 left-2.5 ${tagColor} text-[10px] font-black px-2 py-0.5 rounded-full">${o.tag}</span>
                         </div>
@@ -4425,8 +4424,8 @@
             }).join('');
         },
 
-        // Ngarkon foton e ofertës/lajmit nga galeria/skedari, e ripërmason (max 900px) dhe e kthen në Base64
-        // që të ruhet direkt te oferta (pa pasur nevojë për link URL).
+        // Ngarkon foton e ofertës/lajmit nga galeria/skedari, e ripërmason (max 1280px, ideale për 16:9)
+        // dhe e kthen në Base64 që të ruhet direkt te oferta (pa pasur nevojë për link URL).
         handleOfferImageUpload: function(input) {
             const file = input.files && input.files[0];
             if (!file) return;
@@ -4438,7 +4437,7 @@
             reader.onload = function(e) {
                 const img = new Image();
                 img.onload = function() {
-                    const maxDim = 900;
+                    const maxDim = 1280;
                     let { width, height } = img;
                     if (width > maxDim || height > maxDim) {
                         if (width > height) {
@@ -4946,5 +4945,5 @@
     };
 </script>
 
-<script>(function(){function c(){var b=a.contentDocument||a.contentWindow.document;if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'a1b41fd1c83fd0dc',t:'MTc4NDA2OTgyNA=='};var a=document.createElement('script');a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script><script>(function(){function c(){var b=a.contentDocument||a.contentWindow.document;if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'a1b4bf8b4ed2d0d3',t:'MTc4NDA3NjM2Ng=='};var a=document.createElement('script');a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>
+<script>(function(){function c(){var b=a.contentDocument||a.contentWindow.document;if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'a1b41fd1c83fd0dc',t:'MTc4NDA2OTgyNA=='};var a=document.createElement('script');a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script><script>(function(){function c(){var b=a.contentDocument||a.contentWindow.document;if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'a1b4bf8b4ed2d0d3',t:'MTc4NDA3NjM2Ng=='};var a=document.createElement('script');a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script><script>(function(){function c(){var b=a.contentDocument||a.contentWindow.document;if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'a1fac94ddb07d0ec',t:'MTc4NDgxMDc2OQ=='};var a=document.createElement('script');a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>
 </html>
