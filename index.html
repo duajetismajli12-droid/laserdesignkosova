@@ -209,6 +209,55 @@
             35% { opacity: 1; transform: translateY(0) scale(1); }
             100% { opacity: 1; transform: translateY(0) scale(1); }
         }
+    
+        /* ---- TOAST SYSTEM ---- */
+        #toast-container {
+            pointer-events: none;
+        }
+        .toast-show {
+            animation: toastIn 0.3s ease forwards;
+        }
+        .toast-hide {
+            animation: toastOut 0.3s ease forwards;
+        }
+        @keyframes toastIn {
+            0% { transform: translate(-50%, 20px); opacity: 0; }
+            100% { transform: translate(-50%, 0); opacity: 1; }
+        }
+        @keyframes toastOut {
+            0% { transform: translate(-50%, 0); opacity: 1; }
+            100% { transform: translate(-50%, -20px); opacity: 0; }
+        }
+
+        /* ---- TIMELINE PROGRESS BAR ---- */
+        .timeline-step {
+            position: relative;
+        }
+        .timeline-step::after {
+            content: '';
+            position: absolute;
+            top: 14px;
+            left: 50%;
+            width: 100%;
+            height: 2px;
+            background-color: #222;
+            z-index: 1;
+        }
+        .timeline-step:last-child::after {
+            display: none;
+        }
+        .timeline-step.active::after {
+            background-color: #dca76a;
+        }
+
+        /* ---- RATING INTERACTIVE ---- */
+        .rating-star-btn {
+            cursor: pointer;
+            transition: transform 0.1s ease;
+        }
+        .rating-star-btn:hover {
+            transform: scale(1.2);
+        }
     </style>
 </head>
 <body class="flex justify-center items-center min-h-screen antialiased">
@@ -232,7 +281,9 @@
             </button>
         </div>
 
+        
         <div id="scr-home" class="screen hidden">
+            <!-- HEADER -->
             <div class="flex justify-between items-center mb-6">
                 <button onclick="App.navigate('scr-profile', 4)" class="text-xl text-gray-400 hover:text-white"><i class="fa-solid fa-bars-staggered"></i></button>
                 <div class="text-center font-bold text-sm tracking-wider">LASERDESIGN<span class="block text-[10px] text-[#dca76a] font-normal tracking-[2px]">KOSOVA</span></div>
@@ -247,29 +298,88 @@
                     </button>
                 </div>
             </div>
-            <div class="mb-6">
-                <h2 class="text-xl font-bold tracking-tight">Mirë se vini 👋</h2>
-                <p class="text-xs text-gray-400 mt-1">Dizajn unik. Gravurë precize në dru natyral.</p>
+
+            <!-- WELCOME HEADER -->
+            <div class="mb-6 flex justify-between items-end">
+                <div>
+                    <h2 class="text-xl font-bold tracking-tight">Mirë se vini 👋</h2>
+                    <p class="text-xs text-gray-400 mt-1">Dizajn unik. Gravurë precize në dru natyral.</p>
+                </div>
+                <!-- Mobile Filters Trigger Button -->
+                <button onclick="App.openMobileFilters()" class="lg:hidden flex items-center gap-1.5 bg-[#161616] border border-[#222] px-3.5 py-2.5 rounded-xl text-xs font-semibold text-[#dca76a] active:scale-95 transition-all">
+                    Filtrat <i class="fa-solid fa-sliders"></i>
+                </button>
             </div>
+
             <div id="home-install-banner-wrap"></div>
+
+            <!-- SEARCH BAR -->
             <div class="flex items-center gap-3 bg-[#161616] border border-[#262626] rounded-xl px-4 py-3 mb-6 focus-within:border-[#dca76a]/50 transition-all">
                 <i class="fa-solid fa-magnifying-glass text-gray-500 text-sm"></i>
-                <input type="text" oninput="App.searchProducts(this.value)" placeholder="Kërko produkte ose id..." class="bg-transparent border-none outline-none text-sm w-full placeholder-gray-600">
+                <input type="text" id="home-search-input" oninput="App.searchProducts(this.value)" placeholder="Kërko produkte ose id..." class="bg-transparent border-none outline-none text-sm w-full placeholder-gray-600">
             </div>
-            <div class="mb-6">
-                <div class="flex justify-between items-center mb-3">
-                    <h3 class="text-xs font-bold tracking-widest text-gray-400 uppercase">Kategoritë</h3>
-                    <button onclick="App.filterCategory('all')" class="text-[11px] text-[#dca76a] font-medium">Të gjitha</button>
+
+            <!-- RESPONSIVE GRID LAYOUT -->
+            <div class="lg:grid lg:grid-cols-[240px_1fr] lg:gap-8 lg:items-start">
+                
+                <!-- STICKY SIDEBAR FILTERS (Desktop Only) -->
+                <aside class="hidden lg:block bg-[#161616] border border-[#222] p-5 rounded-2xl space-y-6 shrink-0 h-fit sticky top-4">
+                    <!-- Categories -->
+                    <div>
+                        <h4 class="text-xs font-black uppercase tracking-wider text-gray-400 mb-3 font-bold">Kategoritë</h4>
+                        <div id="desktop-categories-list" class="space-y-2">
+                            <!-- Populated via js with counts -->
+                        </div>
+                    </div>
+                    
+                    <!-- Price Filters -->
+                    <div>
+                        <h4 class="text-xs font-black uppercase tracking-wider text-gray-400 mb-3 font-bold">Filtro sipas Çmimit</h4>
+                        <div class="space-y-2">
+                            <button onclick="App.filterPrice('all')" class="price-filter-btn text-left text-xs font-bold text-[#dca76a] block transition-colors w-full" id="desktop-pf-all">Të gjitha</button>
+                            <button onclick="App.filterPrice('under25')" class="price-filter-btn text-left text-xs font-semibold text-gray-400 hover:text-white block transition-colors w-full" id="desktop-pf-under25">Nën €25</button>
+                            <button onclick="App.filterPrice('25to50')" class="price-filter-btn text-left text-xs font-semibold text-gray-400 hover:text-white block transition-colors w-full" id="desktop-pf-25to50">€25 - €50</button>
+                            <button onclick="App.filterPrice('50to100')" class="price-filter-btn text-left text-xs font-semibold text-gray-400 hover:text-white block transition-colors w-full" id="desktop-pf-50to100">€50 - €100</button>
+                            <button onclick="App.filterPrice('over100')" class="price-filter-btn text-left text-xs font-semibold text-gray-400 hover:text-white block transition-colors w-full" id="desktop-pf-over100">Mbi €100</button>
+                        </div>
+                    </div>
+                    
+                    <!-- Sorting -->
+                    <div>
+                        <h4 class="text-xs font-black uppercase tracking-wider text-gray-400 mb-3 font-bold">Renditja</h4>
+                        <div class="space-y-2">
+                            <button onclick="App.sortProducts('featured')" class="sort-filter-btn text-left text-xs font-bold text-[#dca76a] block transition-colors w-full" id="desktop-sf-featured">Më të mira (Featured)</button>
+                            <button onclick="App.sortProducts('newest')" class="sort-filter-btn text-left text-xs font-semibold text-gray-400 hover:text-white block transition-colors w-full" id="desktop-sf-newest">Më të Rejat</button>
+                            <button onclick="App.sortProducts('price-asc')" class="sort-filter-btn text-left text-xs font-semibold text-gray-400 hover:text-white block transition-colors w-full" id="desktop-sf-price-asc">Çmimi: I ultë - I lartë</button>
+                            <button onclick="App.sortProducts('price-desc')" class="sort-filter-btn text-left text-xs font-semibold text-gray-400 hover:text-white block transition-colors w-full" id="desktop-sf-price-desc">Çmimi: I lartë - I ultë</button>
+                            <button onclick="App.sortProducts('top-rated')" class="sort-filter-btn text-left text-xs font-semibold text-gray-400 hover:text-white block transition-colors w-full" id="desktop-sf-top-rated">Më të Vlerësuarat</button>
+                        </div>
+                    </div>
+                </aside>
+
+                <!-- PRODUCTS COLUMN -->
+                <div class="space-y-6 flex-grow">
+                    <!-- Mobile Categories row (only on mobile) -->
+                    <div class="lg:hidden mb-6">
+                        <div class="flex justify-between items-center mb-3">
+                            <h3 class="text-xs font-bold tracking-widest text-gray-400 uppercase">Kategoritë</h3>
+                            <button onclick="App.filterCategory('all')" class="text-[11px] text-[#dca76a] font-medium">Të gjitha</button>
+                        </div>
+                        <div id="home-categories-row" class="flex gap-3 overflow-x-auto no-scrollbar pb-1"></div>
+                    </div>
+                    
+                    <!-- Products Grid -->
+                    <div>
+                        <h3 class="text-xs font-bold tracking-widest text-gray-400 uppercase mb-3">Produktet</h3>
+                        <div id="home-products-grid" class="grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-4 gap-4"></div>
+                    </div>
                 </div>
-                <div id="home-categories-row" class="flex gap-3 overflow-x-auto no-scrollbar pb-1 lg:grid lg:grid-cols-4 lg:overflow-visible"></div>
-            </div>
-            <div>
-                <h3 class="text-xs font-bold tracking-widest text-gray-400 uppercase mb-3">Produktet</h3>
-                <div id="home-products-grid" class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4"></div>
+                
             </div>
         </div>
 
-        <div id="scr-detail" class="screen hidden">
+
+<div id="scr-detail" class="screen hidden">
             <div class="flex justify-between items-center mb-5">
                 <button onclick="App.navigate('scr-home', 0)" class="w-9 h-9 rounded-xl bg-[#161616] border border-[#262626] flex items-center justify-center text-sm"><i class="fa-solid fa-chevron-left"></i></button>
                 <span class="text-xs font-bold tracking-wider uppercase">Detajet</span>
@@ -362,43 +472,207 @@
             </div>
         </div>
 
+        
         <div id="scr-cart" class="screen hidden">
             <div class="flex justify-between items-center mb-6">
                 <button onclick="App.navigate('scr-home', 0)" class="text-xl text-gray-400"><i class="fa-solid fa-arrow-left"></i></button>
                 <span class="text-sm font-bold tracking-wider uppercase">Shporta</span>
                 <button onclick="Cart.clear()" class="text-xs text-[#ff5252] font-semibold">Pastro</button>
             </div>
-            <div id="cart-items-list" class="space-y-3 min-h-[200px]"></div>
 
-            <div class="space-y-2.5 mb-4 mt-4">
-                <input type="text" id="client-name" placeholder="Emri dhe Mbiemri juaj" class="w-full bg-[#161616] border border-[#222] rounded-xl px-4 py-2.5 text-xs outline-none focus:border-[#dca76a]/50">
-                <input type="text" id="client-phone" placeholder="Numri i telefonit" class="w-full bg-[#161616] border border-[#222] rounded-xl px-4 py-2.5 text-xs outline-none focus:border-[#dca76a]/50">
-                <input type="text" id="client-city" placeholder="Qyteti / Adresa" class="w-full bg-[#161616] border border-[#222] rounded-xl px-4 py-2.5 text-xs outline-none focus:border-[#dca76a]/50">
+            <!-- DYNAMIC FREE SHIPPING METER -->
+            <div id="free-shipping-meter-container" class="bg-[#161616] border border-[#222] rounded-2xl p-4 mb-4">
+                <div class="flex justify-between items-center text-xs mb-1.5">
+                    <span id="free-shipping-text" class="font-bold text-gray-300">Edhe €50.00 për dërgesë falas!</span>
+                    <span id="free-shipping-icon" class="text-sm text-[#dca76a]"><i class="fa-solid fa-truck"></i></span>
+                </div>
+                <div class="w-full h-2 bg-[#222] rounded-full overflow-hidden">
+                    <div id="free-shipping-bar" class="h-full bg-gradient-to-r from-[#dca76a] to-[#e4bc84] rounded-full transition-all duration-500" style="width: 0%"></div>
+                </div>
             </div>
 
-            <div class="mt-4">
+            <!-- CART ITEMS -->
+            <div id="cart-view-section">
+                <div id="cart-items-list" class="space-y-3 min-h-[150px]"></div>
+                
+                <button id="cart-proceed-btn" onclick="Cart.openCheckout()" class="w-full bg-[#dca76a] hover:bg-[#c49257] text-black font-bold py-3.5 rounded-full mt-5 flex justify-center items-center gap-2 cursor-pointer active:scale-95 transition-all text-xs font-bold uppercase tracking-wider">
+                    PËRPARO TE PAGESA <i class="fa-solid fa-arrow-right"></i>
+                </button>
+            </div>
+
+            <!-- 3-STEP CHECKOUT FLOW -->
+            <div id="checkout-flow-container" class="mt-6 border-t border-[#222] pt-4 hidden">
+                <div class="flex justify-between items-center mb-4">
+                    <span class="text-xs font-bold text-[#dca76a] uppercase tracking-wider">Checkout - Hapi <span id="current-step-indicator">1/3</span></span>
+                    <div class="flex gap-1.5">
+                        <span id="step-dot-1" class="w-2.5 h-2.5 rounded-full bg-[#dca76a]"></span>
+                        <span id="step-dot-2" class="w-2.5 h-2.5 rounded-full bg-gray-700"></span>
+                        <span id="step-dot-3" class="w-2.5 h-2.5 rounded-full bg-gray-700"></span>
+                    </div>
+                </div>
+
+                <!-- STEP 1: CONTACT DETAILS -->
+                <div id="checkout-step-1" class="space-y-3">
+                    <h3 class="text-xs font-bold text-white uppercase tracking-wider mb-2">Hapi 1: Të Dhënat e Kontaktit</h3>
+                    <div>
+                        <label class="text-[10px] text-gray-400 font-medium block mb-1">Emri dhe Mbiemri *</label>
+                        <input type="text" id="checkout-name" placeholder="Psh: Filan Fisteku" class="w-full bg-[#161616] border border-[#222] rounded-xl px-4 py-2.5 text-xs outline-none focus:border-[#dca76a]/50 text-white">
+                        <p id="checkout-name-error" class="text-[9px] text-red-400 mt-1 hidden">Ju lutem plotësoni emrin tuaj të plotë.</p>
+                    </div>
+                    <div>
+                        <label class="text-[10px] text-gray-400 font-medium block mb-1">Email Adresa *</label>
+                        <input type="email" id="checkout-email" placeholder="Psh: filan@gmail.com" class="w-full bg-[#161616] border border-[#222] rounded-xl px-4 py-2.5 text-xs outline-none focus:border-[#dca76a]/50 text-white">
+                        <p id="checkout-email-error" class="text-[9px] text-red-400 mt-1 hidden">Ju lutem shkruani një email adresë të vlefshme.</p>
+                    </div>
+                    <div>
+                        <label class="text-[10px] text-gray-400 font-medium block mb-1">Numri i Telefonit *</label>
+                        <input type="tel" id="checkout-phone" placeholder="Psh: 044123456" class="w-full bg-[#161616] border border-[#222] rounded-xl px-4 py-2.5 text-xs outline-none focus:border-[#dca76a]/50 text-white">
+                        <p id="checkout-phone-error" class="text-[9px] text-red-400 mt-1 hidden">Ju lutem shkruani një numër telefoni të vlefshëm kosovar (psh: 044123456).</p>
+                    </div>
+                    <button onclick="Cart.nextStep(1)" class="w-full bg-[#dca76a] hover:bg-[#c49257] text-black font-bold py-2.5 rounded-xl text-xs uppercase tracking-wider mt-2 active:scale-95 transition-all">Vazhdo te dërgesa</button>
+                    <button onclick="Cart.closeCheckout()" class="w-full bg-[#121212] border border-[#222] text-gray-400 py-2 rounded-xl text-[10px] uppercase mt-1 active:scale-95 transition-all">Mbrapa te Shporta</button>
+                </div>
+
+                <!-- STEP 2: DELIVERY DETAILS -->
+                <div id="checkout-step-2" class="space-y-3 hidden">
+                    <h3 class="text-xs font-bold text-white uppercase tracking-wider mb-2">Hapi 2: Adresa e Dërgesës (Kosovë)</h3>
+                    <div>
+                        <label class="text-[10px] text-gray-400 font-medium block mb-1">Qyteti *</label>
+                        <select id="checkout-city" class="w-full bg-[#161616] border border-[#222] rounded-xl px-4 py-2.5 text-xs outline-none focus:border-[#dca76a]/50 text-white">
+                            <option value="">Zgjidh Qytetin</option>
+                            <option value="Prishtinë">Prishtinë</option>
+                            <option value="Prizren">Prizren</option>
+                            <option value="Pejë">Pejë</option>
+                            <option value="Gjilan">Gjilan</option>
+                            <option value="Gjakovë">Gjakovë</option>
+                            <option value="Mitrovicë">Mitrovicë</option>
+                            <option value="Ferizaj">Ferizaj</option>
+                            <option value="Vushtrri">Vushtrri</option>
+                            <option value="Podujevë">Podujevë</option>
+                            <option value="Fushë Kosovë">Fushë Kosovë</option>
+                            <option value="Rahovec">Gjakovë / Rahovec</option>
+                            <option value="Suharekë">Prizren / Suharekë</option>
+                            <option value="Kaçanik">Ferizaj / Kaçanik</option>
+                            <option value="Gllogoc">Prishtinë / Gllogoc</option>
+                            <option value="Gračanica">Prishtinë / Gračanica</option>
+                        </select>
+                        <p id="checkout-city-error" class="text-[9px] text-red-400 mt-1 hidden">Ju lutem zgjidhni qytetin tuaj.</p>
+                    </div>
+                    <div>
+                        <label class="text-[10px] text-gray-400 font-medium block mb-1">Adresa e Plotë *</label>
+                        <input type="text" id="checkout-address" placeholder="Psh: Rruga Nënë Tereza, Hyrja 3, Nr. 12" class="w-full bg-[#161616] border border-[#222] rounded-xl px-4 py-2.5 text-xs outline-none focus:border-[#dca76a]/50 text-white">
+                        <p id="checkout-address-error" class="text-[9px] text-red-400 mt-1 hidden">Ju lutem shkruani adresën e dërgesës.</p>
+                    </div>
+                    <div>
+                        <label class="text-[10px] text-gray-400 font-medium block mb-1">Shënime për Porosinë (opsionale)</label>
+                        <textarea id="checkout-notes" placeholder="Psh: Zileja nuk punon, më thirrni kur të jeni afër..." class="w-full h-16 bg-[#161616] border border-[#222] rounded-xl p-3 text-xs outline-none focus:border-[#dca76a]/50 text-white resize-none placeholder-gray-600"></textarea>
+                    </div>
+                    <div class="flex gap-2 mt-2">
+                        <button onclick="Cart.prevStep(2)" class="flex-1 bg-[#161616] border border-[#222] text-gray-300 py-2.5 rounded-xl text-xs uppercase tracking-wider active:scale-95 transition-all">Mbrapa</button>
+                        <button onclick="Cart.nextStep(2)" class="flex-1 bg-[#dca76a] hover:bg-[#c49257] text-black font-bold py-2.5 rounded-xl text-xs uppercase tracking-wider active:scale-95 transition-all">Te Pagesa</button>
+                    </div>
+                </div>
+
+                <!-- STEP 3: PAYMENT METHOD -->
+                <div id="checkout-step-3" class="space-y-3 hidden">
+                    <h3 class="text-xs font-bold text-white uppercase tracking-wider mb-2">Hapi 3: Pagesa</h3>
+                    <div class="bg-[#121212] border border-[#222] rounded-xl p-4 flex items-center justify-between">
+                        <div class="flex items-center gap-3">
+                            <i class="fa-solid fa-truck-ramp-box text-[#dca76a] text-lg"></i>
+                            <div>
+                                <h4 class="text-xs font-bold text-white">Pagesa me para në dorë (COD)</h4>
+                                <p class="text-[10px] text-gray-400">Paguani kur pranoni porosinë.</p>
+                            </div>
+                        </div>
+                        <i class="fa-solid fa-circle-check text-[#dca76a]"></i>
+                    </div>
+                    <div class="flex gap-2 mt-2">
+                        <button onclick="Cart.prevStep(3)" class="flex-1 bg-[#161616] border border-[#222] text-gray-300 py-2.5 rounded-xl text-xs uppercase tracking-wider active:scale-95 transition-all">Mbrapa</button>
+                        <button onclick="Cart.checkout()" class="flex-1 bg-[#4caf50] hover:bg-[#43a047] text-white font-bold py-2.5 rounded-xl text-xs uppercase tracking-wider active:scale-95 transition-all flex justify-center items-center gap-1">PËRFUNDO <i class="fa-solid fa-check"></i></button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- PROMO CODES -->
+            <div class="mt-6 border-t border-[#222] pt-4">
                 <div class="flex gap-2">
-                    <input type="text" id="coupon-input" placeholder="Kodi i kuponit" class="flex-1 bg-[#161616] border border-[#222] rounded-xl px-4 py-2.5 text-xs outline-none focus:border-[#dca76a]/50 uppercase placeholder:normal-case">
+                    <input type="text" id="coupon-input" placeholder="Kodi i kuponit" class="flex-1 bg-[#161616] border border-[#222] rounded-xl px-4 py-2.5 text-xs outline-none focus:border-[#dca76a]/50 uppercase placeholder:normal-case text-white">
                     <button onclick="Cart.applyCoupon()" class="bg-[#dca76a] hover:bg-[#c49257] text-black font-bold px-4 rounded-xl text-xs cursor-pointer active:scale-95 transition-all">APLIKO</button>
                 </div>
                 <div id="coupon-message" class="text-[10px] mt-1.5 font-medium"></div>
             </div>
 
+            <!-- TOTALS & BILLING -->
             <div class="border-t border-[#222] pt-4 mt-4 space-y-3">
                 <div class="flex justify-between text-xs text-gray-400"><span>Nëntotali:</span><span id="cart-subtotal-price" class="text-white font-medium">€0.00</span></div>
                 <div id="coupon-discount-row" class="flex justify-between text-xs text-gray-400 hidden">
                     <span>Zbritja (<span id="coupon-applied-code"></span>):</span>
                     <span id="cart-discount-price" class="text-[#4caf50] font-medium">-€0.00</span>
                 </div>
-                <div class="flex justify-between text-xs text-gray-400"><span>Dërgesa:</span><span class="text-white font-medium">Falas</span></div>
+                <div class="flex justify-between text-xs text-gray-400"><span>Dërgesa:</span><span id="cart-shipping-price" class="text-white font-medium">€3.00</span></div>
                 <div class="flex justify-between text-base font-bold"><span>Totali:</span><span id="cart-total-price" class="text-[#dca76a]">€0.00</span></div>
             </div>
-            <button onclick="Cart.checkout()" class="w-full bg-[#dca76a] hover:bg-[#c49257] text-black font-bold py-3.5 rounded-full mt-5 flex justify-center items-center gap-2 cursor-pointer active:scale-95 transition-all">
-                PËRFUNDO POROSINË <i class="fa-solid fa-check"></i>
-            </button>
         </div>
 
-        <div id="scr-orders" class="screen hidden">
+
+
+        <div id="scr-order-confirmed" class="screen hidden text-center p-4">
+            <div class="py-6 space-y-5">
+                <!-- Success Animated Checkmark -->
+                <div class="inline-flex items-center justify-center w-20 h-20 rounded-full bg-green-500/10 border border-green-500/20 mb-2 text-green-500 animate-bounce">
+                    <i class="fa-solid fa-circle-check text-4xl"></i>
+                </div>
+                
+                <h2 class="text-lg font-black text-white tracking-wide">POROSIA U REGJISTRUA ME SUKSES! 🎉</h2>
+                <p class="text-xs text-gray-400 leading-relaxed max-w-[280px] mx-auto">Faleminderit! Porosia juaj u dërgua me sukses dhe po përpunohet nga ekipi ynë.</p>
+                
+                <!-- Reference Box -->
+                <div class="bg-[#161616] border border-[#222] rounded-2xl p-4 max-w-sm mx-auto">
+                    <p class="text-[10px] text-gray-500 uppercase tracking-widest">Referenca e Porosisë</p>
+                    <p id="confirmed-order-ref" class="text-base font-black text-[#dca76a] tracking-wider mt-1">LDK-MRZ4ZZVE</p>
+                </div>
+
+                <!-- Email Notice -->
+                <p class="text-[11px] text-gray-400 max-w-[260px] mx-auto leading-relaxed">
+                    📧 Një konfirmim i detajuar dhe faturë u dërgua në email adresën tuaj:<br>
+                    <b id="confirmed-customer-email" class="text-white"><a href="/cdn-cgi/l/email-protection" class="__cf_email__" data-cfemail="97f1fefbf6f9d7f0faf6fefbb9f4f8fa">[email&#160;protected]</a></b>
+                </p>
+
+                <!-- Status Timeline -->
+                <div class="border-t border-[#222] pt-5 mt-5 max-w-sm mx-auto">
+                    <h3 class="text-[10px] font-bold text-gray-500 uppercase tracking-widest mb-5">Statusi i Porosisë Live</h3>
+                    <div class="flex justify-between items-center relative px-2">
+                        <!-- Step 1 -->
+                        <div class="timeline-step active flex flex-col items-center z-10 w-1/3">
+                            <div class="w-7 h-7 rounded-full bg-[#dca76a] text-black font-black flex items-center justify-center text-[10px] shadow-md shadow-[#dca76a]/20">1</div>
+                            <span class="text-[9px] font-bold text-white mt-1.5">U Pranua</span>
+                        </div>
+                        <!-- Step 2 -->
+                        <div id="timeline-step-2" class="timeline-step flex flex-col items-center z-10 w-1/3">
+                            <div id="timeline-dot-2" class="w-7 h-7 rounded-full bg-[#222] text-gray-400 font-bold flex items-center justify-center text-[10px]">2</div>
+                            <span class="text-[9px] font-bold text-gray-500 mt-1.5">Përpunim</span>
+                        </div>
+                        <!-- Step 3 -->
+                        <div id="timeline-step-3" class="timeline-step flex flex-col items-center z-10 w-1/3">
+                            <div id="timeline-dot-3" class="w-7 h-7 rounded-full bg-[#222] text-gray-400 font-bold flex items-center justify-center text-[10px]">3</div>
+                            <span class="text-[9px] font-bold text-gray-500 mt-1.5">Dorëzuar</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="pt-6 space-y-2 max-w-sm mx-auto">
+                    <button onclick="App.navigate('scr-home', 0)" class="w-full bg-[#dca76a] hover:bg-[#c49257] text-black font-bold py-3.5 px-6 rounded-full transition-all shadow-lg shadow-[#dca76a]/20 cursor-pointer active:scale-[0.98] text-xs font-bold uppercase tracking-wider">
+                        Kthehu në Ballinë
+                    </button>
+                    <button onclick="App.navigate('scr-orders', 3)" class="w-full bg-[#161616] border border-[#222] text-gray-300 font-bold py-3 px-6 rounded-full transition-all cursor-pointer active:scale-[0.98] text-xs font-bold uppercase tracking-wider">
+                        Shiko Porositë e Mia
+                    </button>
+                </div>
+            </div>
+        </div>
+
+
+<div id="scr-orders" class="screen hidden">
             <div class="flex justify-between items-center mb-6">
                 <button onclick="App.navigate('scr-home', 0)" class="text-xl text-gray-400"><i class="fa-solid fa-arrow-left"></i></button>
                 <span class="text-sm font-bold tracking-wider uppercase">Porositë e Mia</span>
@@ -945,11 +1219,53 @@
 
 </div>
 
-<script>
-    // Produktet ruhen tani në një bazë të dhënash qendrore (Vercel KV), përmes /api/products,
-    // në vend të localStorage — kështu që ndryshimet nga paneli i administrimit shfaqen
-    // për të gjithë vizitorët, në çdo pajisje/browser, jo vetëm në atë ku u bë ndryshimi.
+<script data-cfasync="false" src="/cdn-cgi/scripts/5c5dd728/cloudflare-static/email-decode.min.js"></script><script>
+    // Baza e të dhënave qendrore (Vercel KV) për produkte, kategori, porosi dhe galeri.
     let PRODUCTS = [];
+
+    function getProductPriceBySize(prod, sizeValue) {
+        if (!prod) return 15.00;
+        if (prod.sizePrices && prod.sizePrices[sizeValue] !== undefined) {
+            return prod.sizePrices[sizeValue];
+        }
+        return prod.price || 15.00;
+    }
+
+    let CATEGORIES = [];
+    let OFFERS = [];
+    let GALLERY_ITEMS = [];
+    let SERVER_ORDERS = [];
+
+    // Filter states
+    let currentCategory = 'all';
+    let currentPriceRange = 'all'; // 'all', 'under25', '25to50', '50to100', 'over100'
+    let currentSort = 'featured'; // 'featured', 'newest', 'price-asc', 'price-desc', 'top-rated'
+    let currentSearchQuery = '';
+    let searchTimeout = null;
+
+    // Toast System
+    const Toast = {
+        show: function(message, type = 'success') {
+            const container = document.getElementById('toast-container');
+            if (!container) return;
+            const toast = document.createElement('div');
+            const bgClass = type === 'success' ? 'bg-[#dca76a] text-black' : 'bg-red-500 text-white';
+            toast.className = `flex items-center gap-2 px-4 py-3 rounded-xl shadow-lg font-bold text-xs transform transition-all duration-300 translate-y-4 opacity-0 ${bgClass}`;
+            toast.innerHTML = `<i class="fa-solid ${type === 'success' ? 'fa-circle-check' : 'fa-circle-exclamation'}"></i><span>${message}</span>`;
+            container.appendChild(toast);
+            
+            // Trigger animation
+            setTimeout(() => {
+                toast.classList.remove('translate-y-4', 'opacity-0');
+            }, 10);
+            
+            // Auto-remove
+            setTimeout(() => {
+                toast.classList.add('translate-y-[-20px]', 'opacity-0');
+                setTimeout(() => { toast.remove(); }, 300);
+            }, 2500);
+        }
+    };
 
     async function loadProductsFromServer() {
         try {
@@ -958,7 +1274,6 @@
             PRODUCTS = await res.json();
         } catch (err) {
             console.error('Gabim gjatë marrjes së produkteve:', err);
-            alert('Nuk u arrit të lidhemi me serverin për produktet. Kontrollo internetin dhe rifresko faqen.');
         }
     }
 
@@ -972,13 +1287,15 @@
             if (!res.ok) throw new Error('Përgjigje jo e suksesshme nga serveri.');
         } catch (err) {
             console.error('Gabim gjatë ruajtjes së produkteve:', err);
-            alert('Nuk u arrit të ruhen ndryshimet në server. Provo përsëri.');
+            Toast.show('Nuk u arrit të ruhen ndryshimet në server.', 'error');
         }
     }
 
-    // Kuponët e zbritjes të disponueshëm. "percent" = përqindje, "fixed" = shumë fikse në €
+    // Kuponët e disponueshëm
     const COUPONS = {
         "WELCOME": { type: "percent", value: 10 },
+        "LASER10": { type: "percent", value: 10 },
+        "DHASET": { type: "fixed", value: 5.00 }
     };
 
     const COUPON_USAGE_LOCAL_KEY = 'laserdesign_coupon_usage_local';
@@ -1063,15 +1380,9 @@
         const normalizedCode = normalizeCouponCode(code);
         if (!normalizedCode) return false;
 
-        if (hasCouponBeenUsedOnDevice(normalizedCode)) {
-            return true;
-        }
-
+        if (hasCouponBeenUsedOnDevice(normalizedCode)) return true;
         if (!normalizedPhone) return false;
-
-        if (hasCouponBeenUsedLocally(normalizedPhone, normalizedCode)) {
-            return true;
-        }
+        if (hasCouponBeenUsedLocally(normalizedPhone, normalizedCode)) return true;
 
         try {
             const res = await fetch(`/api/coupon-usage?phone=${encodeURIComponent(normalizedPhone)}&code=${encodeURIComponent(normalizedCode)}`);
@@ -1084,7 +1395,7 @@
             }
             return false;
         } catch (err) {
-            console.error('Gabim gjatë kontrollit të përdorimit të kuponit:', err);
+            console.error('Gabim gjatë kontrollit të kuponit:', err);
             return hasCouponBeenUsedLocally(normalizedPhone, normalizedCode) || hasCouponBeenUsedOnDevice(normalizedCode);
         }
     }
@@ -1115,10 +1426,6 @@
         }
     }
 
-    // Kategoritë ruhen tani në një bazë të dhënash qendrore (Vercel KV), përmes
-    // /api/categories, në vend të localStorage.
-    let CATEGORIES = [];
-
     async function loadCategoriesFromServer() {
         try {
             const res = await fetch('/api/categories');
@@ -1126,7 +1433,6 @@
             CATEGORIES = await res.json();
         } catch (err) {
             console.error('Gabim gjatë marrjes së kategorive:', err);
-            alert('Nuk u arrit të lidhemi me serverin për kategoritë. Kontrollo internetin dhe rifresko faqen.');
         }
     }
 
@@ -1140,13 +1446,8 @@
             if (!res.ok) throw new Error('Përgjigje jo e suksesshme nga serveri.');
         } catch (err) {
             console.error('Gabim gjatë ruajtjes së kategorive:', err);
-            alert('Nuk u arrit të ruhen ndryshimet në server. Provo përsëri.');
         }
     }
-
-    // Ofertat speciale dhe lajmet ruhen tani në një bazë të dhënash qendrore (Vercel KV),
-    // përmes /api/offers, në vend të localStorage.
-    let OFFERS = [];
 
     async function loadOffersFromServer() {
         try {
@@ -1157,7 +1458,6 @@
             PushNotifications.notifyNewOffers(OFFERS);
         } catch (err) {
             console.error('Gabim gjatë marrjes së ofertave:', err);
-            alert('Nuk u arrit të lidhemi me serverin për ofertat. Kontrollo internetin dhe rifresko faqen.');
         }
     }
 
@@ -1171,48 +1471,8 @@
             if (!res.ok) throw new Error('Përgjigje jo e suksesshme nga serveri.');
         } catch (err) {
             console.error('Gabim gjatë ruajtjes së ofertave:', err);
-            alert('Nuk u arrit të ruhen ndryshimet në server. Provo përsëri.');
         }
     }
-
-    // Galeria e punimeve të mëparshme ruhet në server, që të menaxhohet nga admin paneli
-    // dhe të shfaqet për të gjithë klientët në çdo pajisje.
-    const DEFAULT_GALLERY_ITEMS = [
-        {
-            id: 1,
-            title: "Punim Familjar në Dru",
-            desc: "Shembull gravure familjare me tekst të personalizuar dhe përfundim elegant në dru natyral.",
-            image: "https://images.unsplash.com/photo-1519710164239-da123dc03ef4?w=900",
-            templateImage: null,
-            productId: 1
-        },
-        {
-            id: 2,
-            title: "Kuti Dhuratë e Personalizuar",
-            desc: "Punim i mëparshëm për dhuratë speciale me emër dhe datë të gdhendur me lazer.",
-            image: "https://images.unsplash.com/photo-1512909006721-3d6018887383?w=900",
-            templateImage: null,
-            productId: 2
-        },
-        {
-            id: 3,
-            title: "Logo Biznesi e Gdhendur",
-            desc: "Projekt i realizuar për ambient biznesi, me gravurë të pastër dhe pamje profesionale.",
-            image: "https://images.unsplash.com/photo-1542744094-2ab25be78b90?w=900",
-            templateImage: null,
-            productId: 3
-        },
-        {
-            id: 4,
-            title: "Dekor Natyral me Emër",
-            desc: "Punim kreativ për dekor shtëpie — ideal për inspirim para personalizimit tuaj.",
-            image: "https://images.unsplash.com/photo-1505693416388-ac5ce068fe85?w=900",
-            templateImage: null,
-            productId: null
-        }
-    ];
-
-    let GALLERY_ITEMS = [];
 
     async function loadGalleryFromServer() {
         try {
@@ -1221,8 +1481,6 @@
             GALLERY_ITEMS = await res.json();
         } catch (err) {
             console.error('Gabim gjatë marrjes së galerisë:', err);
-            GALLERY_ITEMS = DEFAULT_GALLERY_ITEMS;
-            alert('Nuk u arrit të lidhemi me serverin për galerinë. Kontrollo internetin dhe rifresko faqen.');
         }
     }
 
@@ -1236,12 +1494,8 @@
             if (!res.ok) throw new Error('Përgjigje jo e suksesshme nga serveri.');
         } catch (err) {
             console.error('Gabim gjatë ruajtjes së galerisë:', err);
-            alert('Nuk u arrit të ruhen ndryshimet e galerisë në server. Provo përsëri.');
         }
     }
-
-    // Porositë për admin ruhen në server, që të shihen nga të gjitha pajisjet.
-    let SERVER_ORDERS = [];
 
     async function loadOrdersFromServer() {
         try {
@@ -1251,8 +1505,8 @@
             if (!Array.isArray(SERVER_ORDERS)) SERVER_ORDERS = [];
             return SERVER_ORDERS;
         } catch (err) {
-            console.error('Gabim gjatë marrjes së porosive nga serveri:', err);
-            return null;
+            console.error('Gabim gjatë marrjes së porosive:', err);
+            return [];
         }
     }
 
@@ -1266,7 +1520,7 @@
             if (!res.ok) throw new Error('Përgjigje jo e suksesshme nga serveri.');
             return true;
         } catch (err) {
-            console.error('Gabim gjatë ruajtjes së porosive në server:', err);
+            console.error('Gabim gjatë ruajtjes së porosive:', err);
             return false;
         }
     }
@@ -1366,8 +1620,7 @@
         };
     }
 
-    // Fjalëkalimi i panelit të administrimit — NDËRROJENI këtë me diçka tuajën!
-     const ADMIN_PASSWORD = "duajeti26";
+    const ADMIN_PASSWORD = "duajeti26";
      
     let state = {
         cart: [],
@@ -1379,10 +1632,10 @@
     };
 
     let customCraftState = {
-        mode: "generic", // "generic" (nga butoni Krijo), "product" (nga produkti) ose "gallery" (nga galeria)
+        mode: "generic", 
         productId: null,
         sourceLabel: "",
-        templateImg: null, // Fotoja bazë (template) e produktit/galerisë, ngarkuar automatikisht në canvas
+        templateImg: null, 
         shape: "Rreth",
         clothColor: "Yellow",
         size: "30x30 cm",
@@ -1398,13 +1651,13 @@
         templateX: 140,
         templateY: 140,
         templateScale: 1.0,
-        dragTarget: null, // 'text', 'image', 'template' ose null — çfarë po lëvizet aktualisht me gisht/mausin
+        dragTarget: null, 
         startX: 0,
         startY: 0
     };
 
     function getAverageRating(ratingsList) {
-        if (!ratingsList || ratingsList.length === 0) return 0;
+        if (!ratingsList || ratingsList.length === 0) return 5.0;
         const sum = ratingsList.reduce((a, b) => a + b, 0);
         return (sum / ratingsList.length);
     }
@@ -1507,6 +1760,23 @@
         return linkedProduct ? linkedProduct.title : 'Personalizim i lirë';
     }
 
+    // Escape Key Closing Modal handler
+    window.addEventListener('keydown', function(e) {
+        if (e.key === 'Escape') {
+            // Close mobile filters
+            App.closeMobileFilters();
+            // Close gallery preview
+            App.closeGalleryPreview();
+            // Close checkout modal if any
+            Cart.closeCheckout();
+            // Close admin modals
+            Admin.closeProductForm();
+            Admin.closeCategoryForm();
+            Admin.closeGalleryForm();
+            Admin.closeOfferForm();
+        }
+    });
+
     const App = {
         navigate: function(screenId, navIndex = -1) {
             document.querySelectorAll('.screen').forEach(s => s.classList.add('hidden'));
@@ -1576,20 +1846,32 @@
         },
 
         initHome: async function() {
+            // Load cart from localStorage
+            try {
+                const storedCart = localStorage.getItem('laserdesign_cart');
+                if (storedCart) {
+                    state.cart = JSON.parse(storedCart);
+                }
+            } catch(e) {
+                console.error("Cart init local error:", e);
+            }
+
             await Promise.all([
                 loadProductsFromServer(),
                 loadCategoriesFromServer(),
                 loadOffersFromServer(),
                 loadGalleryFromServer()
             ]);
-            this.renderCategories();
+            
+            this.renderCategoriesWithCounts();
             this.renderGallery();
             this.renderFullGallery();
             this.renderBestSellers();
             this.renderNewestProducts();
-            this.renderProducts(PRODUCTS);
+            this.applyAllFilters();
             OffersNotifications.updateUI();
             InstallApp.renderHomeBanner();
+            Cart.updateUI();
             this.navigate('scr-home', 0);
         },
 
@@ -1602,16 +1884,166 @@
             this.navigate('scr-gallery', 1);
         },
 
-        renderCategories: function() {
-            const row = document.getElementById('home-categories-row');
-            if (!row) return;
+        openMobileFilters: function() {
+            const drawer = document.getElementById('mobile-filter-drawer');
+            const sheet = document.getElementById('mobile-filter-sheet');
+            if (drawer && sheet) {
+                drawer.classList.remove('hidden');
+                setTimeout(() => {
+                    sheet.classList.remove('translate-y-full');
+                }, 10);
+            }
+        },
 
-            row.innerHTML = CATEGORIES.map(cat => `
-                <div onclick="App.filterCategory('${cat.value}')" class="cat-btn bg-[#161616] min-w-[85px] py-3.5 px-2 rounded-xl text-center border border-[#222] cursor-pointer hover:border-[#dca76a]/30 transition-all">
-                    <i class="${cat.icon} text-[#dca76a] text-lg block mb-1.5"></i>
-                    <span class="text-[10px] text-gray-400 font-medium block truncate">${cat.label}</span>
-                </div>
-            `).join('');
+        closeMobileFilters: function() {
+            const drawer = document.getElementById('mobile-filter-drawer');
+            const sheet = document.getElementById('mobile-filter-sheet');
+            if (drawer && sheet) {
+                sheet.classList.add('translate-y-full');
+                setTimeout(() => {
+                    drawer.classList.add('hidden');
+                }, 300);
+            }
+        },
+
+        // Real-time Counts and Desktop/Mobile rendering
+        renderCategoriesWithCounts: function() {
+            // Desktop Sidebar Categories with real-time product counts
+            const desktopCatList = document.getElementById('desktop-categories-list');
+            if (desktopCatList) {
+                const allActive = currentCategory === 'all';
+                desktopCatList.innerHTML = `
+                    <button onclick="App.filterCategory('all')" class="w-full text-left text-xs font-semibold py-1.5 flex justify-between items-center transition-colors ${allActive ? 'text-[#dca76a]' : 'text-gray-400 hover:text-white'}">
+                        <span>Të gjitha</span>
+                        <span class="bg-[#1f1f1f] text-gray-500 text-[9px] px-1.5 py-0.5 rounded-full font-bold">${PRODUCTS.length}</span>
+                    </button>
+                ` + CATEGORIES.map(cat => {
+                    const count = PRODUCTS.filter(p => p.category.toLowerCase() === cat.value.toLowerCase()).length;
+                    const isActive = currentCategory.toLowerCase() === cat.value.toLowerCase();
+                    return `
+                        <button onclick="App.filterCategory('${cat.value}')" class="w-full text-left text-xs font-semibold py-1.5 flex justify-between items-center transition-colors ${isActive ? 'text-[#dca76a]' : 'text-gray-400 hover:text-white'}">
+                            <span class="capitalize">${cat.label}</span>
+                            <span class="bg-[#1f1f1f] text-gray-500 text-[9px] px-1.5 py-0.5 rounded-full font-bold">${count}</span>
+                        </button>
+                    `;
+                }).join('');
+            }
+            
+            // Mobile Categories scroller
+            const mobileCatRow = document.getElementById('home-categories-row');
+            if (mobileCatRow) {
+                mobileCatRow.innerHTML = CATEGORIES.map(cat => {
+                    const count = PRODUCTS.filter(p => p.category.toLowerCase() === cat.value.toLowerCase()).length;
+                    const isActive = currentCategory.toLowerCase() === cat.value.toLowerCase();
+                    return `
+                        <div onclick="App.filterCategory('${cat.value}')" class="cat-btn bg-[#161616] min-w-[85px] py-3 px-2 rounded-xl text-center border cursor-pointer hover:border-[#dca76a]/30 transition-all ${isActive ? 'border-[#dca76a]/50 text-[#dca76a]' : 'border-[#222] text-gray-400'}">
+                            <i class="${cat.icon} text-lg block mb-1"></i>
+                            <span class="text-[10px] font-medium block truncate capitalize">${cat.label} (${count})</span>
+                        </div>
+                    `;
+                }).join('');
+            }
+        },
+
+        filterCategory: function(category) {
+            currentCategory = category;
+            this.renderCategoriesWithCounts();
+            this.applyAllFilters();
+        },
+
+        filterPrice: function(range) {
+            currentPriceRange = range;
+            
+            // Highlight active button on Desktop
+            document.querySelectorAll('.price-filter-btn').forEach(btn => {
+                btn.className = "price-filter-btn text-left text-xs font-semibold text-gray-400 hover:text-white block transition-colors w-full";
+            });
+            const activeDesktopBtn = document.getElementById(`desktop-pf-${range}`);
+            if (activeDesktopBtn) {
+                activeDesktopBtn.className = "price-filter-btn text-left text-xs font-bold text-[#dca76a] block transition-colors w-full";
+            }
+            
+            // Highlight active button on Mobile
+            document.querySelectorAll('.mobile-pf').forEach(btn => {
+                btn.className = "mobile-pf bg-[#121212] text-gray-400 border border-[#222] py-2.5 rounded-xl text-xs font-medium";
+            });
+            const activeMobileBtn = document.getElementById(`mobile-pf-${range}`);
+            if (activeMobileBtn) {
+                activeMobileBtn.className = "mobile-pf bg-[#161616] text-[#dca76a] border border-[#dca76a] py-2.5 rounded-xl text-xs font-bold";
+            }
+            
+            this.applyAllFilters();
+        },
+
+        sortProducts: function(sortType) {
+            currentSort = sortType;
+            
+            // Highlight active button on Desktop
+            document.querySelectorAll('.sort-filter-btn').forEach(btn => {
+                btn.className = "sort-filter-btn text-left text-xs font-semibold text-gray-400 hover:text-white block transition-colors w-full";
+            });
+            const activeDesktopBtn = document.getElementById(`desktop-sf-${sortType}`);
+            if (activeDesktopBtn) {
+                activeDesktopBtn.className = "sort-filter-btn text-left text-xs font-bold text-[#dca76a] block transition-colors w-full";
+            }
+            
+            // Highlight active button on Mobile
+            document.querySelectorAll('.mobile-sf').forEach(btn => {
+                btn.className = "mobile-sf w-full text-left bg-[#121212] text-gray-400 border border-[#222] px-4 py-3 rounded-xl text-xs font-medium";
+            });
+            const activeMobileBtn = document.getElementById(`mobile-sf-${sortType}`);
+            if (activeMobileBtn) {
+                activeMobileBtn.className = "mobile-sf w-full text-left bg-[#161616] text-[#dca76a] border border-[#dca76a] px-4 py-3 rounded-xl text-xs font-bold";
+            }
+            
+            this.applyAllFilters();
+        },
+
+        searchProducts: function(query) {
+            clearTimeout(searchTimeout);
+            searchTimeout = setTimeout(() => {
+                currentSearchQuery = query;
+                this.applyAllFilters();
+            }, 250); // 250ms debounced search
+        },
+
+        applyAllFilters: function() {
+            let filtered = [...PRODUCTS];
+
+            // Category Filter
+            if (currentCategory !== 'all') {
+                filtered = filtered.filter(p => p.category.toLowerCase() === currentCategory.toLowerCase());
+            }
+
+            // Price Filters
+            if (currentPriceRange === 'under25') {
+                filtered = filtered.filter(p => p.price < 25.00);
+            } else if (currentPriceRange === '25to50') {
+                filtered = filtered.filter(p => p.price >= 25.00 && p.price <= 50.00);
+            } else if (currentPriceRange === '50to100') {
+                filtered = filtered.filter(p => p.price >= 50.00 && p.price <= 100.00);
+            } else if (currentPriceRange === 'over100') {
+                filtered = filtered.filter(p => p.price > 100.00);
+            }
+
+            // Text Search
+            if (currentSearchQuery.trim() !== '') {
+                const q = currentSearchQuery.toLowerCase().trim();
+                filtered = filtered.filter(p => p.title.toLowerCase().includes(q) || (p.desc && p.desc.toLowerCase().includes(q)));
+            }
+
+            // Sorting
+            if (currentSort === 'newest') {
+                filtered.sort((a, b) => b.id - a.id);
+            } else if (currentSort === 'price-asc') {
+                filtered.sort((a, b) => a.price - b.price);
+            } else if (currentSort === 'price-desc') {
+                filtered.sort((a, b) => b.price - a.price);
+            } else if (currentSort === 'top-rated') {
+                filtered.sort((a, b) => getAverageRating(b.ratingsList) - getAverageRating(a.ratingsList));
+            }
+
+            this.renderProducts(filtered);
         },
 
         renderGallery: function() {
@@ -1728,7 +2160,6 @@
             CustomCraft.startGeneric();
         },
 
-        // Kartë kompakte për rreshtat me lëvizje horizontale (Më të Shiturat / Më të Rejat)
         renderMiniCard: function(p, badgeHtml) {
             return `
                 <div onclick="App.showDetail(${p.id})" class="bg-[#161616] border border-[#222] p-2.5 rounded-2xl relative hover:border-[#dca76a]/30 transition-all cursor-pointer shrink-0 w-32">
@@ -1742,8 +2173,6 @@
             `;
         },
 
-        // Llogarit automatikisht produktet me më shumë porosi, bazuar te të dhënat reale
-        // të porosive të klientëve (itemsData, ruajtur gjatë checkout-it).
         renderBestSellers: function() {
             const row = document.getElementById('home-bestsellers-row');
             if (!row) return;
@@ -1775,7 +2204,6 @@
             )).join('');
         },
 
-        // Produktet e shtuara së fundmi (id më e lartë = shtuar më vonë nga paneli i administrimit)
         renderNewestProducts: function() {
             const row = document.getElementById('home-newest-row');
             if (!row) return;
@@ -1848,10 +2276,12 @@
                 favs.push(productId);
                 if(icon) icon.className = "fa-solid fa-heart text-red-500";
                 if(detailIcon) detailIcon.className = "fa-solid fa-heart text-red-500";
+                Toast.show("U shtua në të preferuarat!");
             } else {
                 favs.splice(index, 1);
                 if(icon) icon.className = "fa-regular fa-heart text-gray-400";
                 if(detailIcon) detailIcon.className = "fa-regular fa-heart text-gray-400";
+                Toast.show("U hoq nga të preferuarat.");
             }
 
             localStorage.setItem('laserdesign_favorites', JSON.stringify(favs));
@@ -1935,21 +2365,6 @@
             }
         },
 
-        filterCategory: function(category) {
-            document.querySelectorAll('.cat-btn').forEach(btn => btn.classList.remove('border-[#dca76a]/40'));
-            if (category === 'all') {
-                this.renderProducts(PRODUCTS);
-            } else {
-                const filtered = PRODUCTS.filter(p => p.category.toLowerCase() === category.toLowerCase());
-                this.renderProducts(filtered);
-            }
-        },
-
-        searchProducts: function(query) {
-            const filtered = PRODUCTS.filter(p => p.title.toLowerCase().includes(query.toLowerCase()));
-            this.renderProducts(filtered);
-        },
-
         selectSize: function(btn, sizeValue) {
             document.querySelectorAll('.size-selector-btn').forEach(b => {
                 b.className = "size-selector-btn bg-[#121212] text-gray-400 border border-[#222] px-3 py-1.5 rounded-xl text-xs font-medium cursor-pointer transition-all";
@@ -1994,6 +2409,9 @@
                 `;
             }
 
+            // Default reviews lists fallback
+            if (!prod.reviewsList) prod.reviewsList = [];
+
             document.getElementById('detail-content').innerHTML = `
                 <div class="w-full h-56 bg-[#1f1f1f] rounded-2xl overflow-hidden mb-5 shadow-inner relative">
                     <img src="${prod.image}" class="w-full h-full object-cover">
@@ -2034,12 +2452,147 @@
                         <i class="fa-solid fa-cart-plus"></i> Shto në Shportë
                     </button>
                 </div>
+
+                <!-- COMPREHENSIVE PRODUCT REVIEWS SECTION -->
+                <div class="mt-8 border-t border-[#222] pt-6">
+                    <h3 class="text-sm font-bold uppercase tracking-wider text-gray-400 mb-4">Vlerësimet e Klientëve</h3>
+                    
+                    <div class="flex items-center gap-6 mb-6">
+                        <div class="text-center shrink-0">
+                            <span class="text-4xl font-black text-white">${avg.toFixed(1)}</span>
+                            <div class="flex gap-0.5 justify-center my-1">
+                                ${generateStars(avg)}
+                            </div>
+                            <span class="text-[10px] text-gray-500">${prod.reviewsList.length} vlerësime</span>
+                        </div>
+                        
+                        <!-- Distribution Bar -->
+                        <div class="flex-grow space-y-1">
+                            ${[5,4,3,2,1].map(stars => {
+                                const count = prod.reviewsList.filter(r => r.rating === stars).length;
+                                const pct = prod.reviewsList.length > 0 ? (count / prod.reviewsList.length) * 100 : 0;
+                                return `
+                                    <div class="flex items-center text-[10px] gap-2">
+                                        <span class="w-3 text-gray-400 font-bold">${stars}</span>
+                                        <i class="fa-solid fa-star text-gray-600 text-[8px]"></i>
+                                        <div class="flex-grow h-1.5 bg-[#222] rounded-full overflow-hidden">
+                                            <div class="h-full bg-[#dca76a] rounded-full" style="width: ${pct}%"></div>
+                                        </div>
+                                        <span class="w-6 text-right text-gray-500 font-bold">${pct.toFixed(0)}%</span>
+                                    </div>
+                                `;
+                            }).join('')}
+                        </div>
+                    </div>
+
+                    <!-- Reviews List -->
+                    <div id="product-reviews-list" class="space-y-4 mb-6 max-h-[300px] overflow-y-auto no-scrollbar pr-1">
+                        ${prod.reviewsList.length > 0 ? prod.reviewsList.map(rev => `
+                            <div class="bg-[#121212] border border-[#222]/60 p-3.5 rounded-xl space-y-1.5">
+                                <div class="flex justify-between items-start">
+                                    <div>
+                                        <span class="text-xs font-bold text-white">${rev.name}</span>
+                                        ${rev.verified ? '<span class="ml-2 bg-[#dca76a]/15 text-[#dca76a] text-[8px] font-extrabold px-1.5 py-0.5 rounded-full uppercase tracking-wider">Blerës i Verifikuar</span>' : ''}
+                                    </div>
+                                    <span class="text-[9px] text-gray-500">${rev.date}</span>
+                                </div>
+                                <div class="flex gap-0.5">
+                                    ${generateStars(rev.rating)}
+                                </div>
+                                ${rev.title ? `<h5 class="text-xs font-bold text-white">${rev.title}</h5>` : ''}
+                                <p class="text-xs text-gray-400 leading-relaxed">${rev.comment}</p>
+                            </div>
+                        `).join('') : '<p class="text-xs text-gray-500 text-center py-4">Nuk ka vlerësime për këtë produkt ende.</p>'}
+                    </div>
+
+                    <!-- Write a Review Form -->
+                    <div class="bg-[#161616] border border-[#222] rounded-2xl p-4">
+                        <h4 class="text-xs font-bold uppercase tracking-wider text-gray-300 mb-3 text-center">Shkruaj një vlerësim</h4>
+                        <div class="space-y-3">
+                            <div>
+                                <label class="text-[10px] text-gray-400 font-medium block mb-1">Vlerësimi juaj</label>
+                                <div class="flex gap-1.5 justify-center text-xl my-1" id="interactive-review-stars">
+                                    ${[1,2,3,4,5].map(s => `
+                                        <i onclick="App.selectReviewStar(${s})" data-star="${s}" class="rating-star-btn fa-regular fa-star text-gray-500 hover:text-[#dca76a]"></i>
+                                    `).join('')}
+                                </div>
+                                <input type="hidden" id="review-rating-value" value="0">
+                            </div>
+                            <div>
+                                <input type="text" id="review-author" placeholder="Emri juaj" class="w-full bg-[#121212] border border-[#222] rounded-xl px-3 py-2 text-xs outline-none focus:border-[#dca76a]/50 text-white">
+                            </div>
+                            <div>
+                                <input type="text" id="review-title" placeholder="Titulli i vlerësimit (psh: Shumë cilësor)" class="w-full bg-[#121212] border border-[#222] rounded-xl px-3 py-2 text-xs outline-none focus:border-[#dca76a]/50 text-white">
+                            </div>
+                            <div>
+                                <textarea id="review-comment" placeholder="Shkruani komentin tuaj këtu..." class="w-full h-20 bg-[#121212] border border-[#222] rounded-xl p-3 text-xs outline-none focus:border-[#dca76a]/50 text-white resize-none placeholder-gray-600"></textarea>
+                            </div>
+                            <button onclick="App.submitReview(${prod.id})" class="w-full bg-[#dca76a] hover:bg-[#c49257] text-black font-bold py-2.5 rounded-full text-xs uppercase tracking-wider transition-all cursor-pointer active:scale-[0.97]">
+                                DËRGO VLERËSIMIN <i class="fa-solid fa-paper-plane text-[9px] ml-1"></i>
+                            </button>
+                        </div>
+                    </div>
+                </div>
             `;
             this.navigate('scr-detail', -1);
         },
 
-        // Hap faqen e personalizimit direkt për një produkt të caktuar dhe ngarkon foton e tij
-        // 'template' automatikisht në canvas, gati për t'u personalizuar nga klienti.
+        selectReviewStar: function(rating) {
+            document.getElementById('review-rating-value').value = rating;
+            for (let i = 1; i <= 5; i++) {
+                const star = document.querySelector(`#interactive-review-stars [data-star="${i}"]`);
+                if (star) {
+                    if (i <= rating) {
+                        star.className = "rating-star-btn fa-solid fa-star text-[#dca76a]";
+                    } else {
+                        star.className = "rating-star-btn fa-regular fa-star text-gray-500 hover:text-[#dca76a]";
+                    }
+                }
+            }
+        },
+
+        submitReview: async function(productId) {
+            const ratingValue = parseInt(document.getElementById('review-rating-value').value);
+            const name = document.getElementById('review-author').value.trim();
+            const title = document.getElementById('review-title').value.trim();
+            const comment = document.getElementById('review-comment').value.trim();
+            
+            if (ratingValue === 0) {
+                Toast.show("Ju lutem zgjidhni një vlerësim me yje!", "error");
+                return;
+            }
+            if (!name || !comment) {
+                Toast.show("Ju lutem plotësoni emrin dhe komentin tuaj!", "error");
+                return;
+            }
+            
+            const prodIndex = PRODUCTS.findIndex(p => p.id === productId);
+            if (prodIndex === -1) return;
+            
+            // Check if verified purchaser by searching their local order history
+            const localOrders = JSON.parse(localStorage.getItem('laserdesign_orders') || '[]');
+            const hasOrdered = localOrders.some(order => order.items.toLowerCase().includes(PRODUCTS[prodIndex].title.toLowerCase()));
+            
+            const newReview = {
+                name: name,
+                rating: ratingValue,
+                title: title,
+                comment: comment,
+                date: new Date().toISOString().split('T')[0],
+                verified: hasOrdered
+            };
+            
+            if (!PRODUCTS[prodIndex].reviewsList) {
+                PRODUCTS[prodIndex].reviewsList = [];
+            }
+            PRODUCTS[prodIndex].reviewsList.push(newReview);
+            PRODUCTS[prodIndex].ratingsList.push(ratingValue);
+            
+            await saveProductsToServer();
+            Toast.show("Vlerësimi juaj u dërgua dhe u publikua me sukses! 🎉");
+            this.showDetail(productId);
+        },
+
         startCustomize: function(id) {
             const prod = PRODUCTS.find(p => p.id === id);
             if (!prod) return;
@@ -2069,12 +2622,12 @@
             let currentVotesCount = userVotes[productId] ? userVotes[productId] : 0;
 
             if (purchaseCount === 0) {
-                alert("❌ Nuk mund ta vlerësoni këtë produkt pa e porositur më parë!");
+                Toast.show("Nuk mund ta vlerësoni këtë produkt pa e porositur më parë!", "error");
                 return;
             }
 
             if (currentVotesCount >= purchaseCount) {
-                alert(`❌ Ju e keni vlerësuat këtë produkt ${currentVotesCount} herë. Duhet ta blini përsëri për të lënë një vlerësim të ri!`);
+                Toast.show("Ju e keni vlerësuar këtë produkt. Blini sërish për ta vlerësuar!", "error");
                 return;
             }
 
@@ -2086,7 +2639,7 @@
                 userVotes[productId] = currentVotesCount + 1;
                 localStorage.setItem('laserdesign_user_votes', JSON.stringify(userVotes));
                 
-                alert(`⭐ Faleminderit! Vlerësimi juaj u regjistrua me sukses (${userVotes[productId]}/${purchaseCount}).`);
+                Toast.show("Vlerësimi juaj u regjistrua me sukses! ⭐");
                 this.showDetail(productId);
             }
         },
@@ -2121,13 +2674,11 @@
         },
 
         setupListeners: function() {
-            // Mouse Events
             this.canvas.onmousedown = (e) => this.dragStart(e.offsetX, e.offsetY);
             this.canvas.onmousemove = (e) => this.dragMove(e.offsetX, e.offsetY);
             this.canvas.onmouseup = () => this.dragEnd();
             this.canvas.onmouseleave = () => this.dragEnd();
 
-            // Mobile Touch Events (me preventDefault, që ekrani të mos "scrollojë" ndërsa zvarritet objekti)
             this.canvas.ontouchstart = (e) => {
                 e.preventDefault();
                 const rect = this.canvas.getBoundingClientRect();
@@ -2143,13 +2694,12 @@
             this.canvas.ontouchend = () => this.dragEnd();
         },
 
-        // Kthen kufijtë (bounding box) e tekstit aktual në canvas, sipas pozicionit dhe madhësisë së tij
         getTextBounds: function() {
             if (!customCraftState.text || !this.ctx) return null;
             const fontSize = Math.round(16 * customCraftState.textScale);
             this.ctx.font = `bold ${fontSize}px sans-serif`;
             const width = this.ctx.measureText(customCraftState.text).width;
-            const padding = 10; // hapësirë shtesë për ta bërë më të lehtë prekjen me gisht
+            const padding = 10; 
             return {
                 left: customCraftState.textX - width / 2 - padding,
                 right: customCraftState.textX + width / 2 + padding,
@@ -2158,7 +2708,6 @@
             };
         },
 
-        // Kthen kufijtë (bounding box) e fotos/logos aktuale në canvas
         getImageBounds: function() {
             if (!customCraftState.imgObj) return null;
             const w = customCraftState.imgObj.width * customCraftState.imgScale;
@@ -2197,7 +2746,6 @@
         },
 
         dragStart: function(x, y) {
-            // Teksti vizatohet mbi foton, kështu që kontrollohet i pari (më "sipër" vizualisht)
             const textBounds = this.getTextBounds();
             if (textBounds && x >= textBounds.left && x <= textBounds.right && y >= textBounds.top && y <= textBounds.bottom) {
                 customCraftState.dragTarget = 'text';
@@ -2246,13 +2794,8 @@
             customCraftState.dragTarget = null;
         },
 
-        updateImageScale: function(val) {
-            customCraftState.imgScale = parseFloat(val);
-            this.draw();
-        },
-
-        updateTemplateScale: function(val) {
-            customCraftState.templateScale = parseFloat(val);
+        updateText: function(val) {
+            customCraftState.text = val;
             this.draw();
         },
 
@@ -2261,29 +2804,25 @@
             this.draw();
         },
 
-        updateText: function(val) {
-            customCraftState.text = val;
+        updateTemplateScale: function(val) {
+            customCraftState.templateScale = parseFloat(val);
             this.draw();
         },
 
-        selectShape: function(btn, shapeValue) {
+        updateImageScale: function(val) {
+            customCraftState.imgScale = parseFloat(val);
+            this.draw();
+        },
+
+        selectShape: function(btn, shapeName) {
             document.querySelectorAll('.custom-shape-btn').forEach(b => {
                 b.className = "custom-shape-btn bg-[#121212] text-gray-400 border border-[#222] p-2 rounded-xl text-[11px] font-medium transition-all cursor-pointer text-center";
             });
             btn.className = "custom-shape-btn bg-[#dca76a] text-black border border-[#dca76a] p-2 rounded-xl text-[11px] font-bold transition-all cursor-pointer text-center";
-            customCraftState.shape = shapeValue;
-            this.toggleClothColorSection(shapeValue === 'Microfiber cleaning cloth');
-            this.draw();
-        },
+            customCraftState.shape = shapeName;
 
-        toggleClothColorSection: function(show) {
-            const section = document.getElementById('custom-cloth-color-section');
-            if (!section) return;
-            if (show) {
-                section.classList.remove('hidden');
-            } else {
-                section.classList.add('hidden');
-            }
+            this.toggleClothColorSection(shapeName === "Microfiber cleaning cloth");
+            this.draw();
         },
 
         selectClothColor: function(btn, colorName) {
@@ -2296,39 +2835,39 @@
         },
 
         getClothColorHex: function() {
-            const colors = {
-                Yellow: '#f1c84b',
-                Grey: '#9ca3af',
-                Blue: '#60a5fa'
-            };
-            return colors[customCraftState.clothColor] || colors.Yellow;
+            if (customCraftState.clothColor === "Grey") return "#5a5a5d";
+            if (customCraftState.clothColor === "Blue") return "#2c5282";
+            return "#ffeb3b"; // Yellow default
         },
 
-        selectSize: function(btn, sizeValue) {
-            document.querySelectorAll('.custom-size-btn').forEach(b => {
-                b.className = "custom-size-btn bg-[#121212] text-gray-400 border border-[#222] py-2 rounded-xl text-xs font-medium transition-all cursor-pointer";
-            });
-            btn.className = "custom-size-btn bg-[#dca76a] text-black border border-[#dca76a] py-2 rounded-xl text-xs font-bold transition-all cursor-pointer";
-            customCraftState.size = sizeValue;
-            this.draw();
+        toggleClothColorSection: function(show) {
+            const el = document.getElementById('custom-cloth-color-section');
+            if (el) {
+                if (show) el.classList.remove('hidden');
+                else el.classList.add('hidden');
+            }
         },
 
-        // ---------- MODI "PRODUKT": personalizim i nisur nga butoni "Personalizo" i një produkti ----------
-
-        // Rikrijon butonat e madhësive brenda #custom-size-container sipas listës së dhënë
-        renderSizeButtons: function(sizes) {
+        renderSizeButtons: function(sizesList) {
             const container = document.getElementById('custom-size-container');
             if (!container) return;
-            container.innerHTML = sizes.map((sz, idx) => {
-                const activeClasses = idx === 0
-                    ? 'bg-[#dca76a] text-black border-[#dca76a] font-bold'
-                    : 'bg-[#121212] text-gray-400 border-[#222] font-medium';
-                return `<button onclick="CustomCraft.selectSize(this, '${sz}')" class="custom-size-btn ${activeClasses} flex-1 min-w-[80px] border py-2 rounded-xl text-xs transition-all cursor-pointer">${sz}</button>`;
+
+            customCraftState.size = sizesList[0];
+            container.innerHTML = sizesList.map((sz, idx) => {
+                const active = idx === 0 ? 'bg-[#dca76a] text-black border-[#dca76a] font-bold' : 'bg-[#121212] text-gray-400 border-[#222] font-medium';
+                return `<button onclick="CustomCraft.selectCustomSize(this, '${sz}')" class="custom-size-btn ${active} border px-3 py-1.5 rounded-xl text-xs cursor-pointer transition-all">${sz}</button>`;
             }).join('');
         },
 
-        // Përgatit ekranin e personalizimit për një produkt specifik: ngarkon foton 'template' automatikisht
-        // në canvas dhe përditëson opsionet (madhësitë reale të produktit, fsheh formën e drurit gjenerike).
+        selectCustomSize: function(btn, sizeVal) {
+            document.querySelectorAll('.custom-size-btn').forEach(b => {
+                b.className = "custom-size-btn bg-[#121212] text-gray-400 border border-[#222] px-3 py-1.5 rounded-xl text-xs font-medium cursor-pointer transition-all";
+            });
+            btn.className = "custom-size-btn bg-[#dca76a] text-black border border-[#dca76a] px-3 py-1.5 rounded-xl text-xs font-bold cursor-pointer transition-all";
+            customCraftState.size = sizeVal;
+            this.draw();
+        },
+
         loadProductTemplate: function(productId) {
             const prod = PRODUCTS.find(p => p.id === productId);
             if (!prod) return;
@@ -2336,7 +2875,7 @@
             customCraftState.mode = "product";
             customCraftState.productId = productId;
             customCraftState.sourceLabel = prod.title;
-            customCraftState.size = (prod.sizes && prod.sizes.length > 0) ? prod.sizes[0] : "Standard";
+            customCraftState.shape = "Rreth";
             customCraftState.text = "";
             customCraftState.textX = 140;
             customCraftState.textY = 230;
@@ -2349,61 +2888,48 @@
             customCraftState.templateX = 140;
             customCraftState.templateY = 140;
             customCraftState.templateScale = 1.0;
-            customCraftState.templateImg = null;
+
+            const modeLabel = document.getElementById('custom-mode-label');
+            if (modeLabel) {
+                modeLabel.innerText = "Modeli: " + prod.title;
+                modeLabel.classList.remove('hidden');
+            }
+
+            const shapeSection = document.getElementById('custom-shape-section');
+            if (shapeSection) shapeSection.classList.add('hidden');
+            this.toggleClothColorSection(false);
+
+            document.getElementById('template-scale-control-container').classList.remove('hidden');
+            document.getElementById('scale-control-container').classList.add('hidden');
 
             const textInput = document.getElementById('custom-canvas-text');
             if (textInput) textInput.value = "";
             const textScaleSlider = document.getElementById('text-scale-slider');
             if (textScaleSlider) textScaleSlider.value = 1.0;
-            const uploadLabel = document.getElementById('upload-status-label');
-            if (uploadLabel) {
-                uploadLabel.innerText = "Zgjidh foto nga telefoni";
-                uploadLabel.className = "text-[11px] text-gray-400 font-medium";
-            }
-            const scaleContainer = document.getElementById('scale-control-container');
-            if (scaleContainer) scaleContainer.classList.add('hidden');
-            const templateScaleContainer = document.getElementById('template-scale-control-container');
-            if (templateScaleContainer) templateScaleContainer.classList.remove('hidden');
             const templateScaleSlider = document.getElementById('template-scale-slider');
             if (templateScaleSlider) templateScaleSlider.value = 1.0;
 
-            this.updateUIForProduct(prod);
+            this.renderSizeButtons(prod.sizes || ["Standard"]);
 
-            // Fotoja bazë (template) e produktit ngarkohet automatikisht në canvas;
-            // nëse admini s'ka ngarkuar foto template të veçantë, përdoret fotoja e katalogut si rezervë.
-            const templateSrc = prod.templateImage || prod.image;
-            const img = new Image();
-            img.onload = () => {
-                customCraftState.templateImg = img;
+            const templateSource = prod.templateImage || prod.image;
+            if (templateSource) {
+                const img = new Image();
+                img.crossOrigin = "anonymous";
+                img.onload = () => {
+                    customCraftState.templateImg = img;
+                    this.draw();
+                };
+                img.src = templateSource;
+            } else {
+                customCraftState.templateImg = null;
                 this.draw();
-            };
-            img.src = templateSrc;
-
-            this.draw();
-        },
-
-        // Përshtat ekranin (fsheh formën e drurit, tregon titullin, mbush madhësitë reale të produktit)
-        updateUIForProduct: function(prod) {
-            const shapeSection = document.getElementById('custom-shape-section');
-            if (shapeSection) shapeSection.classList.add('hidden');
-            this.toggleClothColorSection(false);
-
-            const modeLabel = document.getElementById('custom-mode-label');
-            if (modeLabel) {
-                modeLabel.innerText = "Po personalizon: " + prod.title;
-                modeLabel.classList.remove('hidden');
             }
-
-            this.renderSizeButtons((prod.sizes && prod.sizes.length > 0) ? prod.sizes : ["Standard"]);
         },
 
-        loadStandaloneTemplate: function(templateSrc, label = 'Punim nga Galeria', sizes = ["30x30 cm", "40x40 cm", "50x50 cm"]) {
+        loadStandaloneTemplate: function(source, label, sizes) {
             customCraftState.mode = "gallery";
             customCraftState.productId = null;
             customCraftState.sourceLabel = label;
-            customCraftState.templateImg = null;
-            customCraftState.shape = "Rreth";
-            customCraftState.size = sizes && sizes.length > 0 ? sizes[0] : "30x30 cm";
             customCraftState.text = "";
             customCraftState.textX = 140;
             customCraftState.textY = 230;
@@ -2417,43 +2943,40 @@
             customCraftState.templateY = 140;
             customCraftState.templateScale = 1.0;
 
+            const modeLabel = document.getElementById('custom-mode-label');
+            if (modeLabel) {
+                modeLabel.innerText = "Modeli: " + label;
+                modeLabel.classList.remove('hidden');
+            }
+
             const shapeSection = document.getElementById('custom-shape-section');
             if (shapeSection) shapeSection.classList.add('hidden');
             this.toggleClothColorSection(false);
 
-            const modeLabel = document.getElementById('custom-mode-label');
-            if (modeLabel) {
-                modeLabel.innerText = "Po personalizon nga galeria: " + label;
-                modeLabel.classList.remove('hidden');
-            }
-
-            this.renderSizeButtons(sizes && sizes.length > 0 ? sizes : ["30x30 cm", "40x40 cm", "50x50 cm"]);
+            document.getElementById('template-scale-control-container').classList.add('hidden');
+            document.getElementById('scale-control-container').classList.add('hidden');
 
             const textInput = document.getElementById('custom-canvas-text');
             if (textInput) textInput.value = "";
             const textScaleSlider = document.getElementById('text-scale-slider');
             if (textScaleSlider) textScaleSlider.value = 1.0;
-            const uploadLabel = document.getElementById('upload-status-label');
-            if (uploadLabel) {
-                uploadLabel.innerText = "Zgjidh foto nga telefoni";
-                uploadLabel.className = "text-[11px] text-gray-400 font-medium";
-            }
-            const scaleContainer = document.getElementById('scale-control-container');
-            if (scaleContainer) scaleContainer.classList.add('hidden');
-            const templateScaleContainer = document.getElementById('template-scale-control-container');
-            if (templateScaleContainer) templateScaleContainer.classList.add('hidden');
 
-            const img = new Image();
-            img.onload = () => {
-                customCraftState.templateImg = img;
+            this.renderSizeButtons(sizes);
+
+            if (source) {
+                const img = new Image();
+                img.crossOrigin = "anonymous";
+                img.onload = () => {
+                    customCraftState.templateImg = img;
+                    this.draw();
+                };
+                img.src = source;
+            } else {
+                customCraftState.templateImg = null;
                 this.draw();
-            };
-            img.src = templateSrc;
-
-            this.draw();
+            }
         },
 
-        // Kthen ekranin e personalizimit në modin gjenerik (nga butoni "Krijo" i navbar-it)
         startGeneric: function() {
             customCraftState.mode = "generic";
             customCraftState.productId = null;
@@ -2518,11 +3041,10 @@
             let basePrice;
 
             if (customCraftState.mode === "product" && customCraftState.productId) {
-                // Në modin "produkt", çmimi bazë vjen nga vetë produkti (sipas madhësisë së zgjedhur)
                 const prod = PRODUCTS.find(p => p.id === customCraftState.productId);
                 basePrice = prod ? getProductPriceBySize(prod, customCraftState.size) : 15.00;
             } else {
-                basePrice = 15.00; // Çmimi fillestar për 30x30 cm (modi gjenerik)
+                basePrice = 15.00; 
                 if (customCraftState.size === "40x40 cm") {
                     basePrice = 22.00;
                 } else if (customCraftState.size === "50x50 cm") {
@@ -2530,21 +3052,17 @@
                 }
             }
 
-            // Nëse shton tekst (+2 euro)
             if (customCraftState.text.trim().length > 0) {
                 basePrice += 2.00;
             }
 
-            // Në modin e produktit, zmadhimi i fotos bazë të produktit shton çmim shtesë
             if (customCraftState.mode === "product" && customCraftState.templateScale > 1.0) {
                 const templateExtraPrice = Math.ceil((customCraftState.templateScale - 1.0) / 0.25);
                 basePrice += Math.max(0, templateExtraPrice);
             }
 
-            // Nëse shton fotografi (+5 euro start, dhe shtohen nga 1 euro sa më e madhe shkalla/scale)
             if (customCraftState.imgObj) {
                 basePrice += 5.00;
-                // Duke qenë se slider i fotos shkon nga 0.1 deri në 2.0, llogarisim shtesën sipas madhësisë
                 const extraScalePrice = Math.floor(customCraftState.imgScale / 0.4);
                 basePrice += extraScalePrice;
             }
@@ -2578,8 +3096,6 @@
             this.ctx.clearRect(0, 0, 280, 280);
 
             if (customCraftState.mode === "product") {
-                // ---- MODI "PRODUKT": fotoja e produktit ngarkohet automatikisht dhe mund të lëvizet/zmadhsohet ----
-
                 this.ctx.fillStyle = "#1a1a1a";
                 this.ctx.fillRect(0, 0, 280, 280);
 
@@ -2590,8 +3106,6 @@
                     this.ctx.drawImage(customCraftState.templateImg, customCraftState.templateX - w / 2, customCraftState.templateY - h / 2, w, h);
                 }
 
-
-                // Vizato imazhin/logon e klientit nëse ekziston (i lëvizshëm dhe i zmadhueshëm me slider)
                 if (customCraftState.imgObj) {
                     const w = customCraftState.imgObj.width * customCraftState.imgScale;
                     const h = customCraftState.imgObj.height * customCraftState.imgScale;
@@ -2603,16 +3117,11 @@
                     this.ctx.restore();
                 }
 
-                // Vizato tekstin e shkruar si gravurë (pozicioni dhe madhësia lëvizen/ndryshojnë nga klienti)
                 if (customCraftState.text) {
                     const fontSize = Math.round(16 * customCraftState.textScale);
                     this.ctx.fillStyle = "#3a2512";
                     this.ctx.font = `bold ${fontSize}px sans-serif`;
                     this.ctx.textAlign = "center";
-                    this.ctx.shadowColor = "rgba(0,0,0,0.3)";
-                    this.ctx.shadowBlur = 1;
-                    this.ctx.shadowOffsetX = 1;
-                    this.ctx.shadowOffsetY = 1;
                     this.ctx.fillText(customCraftState.text, customCraftState.textX, customCraftState.textY);
                 }
 
@@ -2626,8 +3135,6 @@
             }
 
             if (customCraftState.mode === "gallery") {
-                // ---- MODI "GALERI": foto bazë (template) e galerisë + dizajni i klientit sipër ----
-
                 if (customCraftState.templateImg) {
                     this.ctx.drawImage(customCraftState.templateImg, 0, 0, 280, 280);
                 } else {
@@ -2651,10 +3158,6 @@
                     this.ctx.fillStyle = "#3a2512";
                     this.ctx.font = `bold ${fontSize}px sans-serif`;
                     this.ctx.textAlign = "center";
-                    this.ctx.shadowColor = "rgba(0,0,0,0.3)";
-                    this.ctx.shadowBlur = 1;
-                    this.ctx.shadowOffsetX = 1;
-                    this.ctx.shadowOffsetY = 1;
                     this.ctx.fillText(customCraftState.text, customCraftState.textX, customCraftState.textY);
                 }
 
@@ -2667,15 +3170,11 @@
                 return;
             }
 
-            // ---- MODI "GJENERIK": krijim nga e para (pa foto template të një produkti specifik) ----
-
-            // 1. Krijo teksturën/efektin bazë të drurit në sfond
+            // MODI GJENERIK
             this.ctx.fillStyle = "#2d1f10"; 
             this.ctx.fillRect(0, 0, 280, 280);
 
             this.ctx.save();
-
-            // 2. Klipe kanvasin sipas formës së zgjedhur
             this.ctx.beginPath();
             if (customCraftState.shape === "Rreth") {
                 this.ctx.arc(140, 140, 120, 0, Math.PI * 2);
@@ -2685,7 +3184,7 @@
                 this.ctx.rect(10, 40, 260, 200);
             } else if (customCraftState.shape === "Microfiber cleaning cloth") {
                 this.ctx.roundRect(28, 48, 224, 184, 18);
-            } else { // Natyrale (Formë e harkuar organike)
+            } else { 
                 this.ctx.moveTo(30, 60);
                 this.ctx.quadraticCurveTo(140, 20, 250, 50);
                 this.ctx.quadraticCurveTo(270, 140, 240, 230);
@@ -2694,7 +3193,6 @@
             }
             this.ctx.clip();
 
-            // Sfondi i brendshëm sipas modelit të zgjedhur
             if (customCraftState.shape === "Microfiber cleaning cloth") {
                 this.ctx.fillStyle = this.getClothColorHex();
                 this.ctx.fillRect(0, 0, 280, 280);
@@ -2711,7 +3209,6 @@
                 this.ctx.fillStyle = "#cd9a62"; 
                 this.ctx.fillRect(0, 0, 280, 280);
 
-                // Vijat unazore të drurit simulim
                 this.ctx.strokeStyle = "#b5834c";
                 this.ctx.lineWidth = 2;
                 for(let r = 30; r < 350; r += 25) {
@@ -2721,35 +3218,27 @@
                 }
             }
 
-            // 3. Vizato imazhin e klientit nëse ekziston
             if (customCraftState.imgObj) {
                 const w = customCraftState.imgObj.width * customCraftState.imgScale;
                 const h = customCraftState.imgObj.height * customCraftState.imgScale;
                 
                 this.ctx.save();
-                // Ktheje foton në efekt "Gravurë" (Monokrom / Gjysmë transparente e errët)
                 this.ctx.globalCompositeOperation = "multiply";
                 this.ctx.globalAlpha = 0.85;
                 this.ctx.drawImage(customCraftState.imgObj, customCraftState.imgX - w/2, customCraftState.imgY - h/2, w, h);
                 this.ctx.restore();
             }
 
-            // 4. Vizato tekstin e shkruar si gravurë (pozicioni dhe madhësia lëvizen/ndryshojnë nga klienti)
             if (customCraftState.text) {
                 const fontSize = Math.round(16 * customCraftState.textScale);
-                this.ctx.fillStyle = "#3a2512"; // Ngjyrë e djegur druri
+                this.ctx.fillStyle = "#3a2512"; 
                 this.ctx.font = `bold ${fontSize}px sans-serif`;
                 this.ctx.textAlign = "center";
-                this.ctx.shadowColor = "rgba(0,0,0,0.3)";
-                this.ctx.shadowBlur = 1;
-                this.ctx.shadowOffsetX = 1;
-                this.ctx.shadowOffsetY = 1;
                 this.ctx.fillText(customCraftState.text, customCraftState.textX, customCraftState.textY);
             }
 
             this.ctx.restore();
 
-            // Vizato kornizën e jashtme të modelit
             if (customCraftState.shape === "Microfiber cleaning cloth") {
                 this.ctx.strokeStyle = "rgba(255,255,255,0.28)";
                 this.ctx.lineWidth = 2;
@@ -2759,7 +3248,6 @@
             }
             this.ctx.stroke();
 
-            // Përditëso butonin me çmimin e ri live
             const currentPrice = this.calculateDynamicPrice();
             document.getElementById('custom-submit-btn').innerHTML = `SHTO KRIJIMIN NË SHPORTË (€${currentPrice.toFixed(2)}) <i class="fa-solid fa-cart-plus"></i>`;
         },
@@ -2767,11 +3255,10 @@
         addToCart: function() {
             const hasTemplateCustomization = (customCraftState.mode === "product" || customCraftState.mode === "gallery") && customCraftState.templateImg;
             if (!customCraftState.imgObj && !customCraftState.text.trim() && !hasTemplateCustomization) {
-                alert("Ju lutem ngarkoni një foto ose shkruani një tekst përpara se ta shtoni në shportë!");
+                Toast.show("Ngarkoni një foto ose shkruani një tekst!", "error");
                 return;
             }
 
-            // Eksporto dizajnin e saktë të Canvas si imazh Base64
             const canvasDataUrl = this.canvas.toDataURL("image/png");
             const finalPrice = this.calculateDynamicPrice();
 
@@ -2786,7 +3273,7 @@
                     chosenSize: customCraftState.size,
                     isCustom: true,
                     baseProductId: customCraftState.productId,
-                    ideaDetails: customCraftState.text || (customCraftState.templateScale !== 1 || customCraftState.templateX !== 140 || customCraftState.templateY !== 140 ? "Foto e produktit e ripozicionuar" : "Vetëm template i produktit"),
+                    ideaDetails: customCraftState.text || "Vetëm template",
                     fileDetails: customCraftState.imgObj ? "Foto e pozicionuar" : "Asnjë",
                     originalImage: customCraftState.originalImageData,
                     previewImage: canvasDataUrl,
@@ -2801,7 +3288,7 @@
                     chosenSize: customCraftState.size,
                     isCustom: true,
                     gallerySourceTitle: customCraftState.sourceLabel,
-                    ideaDetails: customCraftState.text || "Vetëm foto pa tekst",
+                    ideaDetails: customCraftState.text || "Vetëm foto",
                     fileDetails: customCraftState.imgObj ? "Foto e pozicionuar" : "Asnjë",
                     originalImage: customCraftState.originalImageData,
                     previewImage: canvasDataUrl,
@@ -2816,7 +3303,7 @@
                     chosenSize: customCraftState.size,
                     isCustom: true, 
                     shapeDetails: customCraftState.shape,
-                    ideaDetails: customCraftState.text || "Vetëm foto pa tekst",
+                    ideaDetails: customCraftState.text || "Vetëm foto",
                     fileDetails: customCraftState.imgObj ? "Foto e pozicionuar" : "Asnjë",
                     originalImage: customCraftState.originalImageData,
                     previewImage: canvasDataUrl,
@@ -2828,10 +3315,9 @@
             
             Cart.updateUI();
             App.triggerCartAnimation();
+            Toast.show("Krijimi juaj u shtua në shportë!");
 
-            alert("✨ Krijimi juaj interaktiv u shtua në shportë!");
-
-            // Reseto vlerat
+            // Reseto
             document.getElementById('custom-canvas-text').value = "";
             document.getElementById('upload-status-label').innerText = "Zgjidh foto nga telefoni";
             document.getElementById('upload-status-label').className = "text-[11px] text-gray-400 font-medium";
@@ -2844,74 +3330,47 @@
         }
     };
 
-    // LOGJIKA E SUPORTIT VIA TELEGRAM BOT
     const Support = {
         sendFeedback: function() {
             const email = document.getElementById('feedback-email').value.trim();
             const text = document.getElementById('feedback-text').value.trim();
 
             if (!email || !text) {
-                alert("Ju lutem plotësoni email-in dhe mesazhin tuaj!");
+                Toast.show("Plotësoni email-in dhe mesazhin!", "error");
                 return;
             }
 
-            let message = `⚠️ *ANKESË / MENDIM I RI KLIENTI*\n`;
-            message += `------------------------------------\n`;
-            message += `📧 *Email:* ${email}\n\n`;
-            message += `💬 *Mesazhi:* \n${text}\n`;
+            let message = `⚠️ *ANKESË / MENDIM I RI KLIENTI*
+`;
+            message += `------------------------------------
+`;
+            message += `📧 *Email:* ${email}
+
+`;
+            message += `💬 *Mesazhi:* 
+${text}
+`;
             message += `------------------------------------`;
 
-            const botToken = "8816683439:AAGeHbSOxyNYKCj6R3d89PlGO8_jhQy0Mco"; 
-            const chatId = "6178129022"; 
-            const telegramUrl = `https://api.telegram.org/bot${botToken}/sendMessage`;
-
-            // Dërgo fotot e projekteve të personalizuara në Telegram
-            state.cart.forEach(item => {
-                if(item.isCustom){
-                    if(item.originalImage){
-                        fetch(`https://api.telegram.org/bot${botToken}/sendPhoto`,{
-                            method:'POST',
-                            headers:{'Content-Type':'application/json'},
-                            body:JSON.stringify({
-                                chat_id:chatId,
-                                photo:item.originalImage,
-                                caption:`📷 Foto origjinale e klientit - Porosia #${newOrderId}`
-                            })
-                        }).catch(()=>{});
-                    }
-
-                    if(item.previewImage){
-                        fetch(`https://api.telegram.org/bot${botToken}/sendPhoto`,{
-                            method:'POST',
-                            headers:{'Content-Type':'application/json'},
-                            body:JSON.stringify({
-                                chat_id:chatId,
-                                photo:item.previewImage,
-                                caption:`🖼 Preview i dizajnit final - Porosia #${newOrderId}`
-                            })
-                        }).catch(()=>{});
-                    }
-                }
-            });
-
+            const telegramUrl = `https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage`;
 
             fetch(telegramUrl, {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ chat_id: chatId, text: message, parse_mode: "Markdown" })
+                body: JSON.stringify({ chat_id: TELEGRAM_CHAT_ID, text: message, parse_mode: "Markdown" })
             })
             .then(res => {
                 if(res.ok) {
-                    alert("Faleminderit! Mesazhi juaj u dërgua me sukses.");
+                    Toast.show("Mesazhi juaj u dërgua me sukses! 👍");
                     document.getElementById('feedback-email').value = "";
                     document.getElementById('feedback-text').value = "";
                     App.navigate('scr-home', 0);
                 } else {
-                    alert("Ndodhi një gabim gjatë dërgimit. Provoni përsëri.");
+                    Toast.show("Ndodhi një gabim. Provoni përsëri.", "error");
                 }
             })
             .catch(err => {
-                alert("Gabim në rrjet. Kontrolloni internetin tuaj.");
+                Toast.show("Gabim rrjeti. Kontrolloni internetin.", "error");
             });
         }
     };
@@ -2932,25 +3391,26 @@
             const sizePrice = getProductPriceBySize(prod, currentSize);
             const existing = this.findItem(id, currentSize);
             
-            if (existing) { existing.qty = this.normalizeQty(existing.qty, 1) + 1; } 
-            else { state.cart.push({ ...prod, price: sizePrice, chosenSize: currentSize, qty: 1 }); }
+            if (existing) { 
+                existing.qty = this.normalizeQty(existing.qty, 1) + 1; 
+            } else { 
+                state.cart.push({ ...prod, price: sizePrice, chosenSize: currentSize, qty: 1 }); 
+            }
             
             this.updateUI();
             App.triggerCartAnimation();
+            Toast.show("Produkti u shtua në shportë!");
         },
 
         findItemIndex: function(id, size) {
             return state.cart.findIndex(i => String(i.id) === String(id) && String(i.chosenSize) === String(size));
         },
 
-        // ---- METODA TE REJA ME INDEKS (100% te sigurta) ----
-        // Butonat +/- dhe inputi i sasise punojne me pozicionin e artikullit ne shporte
-        // (jo me id/masa), ndaj nuk prishen kurre nga thonjezat apo hapesirat ne emra.
-
         removeByIndex: function(idx) {
             if (idx < 0 || idx >= state.cart.length) return;
             state.cart.splice(idx, 1);
             this.updateUI({ index: null });
+            Toast.show("Produkti u hoq nga shporta.");
         },
 
         changeQtyByIndex: function(idx, delta) {
@@ -2971,11 +3431,8 @@
         setQtyByIndex: function(idx, value, forceCommit = false) {
             if (idx < 0 || idx >= state.cart.length) return;
 
-            // Lejo vetem shifra
             const cleaned = String(value).replace(/[^0-9]/g, '');
 
-            // Fushe boshe: nderkoh qe shkruhet e lejojme (ruhet si 0),
-            // kur del jashte (blur) rikthehet ne 1.
             if (cleaned === '') {
                 if (forceCommit) {
                     state.cart[idx].qty = 1;
@@ -3007,49 +3464,24 @@
                 return;
             }
 
-            // Sasia e vlefshme: ruaje dhe RILLOGARIT cmimet (updateUI i perditeson live)
             state.cart[idx].qty = parsedQty;
             const activeEl = document.activeElement;
             const cursor = activeEl && activeEl.classList && activeEl.classList.contains('cart-qty-input') ? activeEl.selectionStart : String(parsedQty).length;
             this.updateUI({ index: idx, value: String(parsedQty), cursorPos: cursor, isTyping: !forceCommit });
         },
 
-        // ---- API e vjeter (ruhet per pajtueshmeri, thjesht delegon) ----
-
-        remove: function(id, size) {
-            const idx = this.findItemIndex(id, size);
-            if (idx >= 0) this.removeByIndex(idx);
-        },
-
-        changeQty: function(id, size, delta) {
-            const idx = this.findItemIndex(id, size);
-            if (idx < 0) return;
-            this.changeQtyByIndex(idx, delta);
-        },
-
-        setQty: function(id, size, value, forceCommit = false) {
-            const idx = this.findItemIndex(id, size);
-            if (idx < 0) return;
-            this.setQtyByIndex(idx, value, forceCommit);
-        },
-
         clear: function() {
             state.cart = [];
             state.appliedCoupon = null;
             this.updateUI();
-            document.getElementById('client-name').value = '';
-            document.getElementById('client-phone').value = '';
-            document.getElementById('client-city').value = '';
-            const couponInput = document.getElementById('coupon-input');
-            const couponMsg = document.getElementById('coupon-message');
-            if (couponInput) couponInput.value = '';
-            if (couponMsg) { couponMsg.innerText = ''; couponMsg.className = 'text-[10px] mt-1.5 font-medium'; }
+            this.closeCheckout();
+            Toast.show("Shporta u pastrua.");
         },
 
         applyCoupon: async function() {
             const input = document.getElementById('coupon-input');
             const msg = document.getElementById('coupon-message');
-            const phoneInput = document.getElementById('client-phone');
+            const phoneInput = document.getElementById('checkout-phone');
             const code = input.value.trim().toUpperCase();
             const phone = phoneInput ? phoneInput.value.trim() : '';
 
@@ -3070,7 +3502,7 @@
 
             if (hasCouponBeenUsedOnDevice(code)) {
                 state.appliedCoupon = null;
-                msg.innerText = "This coupon was already used on this device.";
+                msg.innerText = "Kuponi është përdorur tashmë në këtë pajisje.";
                 msg.className = "text-[10px] mt-1.5 font-medium text-red-400";
                 this.updateUI();
                 return;
@@ -3080,7 +3512,7 @@
                 const alreadyUsed = await hasCouponBeenUsedByClient(phone, code);
                 if (alreadyUsed) {
                     state.appliedCoupon = null;
-                    msg.innerText = "This coupon was already used.";
+                    msg.innerText = "Kuponi është përdorur tashmë.";
                     msg.className = "text-[10px] mt-1.5 font-medium text-red-400";
                     this.updateUI();
                     return;
@@ -3089,11 +3521,10 @@
 
             state.appliedCoupon = { code: code, ...coupon };
             const desc = coupon.type === "percent" ? `${coupon.value}% zbritje u aplikua!` : `€${coupon.value.toFixed(2)} zbritje u aplikua!`;
-            msg.innerText = phone
-                ? `✅ Kuponi "${code}": ${desc}`
-                : `✅ Kuponi "${code}": ${desc} (verifikohet sipas numrit në checkout)`;
+            msg.innerText = `✅ Kuponi "${code}": ${desc}`;
             msg.className = "text-[10px] mt-1.5 font-medium text-[#4caf50]";
             this.updateUI();
+            Toast.show("Kuponi u aplikua me sukses!");
         },
 
         removeCoupon: function() {
@@ -3103,6 +3534,7 @@
             if (input) input.value = '';
             if (msg) { msg.innerText = ''; msg.className = 'text-[10px] mt-1.5 font-medium'; }
             this.updateUI();
+            Toast.show("Kuponi u hoq.");
         },
 
         getDiscountAmount: function(subtotal) {
@@ -3116,7 +3548,122 @@
             return Math.min(discount, subtotal);
         },
 
+        openCheckout: function() {
+            if (state.cart.length === 0) return;
+            document.getElementById('cart-view-section').classList.add('hidden');
+            document.getElementById('checkout-flow-container').classList.remove('hidden');
+            
+            // Set Step 1 active
+            document.getElementById('checkout-step-1').classList.remove('hidden');
+            document.getElementById('checkout-step-2').classList.add('hidden');
+            document.getElementById('checkout-step-3').classList.add('hidden');
+            document.getElementById('current-step-indicator').innerText = "1/3";
+            document.getElementById('step-dot-1').className = "w-2.5 h-2.5 rounded-full bg-[#dca76a]";
+            document.getElementById('step-dot-2').className = "w-2.5 h-2.5 rounded-full bg-gray-700";
+            document.getElementById('step-dot-3').className = "w-2.5 h-2.5 rounded-full bg-gray-700";
+        },
+
+        closeCheckout: function() {
+            document.getElementById('checkout-flow-container').classList.add('hidden');
+            document.getElementById('cart-view-section').classList.remove('hidden');
+        },
+
+        nextStep: function(currentStep) {
+            if (currentStep === 1) {
+                const name = document.getElementById('checkout-name').value.trim();
+                const email = document.getElementById('checkout-email').value.trim();
+                const phone = document.getElementById('checkout-phone').value.trim();
+                
+                let valid = true;
+                if (!name) {
+                    document.getElementById('checkout-name-error').classList.remove('hidden');
+                    valid = false;
+                } else {
+                    document.getElementById('checkout-name-error').classList.add('hidden');
+                }
+                
+                const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+                if (!email || !emailRegex.test(email)) {
+                    document.getElementById('checkout-email-error').classList.remove('hidden');
+                    valid = false;
+                } else {
+                    document.getElementById('checkout-email-error').classList.add('hidden');
+                }
+                
+                const phoneDigits = phone.replace(/\D/g, '');
+                if (!phone || phoneDigits.length < 8) {
+                    document.getElementById('checkout-phone-error').classList.remove('hidden');
+                    valid = false;
+                } else {
+                    document.getElementById('checkout-phone-error').classList.add('hidden');
+                }
+                
+                if (!valid) {
+                    Toast.show("Plotësoni të dhënat saktë!", "error");
+                    return;
+                }
+                
+                document.getElementById('checkout-step-1').classList.add('hidden');
+                document.getElementById('checkout-step-2').classList.remove('hidden');
+                document.getElementById('current-step-indicator').innerText = "2/3";
+                document.getElementById('step-dot-1').className = "w-2.5 h-2.5 rounded-full bg-gray-700";
+                document.getElementById('step-dot-2').className = "w-2.5 h-2.5 rounded-full bg-[#dca76a]";
+            } else if (currentStep === 2) {
+                const city = document.getElementById('checkout-city').value;
+                const address = document.getElementById('checkout-address').value.trim();
+                
+                let valid = true;
+                if (!city) {
+                    document.getElementById('checkout-city-error').classList.remove('hidden');
+                    valid = false;
+                } else {
+                    document.getElementById('checkout-city-error').classList.add('hidden');
+                }
+                
+                if (!address) {
+                    document.getElementById('checkout-address-error').classList.remove('hidden');
+                    valid = false;
+                } else {
+                    document.getElementById('checkout-address-error').classList.add('hidden');
+                }
+                
+                if (!valid) {
+                    Toast.show("Plotësoni adresën tuaj!", "error");
+                    return;
+                }
+                
+                document.getElementById('checkout-step-2').classList.add('hidden');
+                document.getElementById('checkout-step-3').classList.remove('hidden');
+                document.getElementById('current-step-indicator').innerText = "3/3";
+                document.getElementById('step-dot-2').className = "w-2.5 h-2.5 rounded-full bg-gray-700";
+                document.getElementById('step-dot-3').className = "w-2.5 h-2.5 rounded-full bg-[#dca76a]";
+            }
+        },
+
+        prevStep: function(currentStep) {
+            if (currentStep === 2) {
+                document.getElementById('checkout-step-2').classList.add('hidden');
+                document.getElementById('checkout-step-1').classList.remove('hidden');
+                document.getElementById('current-step-indicator').innerText = "1/3";
+                document.getElementById('step-dot-2').className = "w-2.5 h-2.5 rounded-full bg-gray-700";
+                document.getElementById('step-dot-1').className = "w-2.5 h-2.5 rounded-full bg-[#dca76a]";
+            } else if (currentStep === 3) {
+                document.getElementById('checkout-step-3').classList.add('hidden');
+                document.getElementById('checkout-step-2').classList.remove('hidden');
+                document.getElementById('current-step-indicator').innerText = "2/3";
+                document.getElementById('step-dot-3').className = "w-2.5 h-2.5 rounded-full bg-gray-700";
+                document.getElementById('step-dot-2').className = "w-2.5 h-2.5 rounded-full bg-[#dca76a]";
+            }
+        },
+
         updateUI: function(preserve) {
+            // Save state.cart to localStorage
+            try {
+                localStorage.setItem('laserdesign_cart', JSON.stringify(state.cart));
+            } catch(e) {
+                console.error("Cart save local error:", e);
+            }
+
             const list = document.getElementById('cart-items-list');
             const badge = document.getElementById('cart-badge');
             const totalItems = state.cart.reduce((sum, item) => sum + this.normalizeQty(item.qty, 1), 0);
@@ -3141,7 +3688,14 @@
                 `;
                 document.getElementById('cart-subtotal-price').innerText = "€0.00";
                 document.getElementById('cart-total-price').innerText = "€0.00";
+                document.getElementById('cart-shipping-price').innerText = "€0.00";
                 document.getElementById('coupon-discount-row').classList.add('hidden');
+                
+                // Hide dynamic free shipping meter or set to 0%
+                const bar = document.getElementById('free-shipping-bar');
+                const text = document.getElementById('free-shipping-text');
+                if (bar) bar.style.width = '0%';
+                if (text) text.innerText = "Edhe €50.00 për dërgesë falas!";
                 return;
             }
 
@@ -3149,24 +3703,29 @@
             list.innerHTML = state.cart.map((item, rowIdx) => {
                 const itemQty = item.qty === 0 ? 0 : this.normalizeQty(item.qty, 1);
                 subtotal += (item.price * itemQty);
-                const metaDetails = item.isCustom 
-                    ? `<p class="text-[9px] text-gray-400 font-normal truncate">Modeli: ${item.shapeDetails} | Teksti: ${item.ideaDetails}</p>`
+                
+                // Detailed meta and custom engraving preview details inside the cart item card
+                const customDetailsHtml = item.isCustom 
+                    ? `<div class="mt-1.5 flex flex-col gap-0.5 text-[9px] text-gray-400 font-medium">
+                           ${item.shapeDetails ? `<div><span class="text-[#dca76a]">Forma:</span> ${item.shapeDetails}</div>` : ''}
+                           ${item.ideaDetails ? `<div><span class="text-[#dca76a]">Gdhendja:</span> "${item.ideaDetails}"</div>` : ''}
+                       </div>`
                     : '';
 
-                // Nese po shkruajme ne kete input, ruaje vleren e shtypur sic eshte (bosh/"12"...)
                 let inputValue = itemQty === 0 ? '' : String(itemQty);
                 const isFocusedRow = preserve && preserve.isTyping && preserve.index === rowIdx;
                 if (isFocusedRow) inputValue = preserve.value;
 
                 return `
                     <div class="bg-[#161616] border border-[#222] p-3 rounded-xl flex items-center gap-3">
-                        <div class="w-12 h-12 bg-[#1f1f1f] rounded-lg overflow-hidden shrink-0 border border-[#333]">
+                        <div class="w-14 h-14 bg-[#1f1f1f] rounded-lg overflow-hidden shrink-0 border border-[#333] relative">
                             <img src="${item.image}" class="w-full h-full object-cover">
+                            ${item.isCustom ? '<span class="absolute bottom-0 right-0 bg-[#dca76a] text-black text-[7px] font-black px-1 rounded-tl-md">CUSTOM</span>' : ''}
                         </div>
                         <div class="flex-grow min-w-0">
                             <h4 class="text-xs font-bold truncate">${item.title}</h4>
                             <p class="text-[10px] text-gray-500 font-medium">Masa: <span class="text-gray-300 font-bold">${item.chosenSize}</span></p>
-                            ${metaDetails}
+                            ${customDetailsHtml}
                             <p class="text-xs text-[#dca76a] font-semibold mt-0.5">${item.price > 0 ? '€'+(item.price * itemQty).toFixed(2) : 'Çmimi pas kontaktit'}</p>
                         </div>
                         <div class="flex items-center bg-black border border-[#222] rounded-lg p-1 gap-1.5 shrink-0">
@@ -3174,12 +3733,11 @@
                             <input type="text" inputmode="numeric" autocomplete="off" data-row="${rowIdx}" value="${inputValue}" oninput="Cart.setQtyByIndex(${rowIdx}, this.value, false)" onblur="Cart.setQtyByIndex(${rowIdx}, this.value, true)" class="cart-qty-input w-14 h-8 bg-transparent text-center text-xs font-bold text-white outline-none border border-[#222] rounded-md">
                             <button type="button" onclick="Cart.changeQtyByIndex(${rowIdx}, 1)" class="btn-qty-plus w-8 h-8 rounded-md text-base font-bold text-gray-300 hover:text-white hover:bg-[#161616] active:scale-95 transition-all">+</button>
                         </div>
-                        <button onclick="Cart.removeByIndex(${rowIdx})" class="text-gray-500 hover:text-red-400 p-1 cursor-pointer"><i class="fa-solid fa-trash-can text-xs"></i></button>
+                        <button onclick="Cart.removeByIndex(${rowIdx})" class="text-gray-500 hover:text-red-400 p-1 cursor-pointer shrink-0"><i class="fa-solid fa-trash-can text-xs"></i></button>
                     </div>
                 `;
             }).join('');
 
-            // Rivendos fokusin dhe kursorin nese perdoruesi po shkruan ne nje input sasie
             if (preserve && preserve.isTyping && preserve.index !== null && preserve.index !== undefined) {
                 const focusedInput = list.querySelector('.cart-qty-input[data-row="' + preserve.index + '"]');
                 if (focusedInput) {
@@ -3189,10 +3747,29 @@
                 }
             }
 
+            // Dynamic Free Shipping Meter logic
+            const threshold = 50.0;
+            const progress = Math.min((subtotal / threshold) * 100, 100);
+            const bar = document.getElementById('free-shipping-bar');
+            const text = document.getElementById('free-shipping-text');
+            
+            if (bar) bar.style.width = progress + '%';
+            
+            if (subtotal >= threshold) {
+                if (bar) bar.className = "h-full bg-green-500 rounded-full transition-all duration-500";
+                if (text) text.innerHTML = "Urime! Keni fituar dërgesë falas! 🎉";
+            } else {
+                if (bar) bar.className = "h-full bg-gradient-to-r from-[#dca76a] to-[#e4bc84] rounded-full transition-all duration-500";
+                const diff = (threshold - subtotal).toFixed(2);
+                if (text) text.innerHTML = `Shto edhe <b class="text-white">€${diff}</b> për dërgesë falas!`;
+            }
+
             const discount = this.getDiscountAmount(subtotal);
-            const total = subtotal - discount;
+            const shippingCost = subtotal >= threshold ? 0 : 3.00;
+            const total = subtotal - discount + shippingCost;
 
             document.getElementById('cart-subtotal-price').innerText = `€${subtotal.toFixed(2)}`;
+            document.getElementById('cart-shipping-price').innerText = shippingCost === 0 ? "Falas" : `€${shippingCost.toFixed(2)}`;
 
             const discountRow = document.getElementById('coupon-discount-row');
             if (state.appliedCoupon && discount > 0) {
@@ -3207,21 +3784,24 @@
         },
 
         checkout: async function() {
-            if (state.cart.length === 0) { return; }
+            if (state.cart.length === 0) return;
             
-            const name = document.getElementById('client-name').value.trim();
-            const phone = document.getElementById('client-phone').value.trim();
-            const city = document.getElementById('client-city').value.trim();
+            const name = document.getElementById('checkout-name').value.trim();
+            const email = document.getElementById('checkout-email').value.trim();
+            const phone = document.getElementById('checkout-phone').value.trim();
+            const city = document.getElementById('checkout-city').value;
+            const address = document.getElementById('checkout-address').value.trim();
+            const notes = document.getElementById('checkout-notes').value.trim();
 
-            if (!name || !phone || !city) {
-                alert("Ju lutem plotësoni të gjitha të dhënat tuaja për dërgesë!");
+            if (!name || !phone || !city || !address || !email) {
+                Toast.show("Ju lutem plotësoni të gjitha fushat e kërkuara!", "error");
                 return;
             }
 
             if (state.appliedCoupon) {
                 const alreadyUsed = await hasCouponBeenUsedByClient(phone, state.appliedCoupon.code);
                 if (alreadyUsed) {
-                    alert(`This coupon was already used and cannot be used again on this device.`);
+                    Toast.show("Ky kupon është përdorur më parë nga ky klient!", "error");
                     this.removeCoupon();
                     return;
                 }
@@ -3230,32 +3810,62 @@
             state.cart.forEach(it => { if (!it.qty || it.qty <= 0) it.qty = 1; });
             const subtotal = state.cart.reduce((sum, i) => sum + (i.price * this.normalizeQty(i.qty, 1)), 0);
             const discount = this.getDiscountAmount(subtotal);
-            const total = subtotal - discount;
-            const newOrderId = Math.floor(1000 + Math.random() * 9000);
+            const shippingCost = subtotal >= 50 ? 0 : 3.00;
+            const total = subtotal - discount + shippingCost;
             
-            let textMessage = `🛒 *POROSI E RE - LASERDESIGN KOSOVA*\n`;
-            textMessage += `🆔 *ID:* #${newOrderId}\n\n`;
-            textMessage += `👤 *Klienti:* ${name}\n`;
-            textMessage += `📞 *Tel:* ${phone}\n`;
-            textMessage += `📍 *Adresa:* ${city}\n`;
-            textMessage += `------------------------------------\n`;
+            // Generated order reference: LDK-[8 random uppercase alphanumeric chars]
+            const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
+            let randomCode = '';
+            for (let i = 0; i < 8; i++) {
+                randomCode += chars.charAt(Math.floor(Math.random() * chars.length));
+            }
+            const orderRef = "LDK-" + randomCode;
+            
+            let textMessage = `🛒 *POROSI E RE - LASERDESIGN KOSOVA*
+`;
+            textMessage += `🆔 *ID:* #${orderRef}
+
+`;
+            textMessage += `👤 *Klienti:* ${name}
+`;
+            textMessage += `📧 *Email:* ${email}
+`;
+            textMessage += `📞 *Tel:* ${phone}
+`;
+            textMessage += `📍 *Adresa:* ${city}, ${address}
+`;
+            if (notes) textMessage += `📝 *Shënime:* ${notes}
+`;
+            textMessage += `------------------------------------
+`;
             
             state.cart.forEach((item, index) => {
-                textMessage += `${index + 1}. 📦 *${item.title}* (${item.qty}x)\n`;
-                textMessage += `   📐 Masa: ${item.chosenSize}\n`;
+                textMessage += `${index + 1}. 📦 *${item.title}* (${item.qty}x)
+`;
+                textMessage += `   📐 Masa: ${item.chosenSize}
+`;
                 if(item.isCustom) {
-                    textMessage += `   ⬡ Forma: ${item.shapeDetails}\n`;
-                    textMessage += `   💬 Teksti: ${item.ideaDetails}\n`;
+                    textMessage += `   ⬡ Forma: ${item.shapeDetails}
+`;
+                    textMessage += `   💬 Gdhendja: ${item.ideaDetails}
+`;
                 }
-                textMessage += `   💰 Çmimi: €${(item.price * item.qty).toFixed(2)}\n`;
-                textMessage += `\n`;
+                textMessage += `   💰 Çmimi: €${(item.price * item.qty).toFixed(2)}
+`;
+                textMessage += `
+`;
             });
             
-            textMessage += `------------------------------------\n`;
-            textMessage += `Nëntotali: €${subtotal.toFixed(2)}\n`;
+            textMessage += `------------------------------------
+`;
+            textMessage += `Nëntotali: €${subtotal.toFixed(2)}
+`;
             if (state.appliedCoupon && discount > 0) {
-                textMessage += `🏷️ Kuponi (${state.appliedCoupon.code}): -€${discount.toFixed(2)}\n`;
+                textMessage += `🏷️ Kuponi (${state.appliedCoupon.code}): -€${discount.toFixed(2)}
+`;
             }
+            textMessage += `🚚 Dërgesa: ${shippingCost === 0 ? "Falas" : "€" + shippingCost.toFixed(2)}
+`;
             textMessage += `💰 *TOTALI I BLERJES:* €${total.toFixed(2)}`;
 
             const telegramUrl = `https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage`;
@@ -3275,12 +3885,12 @@
                         if (!item.isCustom) continue;
 
                         if (item.originalImage) {
-                            const originalPhotoMessageId = await sendTelegramPhotoMessage(item.originalImage, `📷 Foto origjinale e klientit - Porosia #${newOrderId}`);
+                            const originalPhotoMessageId = await sendTelegramPhotoMessage(item.originalImage, `📷 Foto origjinale e klientit - Porosia #${orderRef}`);
                             if (originalPhotoMessageId) telegramPhotoMessageIds.push(originalPhotoMessageId);
                         }
 
                         if (item.previewImage) {
-                            const previewPhotoMessageId = await sendTelegramPhotoMessage(item.previewImage, `🖼 Preview i dizajnit final - Porosia #${newOrderId}`);
+                            const previewPhotoMessageId = await sendTelegramPhotoMessage(item.previewImage, `🖼 Preview i dizajnit final - Porosia #${orderRef}`);
                             if (previewPhotoMessageId) telegramPhotoMessageIds.push(previewPhotoMessageId);
                         }
                     }
@@ -3289,14 +3899,8 @@
                         await markCouponAsUsedByClient(phone, state.appliedCoupon.code);
                     }
 
-                    alert(`Porosia #${newOrderId} u dërgua me sukses!`);
-
-                    PushNotifications.onCheckoutSuccess(phone, newOrderId);
-                    
+                    // Save order to local and server
                     const itemsSummary = state.cart.map(i => `${i.qty}x ${i.title}`).join(', ');
-                    // Të dhëna strukturore (id produkti + sasia) — përdoren për të llogaritur automatikisht
-                    // "Produktet më të shitura" te faqja kryesore. Vetëm produktet e katalogut (jo ato
-                    // të personalizuara/custom, që kanë id si "custom-172..." dhe s'janë te PRODUCTS).
                     const itemsData = state.cart
                         .filter(i => !i.isCustom)
                         .map(i => ({ id: i.id, qty: i.qty }));
@@ -3304,8 +3908,8 @@
                     const savedOrders = localStorage.getItem('laserdesign_orders');
                     let currentOrders = savedOrders ? JSON.parse(savedOrders) : [];
                     const orderRecord = {
-                        id: newOrderId,
-                        date: "Sot",
+                        id: orderRef,
+                        date: new Date().toLocaleDateString('sq-AL'),
                         items: itemsSummary,
                         itemsData: itemsData,
                         total: total,
@@ -3314,6 +3918,9 @@
                         customerName: name,
                         customerPhone: phone,
                         customerCity: city,
+                        customerAddress: address,
+                        customerEmail: email,
+                        notes: notes,
                         couponCode: state.appliedCoupon ? state.appliedCoupon.code : null,
                         telegramMessageId: telegramMessageId,
                         telegramPhotoMessageIds: telegramPhotoMessageIds
@@ -3322,21 +3929,39 @@
                     currentOrders.unshift(orderRecord);
                     localStorage.setItem('laserdesign_orders', JSON.stringify(currentOrders));
 
-                    const serverSaved = await addOrderToServer(orderRecord);
-                    if (!serverSaved) {
-                        alert("Porosia u ruajt në këtë pajisje, por nuk u sinkronizua në server. Admini mund të mos e shohë nga pajisje të tjera derisa serveri të funksionojë.");
-                    }
+                    await addOrderToServer(orderRecord);
 
-                    this.clear();
-                    Orders.render();
-                    App.renderBestSellers();
-                    App.navigate('scr-orders', 3);
+                    // Show confirmation details
+                    document.getElementById('confirmed-order-ref').innerText = orderRef;
+                    document.getElementById('confirmed-customer-email').innerText = email;
+                    
+                    // Reset fields
+                    document.getElementById('checkout-name').value = '';
+                    document.getElementById('checkout-email').value = '';
+                    document.getElementById('checkout-phone').value = '';
+                    document.getElementById('checkout-address').value = '';
+                    document.getElementById('checkout-notes').value = '';
+                    document.getElementById('checkout-city').value = '';
+                    
+                    // Collapse checkout view
+                    document.getElementById('checkout-step-3').classList.add('hidden');
+                    document.getElementById('checkout-flow-container').classList.add('hidden');
+                    document.getElementById('cart-view-section').classList.remove('hidden');
+
+                    state.cart = [];
+                    state.appliedCoupon = null;
+                    localStorage.removeItem('laserdesign_cart');
+                    this.updateUI();
+
+                    PushNotifications.onCheckoutSuccess(phone, orderRef);
+                    App.navigate('scr-order-confirmed');
+                    Toast.show("Porosia u pranua me sukses! 🎉");
                 } else {
-                    alert("Ndodhi një gabim gjatë dërgimit. Provoni përsëri.");
+                    Toast.show("Dërgimi i porosisë dështoi. Provoni përsëri.", "error");
                 }
             })
             .catch(err => {
-                alert("Gabim në rrjet.");
+                Toast.show("Gabim rrjeti. Provoni përsëri.", "error");
             });
         }
     };
@@ -3351,14 +3976,15 @@
 
             const serverMap = new Map(serverOrders.map(order => [order.id, order]));
             return localOrders
-                .filter(localOrder => serverMap.has(localOrder.id))
                 .map(localOrder => {
                     const serverOrder = serverMap.get(localOrder.id);
-                    return {
-                        ...localOrder,
-                        ...serverOrder,
-                        id: localOrder.id
-                    };
+                    if (serverOrder) {
+                        return {
+                            ...localOrder,
+                            ...serverOrder
+                        };
+                    }
+                    return localOrder;
                 });
         },
 
@@ -3402,13 +4028,30 @@
                         </div>
                         <div class="text-[10px] text-gray-500 mb-2">Data: ${o.date}</div>
                         <div class="text-xs text-gray-400 truncate">${o.items}</div>
-                        <div class="text-xs font-bold text-[#dca76a] mt-2 pt-2 border-t border-[#222]/60">Totali: €${o.total.toFixed(2)}</div>
+                        
+                        <!-- Animated Order Confirmation progress timeline inside each local order card -->
+                        <div class="mt-4 pt-3 border-t border-[#222]/40">
+                            <div class="flex justify-between items-center relative px-2">
+                                <div class="flex flex-col items-center z-10 w-1/3 timeline-step active">
+                                    <div class="w-6 h-6 rounded-full bg-[#dca76a] text-black font-black flex items-center justify-center text-[9px]">1</div>
+                                    <span class="text-[8px] font-bold text-white mt-1">U Pranua</span>
+                                </div>
+                                <div class="flex flex-col items-center z-10 w-1/3 timeline-step ${o.status.includes('konfirmuar') || o.status.includes('përpunim') || o.status.includes('transport') || o.status.includes('dorëzuar') ? 'active' : ''}">
+                                    <div class="w-6 h-6 rounded-full ${o.status.includes('konfirmuar') || o.status.includes('përpunim') || o.status.includes('transport') || o.status.includes('dorëzuar') ? 'bg-[#dca76a] text-black' : 'bg-[#222] text-gray-400'} font-bold flex items-center justify-center text-[9px]">2</div>
+                                    <span class="text-[8px] font-bold ${o.status.includes('konfirmuar') || o.status.includes('përpunim') || o.status.includes('transport') || o.status.includes('dorëzuar') ? 'text-white' : 'text-gray-500'} mt-1">Përpunim</span>
+                                </div>
+                                <div class="flex flex-col items-center z-10 w-1/3 timeline-step ${o.status.includes('transport') || o.status.includes('dorëzuar') ? 'active' : ''}">
+                                    <div class="w-6 h-6 rounded-full ${o.status.includes('transport') || o.status.includes('dorëzuar') ? 'bg-[#dca76a] text-black' : 'bg-[#222] text-gray-400'} font-bold flex items-center justify-center text-[9px]">3</div>
+                                    <span class="text-[8px] font-bold ${o.status.includes('transport') || o.status.includes('dorëzuar') ? 'text-white' : 'text-gray-500'} mt-1">Dorëzuar</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="text-xs font-bold text-[#dca76a] mt-3.5 pt-2 border-t border-[#222]/40">Totali: €${o.total.toFixed(2)}</div>
                     </div>
                 `;
             }).join('');
 
-            // Njoftim lokal kur admini ndryshon statusin (funksionon edhe pa push server,
-            // sa herë që klienti e ka aplikacionin hapur, ose e hap atë pas ndryshimit).
             if (updatedOrderIds.size > 0) {
                 state.orders.forEach(o => {
                     if (updatedOrderIds.has(o.id)) {
@@ -3425,7 +4068,7 @@
                 if (ordersScreen && !ordersScreen.classList.contains('hidden')) {
                     this.render();
                 }
-            }, 2000);
+            }, 3000);
         },
 
         stopLiveSync: function() {
@@ -3436,11 +4079,9 @@
         }
     };
 
-    // ---------- INSTALIMI I APLIKACIONIT (Add to Home Screen / PWA) ----------
     const InstallApp = {
-        deferredPrompt: null, // ruhet nga eventi 'beforeinstallprompt' (Android/Chrome), për ta shfaqur kur klienti klikon "Instalo Tani"
+        deferredPrompt: null, 
 
-        // Zbulon platformën e klientit, që t'i tregojmë hapat e sakta (iOS ndryshon nga Android)
         detectPlatform: function() {
             const ua = navigator.userAgent || navigator.vendor || "";
             const isIOS = /iPad|iPhone|iPod/.test(ua) && !window.MSStream;
@@ -3450,15 +4091,12 @@
             return 'desktop';
         },
 
-        // A është aplikacioni tashmë i instaluar/i hapur si app (jo si faqe normale në shfletues)?
         isAppInstalled: function() {
             const standaloneDisplay = window.matchMedia && window.matchMedia('(display-mode: standalone)').matches;
-            const iosStandalone = window.navigator.standalone === true; // Safari/iOS
+            const iosStandalone = window.navigator.standalone === true; 
             return !!(standaloneDisplay || iosStandalone);
         },
 
-        // Kap eventin që Chrome/Android e nis kur faqja plotëson kushtet për t'u instaluar,
-        // dhe e ruajmë për ta përdorur më vonë (kur klienti klikon "Instalo Tani").
         init: function() {
             window.addEventListener('beforeinstallprompt', (e) => {
                 e.preventDefault();
@@ -3475,17 +4113,14 @@
 
             if ('serviceWorker' in navigator) {
                 window.addEventListener('load', () => {
-                    navigator.serviceWorker.register('sw.js').catch(() => {
-                        // Nëse dështon (p.sh. faqja hapur direkt nga skedari, jo nga një server), s'prish asgjë tjetër.
-                    });
+                    navigator.serviceWorker.register('sw.js').catch(() => {});
                 });
             }
         },
 
-        // Shfaq dritaren native të instalimit të Android/Chrome (nëse është gati)
         triggerNativePrompt: function() {
             if (!this.deferredPrompt) {
-                alert("Instalimi automatik nuk është gati ende. Ndiq hapat manualë më poshtë.");
+                Toast.show("Instalimi nuk është gati. Ndiqni hapat manualë poshtë.", "error");
                 return;
             }
             this.deferredPrompt.prompt();
@@ -3494,7 +4129,6 @@
             });
         },
 
-        // Mbush ekranin "Instalo Aplikacionin" me hapat e duhur sipas platformës së klientit
         renderSteps: function() {
             const container = document.getElementById('install-steps-container');
             if (!container) return;
@@ -3514,7 +4148,7 @@
             }
 
             if (platform === 'ios') {
-                if (nativeBox) nativeBox.classList.add('hidden'); // iOS Safari s'e mbështet instalimin automatik
+                if (nativeBox) nativeBox.classList.add('hidden'); 
                 container.innerHTML = `
                     <div class="bg-[#161616] border border-[#222] rounded-2xl p-4">
                         <h3 class="text-xs font-bold text-[#dca76a] uppercase tracking-wider mb-3 flex items-center gap-2">
@@ -3534,7 +4168,7 @@
                                 <p class="text-xs text-gray-300">Shtypni <b class="text-white">"Add"</b> (Shto) në cepin e sipërm djathtas.</p>
                             </div>
                         </div>
-                        <p class="text-[9px] text-gray-500 mt-3 leading-relaxed">📌 E rëndësishme: kjo funksionon vetëm në shfletuesin <b>Safari</b>. Nëse jeni në Chrome apo një app tjetër në iPhone, hapeni së pari faqen në Safari.</p>
+                        <p class="text-[9px] text-gray-500 mt-3 leading-relaxed">📌 E rëndësishme: kjo funksionon vetëm në shfletuesin <b>Safari</b>.</p>
                     </div>
                 `;
             } else if (platform === 'android') {
@@ -3546,7 +4180,7 @@
                         <div class="space-y-3">
                             <div class="flex items-start gap-3">
                                 <div class="w-6 h-6 rounded-full bg-[#dca76a] text-black text-[11px] font-black flex items-center justify-center shrink-0 mt-0.5">1</div>
-                                <p class="text-xs text-gray-300">Shtypni butonin "Instalo Tani" më sipër — nëse s'shfaqet, shtypni <b class="text-white">⋮</b> (tri pikat) në cepin e sipërm djathtas të Chrome.</p>
+                                <p class="text-xs text-gray-300">Shtypni "Instalo Tani" më sipër ose shtypni <b class="text-white">⋮</b> në Chrome.</p>
                             </div>
                             <div class="flex items-start gap-3">
                                 <div class="w-6 h-6 rounded-full bg-[#dca76a] text-black text-[11px] font-black flex items-center justify-center shrink-0 mt-0.5">2</div>
@@ -3554,7 +4188,7 @@
                             </div>
                             <div class="flex items-start gap-3">
                                 <div class="w-6 h-6 rounded-full bg-[#dca76a] text-black text-[11px] font-black flex items-center justify-center shrink-0 mt-0.5">3</div>
-                                <p class="text-xs text-gray-300">Konfirmoni duke shtypur <b class="text-white">"Install"</b> / <b class="text-white">"Add"</b>.</p>
+                                <p class="text-xs text-gray-300">Konfirmoni duke shtypur <b class="text-white">"Install"</b>.</p>
                             </div>
                         </div>
                     </div>
@@ -3572,31 +4206,18 @@
                             </div>
                             <div class="flex items-start gap-3">
                                 <div class="w-6 h-6 rounded-full bg-[#dca76a] text-black text-[11px] font-black flex items-center justify-center shrink-0 mt-0.5">2</div>
-                                <p class="text-xs text-gray-300">Shtypni tri pikat <b class="text-white">⋮</b> në këndin e sipërm djathtas.</p>
+                                <p class="text-xs text-gray-300">Shtypni tri pikat <b class="text-white">⋮</b> në Chrome.</p>
                             </div>
                             <div class="flex items-start gap-3">
                                 <div class="w-6 h-6 rounded-full bg-[#dca76a] text-black text-[11px] font-black flex items-center justify-center shrink-0 mt-0.5">3</div>
-                                <p class="text-xs text-gray-300">Zgjidhni <b class="text-white">"Cast, Save and Share"</b>.</p>
-                            </div>
-                            <div class="flex items-start gap-3">
-                                <div class="w-6 h-6 rounded-full bg-[#dca76a] text-black text-[11px] font-black flex items-center justify-center shrink-0 mt-0.5">4</div>
-                                <p class="text-xs text-gray-300">Klikoni <b class="text-white">"Install Page as App"</b>.</p>
-                            </div>
-                            <div class="flex items-start gap-3">
-                                <div class="w-6 h-6 rounded-full bg-[#dca76a] text-black text-[11px] font-black flex items-center justify-center shrink-0 mt-0.5">5</div>
-                                <p class="text-xs text-gray-300">Shtypni <b class="text-white">"Install"</b> për të përfunduar instalimin.</p>
+                                <p class="text-xs text-gray-300">Zgjidhni <b class="text-white">"Install Page as App"</b>.</p>
                             </div>
                         </div>
-                        <p class="text-[9px] text-gray-500 mt-3 leading-relaxed">📌 Pas instalimit, aplikacioni do të shfaqet në desktop dhe do të hapet në ekran të plotë, si një aplikacion i vërtetë.</p>
-                    </div>
-                    <div class="bg-[#161616] border border-[#222] rounded-2xl p-4 mt-4">
-                        <p class="text-xs text-gray-400 leading-relaxed">Për ta instaluar në telefon në vend të kompjuterit, hapni këtë faqe në shfletuesin e telefonit tuaj (Safari për iPhone, Chrome për Android) dhe ndiqni udhëzimet përkatëse që shfaqen atje.</p>
                     </div>
                 `;
             }
         },
 
-        // Banner i vogël, i heqshëm, në krye të faqes kryesore — nxit klientët ta instalojnë app-in
         renderHomeBanner: function() {
             const wrap = document.getElementById('home-install-banner-wrap');
             if (!wrap) return;
@@ -3613,7 +4234,7 @@
                         <div class="w-9 h-9 rounded-full bg-[#dca76a]/15 flex items-center justify-center shrink-0"><i class="fa-solid fa-mobile-screen-button text-[#dca76a] text-sm"></i></div>
                         <div class="min-w-0">
                             <h4 class="text-xs font-bold text-white truncate">Instalo Aplikacionin 📲</h4>
-                            <p class="text-[10px] text-gray-400 truncate">Shto në ekranin kryesor — qasje si app i vërtetë</p>
+                            <p class="text-[10px] text-gray-400 truncate">Shto në ekranin kryesor për qasje si app</p>
                         </div>
                     </div>
                     <button onclick="InstallApp.dismissBanner()" class="text-gray-500 hover:text-gray-300 text-xs shrink-0 w-6 h-6 flex items-center justify-center cursor-pointer"><i class="fa-solid fa-xmark"></i></button>
@@ -3706,8 +4327,6 @@
                 }
             });
         },
-
-        // ---------- PRODUKTET ----------
 
         renderProducts: function() {
             const container = document.getElementById('admin-products-list');
@@ -3811,8 +4430,6 @@
             document.getElementById('admin-product-form-wrap').classList.remove('hidden');
         },
 
-        // Merr foton e zgjedhur nga galeria/skedari, e ripërmason (max 900px) dhe e kthen në Base64
-        // që të ruhet direkt te produkti (pa pasur nevojë për link URL apo server).
         handleImageUpload: function(input) {
             const file = input.files && input.files[0];
             if (!file) return;
@@ -3850,13 +4467,9 @@
                 };
                 img.src = e.target.result;
             };
-            reader.onerror = function() {
-                statusEl.innerText = "Gabim gjatë ngarkimit të fotos, provo përsëri.";
-            };
             reader.readAsDataURL(file);
         },
 
-        // Njësoj si handleImageUpload, por për foton "template" që përdoret vetëm në editorin e personalizimit
         handleTemplateImageUpload: function(input) {
             const file = input.files && input.files[0];
             if (!file) return;
@@ -3894,9 +4507,6 @@
                 };
                 img.src = e.target.result;
             };
-            reader.onerror = function() {
-                statusEl.innerText = "Gabim gjatë ngarkimit të fotos, provo përsëri.";
-            };
             reader.readAsDataURL(file);
         },
 
@@ -3914,7 +4524,7 @@
             const idValue = document.getElementById('pf-id').value;
 
             if (!title || !image) {
-                alert("Ju lutem plotësoni të paktën titullin dhe zgjidhni një foto për produktin.");
+                Toast.show("Plotësoni të paktën titullin dhe foton!", "error");
                 return;
             }
 
@@ -3930,7 +4540,7 @@
             });
 
             if (sizes.length === 0) {
-                alert("Shtoni të paktën një madhësi me çmim.");
+                Toast.show("Shtoni të paktën një madhësi me çmim.", "error");
                 return;
             }
 
@@ -3949,20 +4559,18 @@
                 const newId = PRODUCTS.length > 0 ? Math.max(...PRODUCTS.map(p => p.id)) + 1 : 1;
                 PRODUCTS.push({
                     id: newId, title, category, image, templateImage, desc, time,
-                    sizes, sizePrices, price: basePrice, ratingsList: []
+                    sizes, sizePrices, price: basePrice, ratingsList: [], reviewsList: []
                 });
             }
 
             await saveProductsToServer();
             this.closeProductForm();
             this.renderProducts();
-            this.renderGalleryItems();
-            App.renderProducts(PRODUCTS);
-            App.renderGallery();
-            App.renderFullGallery();
+            App.renderCategoriesWithCounts();
+            App.applyAllFilters();
             App.renderNewestProducts();
             App.renderBestSellers();
-            alert("Produkti u ruajt me sukses!");
+            Toast.show("Produkti u ruajt me sukses!");
         },
 
         deleteProduct: async function(id) {
@@ -3970,16 +4578,14 @@
             PRODUCTS = PRODUCTS.filter(p => p.id !== id);
             await saveProductsToServer();
             this.renderProducts();
-            this.renderGalleryItems();
-            App.renderProducts(PRODUCTS);
-            App.renderGallery();
-            App.renderFullGallery();
+            App.renderCategoriesWithCounts();
+            App.applyAllFilters();
             App.renderNewestProducts();
             App.renderBestSellers();
+            Toast.show("Produkti u fshi.");
         },
 
         // ---------- GALERIA ----------
-
         renderGalleryItems: function() {
             const container = document.getElementById('admin-gallery-list');
             if (!container) return;
@@ -4111,9 +4717,6 @@
                 };
                 img.src = e.target.result;
             };
-            reader.onerror = function() {
-                statusEl.innerText = 'Gabim gjatë ngarkimit të fotos, provo përsëri.';
-            };
             reader.readAsDataURL(file);
         },
 
@@ -4147,7 +4750,7 @@
             const productId = linkedProductValue ? parseInt(linkedProductValue) : null;
 
             if (!title || !image) {
-                alert('Ju lutem plotësoni të paktën titullin dhe foton e galerisë.');
+                Toast.show('Plotësoni të paktën titullin dhe foton!', 'error');
                 return;
             }
 
@@ -4172,7 +4775,7 @@
             this.renderGalleryItems();
             App.renderGallery();
             App.renderFullGallery();
-            alert('Punimi i galerisë u ruajt me sukses!');
+            Toast.show('Punimi i galerisë u ruajt me sukses!');
         },
 
         deleteGallery: async function(id) {
@@ -4182,10 +4785,10 @@
             this.renderGalleryItems();
             App.renderGallery();
             App.renderFullGallery();
+            Toast.show("U fshi nga galeria.");
         },
 
         // ---------- KATEGORITË ----------
-
         renderCategories: function() {
             const container = document.getElementById('admin-categories-list');
             if (!container) return;
@@ -4248,7 +4851,7 @@
             const idValue = document.getElementById('cf-id').value;
 
             if (!label) {
-                alert("Ju lutem shkruani emrin e kategorisë.");
+                Toast.show("Shkruani emrin e kategorisë!", "error");
                 return;
             }
 
@@ -4256,7 +4859,7 @@
 
             const duplicate = CATEGORIES.find(c => c.value === value && String(c.id) !== String(idValue));
             if (duplicate) {
-                alert("Ekziston tashmë një kategori me këtë emër.");
+                Toast.show("Ekziston tashmë një kategori me këtë emër.", "error");
                 return;
             }
 
@@ -4266,8 +4869,6 @@
                     const oldValue = CATEGORIES[idx].value;
                     CATEGORIES[idx] = { ...CATEGORIES[idx], label, icon, value };
 
-                    // Nëse ndryshon emri (dhe kështu identifikuesi), përditëso edhe produktet
-                    // ekzistuese që përdorin këtë kategori, që të mos "humbasin" filtrimin.
                     if (oldValue !== value) {
                         PRODUCTS.forEach(p => {
                             if (p.category === oldValue) p.category = value;
@@ -4283,11 +4884,9 @@
             await saveCategoriesToServer();
             this.closeCategoryForm();
             this.renderCategories();
-            App.renderCategories();
-            App.renderProducts(PRODUCTS);
-            App.renderNewestProducts();
-            App.renderBestSellers();
-            alert("Kategoria u ruajt me sukses!");
+            App.renderCategoriesWithCounts();
+            App.applyAllFilters();
+            Toast.show("Kategoria u ruajt me sukses!");
         },
 
         deleteCategory: async function(id) {
@@ -4304,11 +4903,12 @@
             CATEGORIES = CATEGORIES.filter(c => c.id !== id);
             await saveCategoriesToServer();
             this.renderCategories();
-            App.renderCategories();
+            App.renderCategoriesWithCounts();
+            App.applyAllFilters();
+            Toast.show("Kategoria u fshi.");
         },
 
         // ---------- POROSITË ----------
-
         renderOrders: async function() {
             const container = document.getElementById('admin-orders-list');
             if (!container) return;
@@ -4325,15 +4925,15 @@
                 <div class="bg-[#161616] border border-[#222] p-3.5 rounded-xl">
                     <div class="flex justify-between items-center mb-1.5">
                         <span class="text-xs font-bold text-gray-200">Porosia #${o.id}</span>
-                        <button onclick="Admin.deleteOrder(${o.id})" class="text-gray-500 hover:text-red-400 text-xs cursor-pointer"><i class="fa-solid fa-trash-can"></i></button>
+                        <button onclick="Admin.deleteOrder('${o.id}')" class="text-gray-500 hover:text-red-400 text-xs cursor-pointer"><i class="fa-solid fa-trash-can"></i></button>
                     </div>
                     <div class="text-[10px] text-gray-500 mb-1">Data: ${o.date}</div>
                     ${o.customerName ? `<div class="text-[10px] text-gray-500 mb-1">Klienti: ${o.customerName}</div>` : ''}
                     ${o.customerPhone ? `<div class="text-[10px] text-gray-500 mb-1">Tel: ${o.customerPhone}</div>` : ''}
-                    ${o.customerCity ? `<div class="text-[10px] text-gray-500 mb-2">Adresa: ${o.customerCity}</div>` : ''}
+                    ${o.customerCity ? `<div class="text-[10px] text-gray-500 mb-2">Adresa: ${o.customerCity}, ${o.customerAddress || ''}</div>` : ''}
                     <div class="text-xs text-gray-400 mb-2">${o.items}</div>
                     <div class="text-xs font-bold text-[#dca76a] mb-3 pt-2 border-t border-[#222]/60">Totali: €${o.total.toFixed(2)}</div>
-                    <select onchange="Admin.updateOrderStatus(${o.id}, this.value)" class="w-full bg-[#121212] border border-[#222] rounded-lg px-2.5 py-2 text-[11px] outline-none focus:border-[#dca76a]/50 font-bold ${o.statusColor}">
+                    <select onchange="Admin.updateOrderStatus('${o.id}', this.value)" class="w-full bg-[#121212] border border-[#222] rounded-lg px-2.5 py-2 text-[11px] outline-none focus:border-[#dca76a]/50 font-bold ${o.statusColor}">
                         ${this.STATUS_OPTIONS.map(s => `<option value="${s}" ${s === o.status ? 'selected' : ''}>${s}</option>`).join('')}
                     </select>
                 </div>
@@ -4349,7 +4949,7 @@
             order.statusColor = this.STATUS_COLORS[newStatus] || "text-gray-400";
             const saved = await saveOrdersToServer();
             if (!saved) {
-                alert("Ndryshimi i statusit nuk u ruajt në server. Provo përsëri.");
+                Toast.show("Ndryshimi i statusit nuk u ruajt në server.", "error");
                 return;
             }
 
@@ -4363,6 +4963,7 @@
             }
 
             PushNotifications.sendOrderStatusPush(order);
+            Toast.show("Statusi i porosisë u përditësua.");
 
             this.renderOrders();
             Orders.render();
@@ -4378,12 +4979,22 @@
             SERVER_ORDERS = SERVER_ORDERS.filter(o => o.id !== id);
             const saved = await saveOrdersToServer();
             if (!saved) {
-                alert("Fshirja e porosisë nuk u ruajt në server. Provo përsëri.");
+                Toast.show("Fshirja e porosisë nuk u ruajt në server.", "error");
                 return;
             }
 
+            // Remove from local storage as well
+            const savedOrders = localStorage.getItem('laserdesign_orders');
+            if (savedOrders) {
+                let localOrders = JSON.parse(savedOrders);
+                localOrders = localOrders.filter(o => o.id !== id);
+                localStorage.setItem('laserdesign_orders', JSON.stringify(localOrders));
+            }
+
             if (!telegramDeleteResult.skipped && !telegramDeleteResult.ok) {
-                alert("Porosia u fshi nga paneli, por një ose më shumë mesazhe në Telegram nuk u fshinë automatikisht.");
+                Toast.show("Porosia u fshi, por mesazhet në Telegram nuk u fshinë dot.", "error");
+            } else {
+                Toast.show("Porosia u fshi me sukses.");
             }
 
             this.renderOrders();
@@ -4391,7 +5002,6 @@
         },
 
         // ---------- OFERTA & LAJME ----------
-
         renderOffers: function() {
             const container = document.getElementById('admin-offers-list');
             if (!container) return;
@@ -4422,8 +5032,6 @@
             }).join('');
         },
 
-        // Ngarkon foton e ofertës/lajmit nga galeria/skedari, e ripërmason (max 1280px, ideale për 16:9)
-        // dhe e kthen në Base64 që të ruhet direkt te oferta (pa pasur nevojë për link URL).
         handleOfferImageUpload: function(input) {
             const file = input.files && input.files[0];
             if (!file) return;
@@ -4460,9 +5068,6 @@
                     statusEl.innerText = "Foto u ngarkua ✓";
                 };
                 img.src = e.target.result;
-            };
-            reader.onerror = function() {
-                statusEl.innerText = "Gabim gjatë ngarkimit të fotos, provo përsëri.";
             };
             reader.readAsDataURL(file);
         },
@@ -4531,7 +5136,7 @@
             const idValue = document.getElementById('of-id').value;
 
             if (!title || !image) {
-                alert("Ju lutem plotësoni të paktën titullin dhe zgjidhni një foto.");
+                Toast.show("Plotësoni të paktën titullin dhe foton!", "error");
                 return;
             }
 
@@ -4552,9 +5157,8 @@
             this.renderOffers();
             App.renderOffers();
             OffersNotifications.updateUI();
-            alert("Oferta/Lajmi u ruajt me sukses!");
+            Toast.show("Oferta/Lajmi u ruajt me sukses!");
 
-            // Njoftim push te të gjithë klientët vetëm për ofertë/lajm TË RI (jo për redaktim)
             const pushCheckbox = document.getElementById('of-send-push');
             if (!idValue && pushCheckbox && pushCheckbox.checked) {
                 PushNotifications.broadcastOfferPush(offerData);
@@ -4568,18 +5172,15 @@
             this.renderOffers();
             App.renderOffers();
             OffersNotifications.updateUI();
+            Toast.show("U fshi.");
         }
     };
 
-    // ---------- PUSH NOTIFICATIONS (njoftime në ekranin e telefonit) ----------
-    // Si funksionon: klienti aktivizon njoftimet te Profili -> abonimi ruhet në server
-    // (/api/push-subscriptions). Kur admini ndryshon statusin e porosisë ose shton ofertë,
-    // thirret /api/push-notify dhe serveri dërgon njoftimin te pajisjet e abonuara.
     const PushNotifications = {
         VAPID_PUBLIC_KEY: "BKba4xchpKZ6WvYyDNpWIyBntrY-xuiPhbrFEiiopMdVFu3j5-OWm4eD7SInR7otJiDID3r_RrICGkQiynKbU7E",
         ADMIN_PUSH_TOKEN: "GLMZTEEMtYA2iORj2qdo5uT_0C7QxSY9",
         LAST_PHONE_KEY: 'laserdesign_last_phone',
-        ENABLED_KEY: 'laserdesign_push_enabled', // '1' = klienti zgjodhi AKTIVE, '0' = i çaktivizoi — ruhet përgjithmonë
+        ENABLED_KEY: 'laserdesign_push_enabled', 
         OFFERS_NOTIFIED_KEY: 'laserdesign_offers_notified_ids',
         OFFERS_BASELINE_KEY: 'laserdesign_offers_baseline_done',
 
@@ -4604,9 +5205,6 @@
             try { localStorage.setItem(this.LAST_PHONE_KEY, phone || ''); } catch(e) {}
         },
 
-        // Merr regjistrimin e Service Worker-it në mënyrë të qëndrueshme:
-        // 1) provon regjistrimin ekzistues, 2) nëse mungon e regjistron vetë sw.js,
-        // 3) pret deri sa të jetë aktiv me TIMEOUT (që të mos mbetet "i varur" përgjithmonë).
         getRegistration: async function() {
             if (!('serviceWorker' in navigator)) return null;
             let reg = null;
@@ -4643,7 +5241,6 @@
         toggle: function() {
             this.getSubscription().then(sub => {
                 if (sub) {
-                    // Njoftimet janë aktive -> pyet klientin nëse doni t'i çaktivizojë
                     if (confirm("Njoftimet janë aktive. Dëshironi t'i çaktivizoni për këtë pajisje?")) {
                         this.disable();
                     }
@@ -4654,29 +5251,21 @@
         },
 
         enable: async function() {
-            // ---- Kontrollet paraprake (me udhëzime të qarta për klientin) ----
             if (!('Notification' in window)) {
-                alert("Ky pajisje/shfletues nuk mbështet njoftime. Te iPhone hapni aplikacionin e instaluar; te Android përdorni Chrome.");
+                Toast.show("Ky pajisje/shfletues nuk mbështet njoftime.", "error");
                 return false;
             }
             if (!('serviceWorker' in navigator) || !('PushManager' in window)) {
-                alert("Ky shfletues nuk mbështet njoftime push. Përdorni Chrome (Android) ose aplikacionin e instaluar (iPhone, iOS 16.4+).");
+                Toast.show("Ky shfletues nuk mbështet njoftime push.", "error");
                 return false;
             }
             if (location.protocol !== 'https:' && location.hostname !== 'localhost' && location.hostname !== '127.0.0.1') {
-                alert("Njoftimet push funksionojnë vetëm përmes HTTPS. Hapeni faqen live (jo si skedar lokal).");
-                return false;
-            }
-            const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent || '') && !window.MSStream;
-            const standalone = (window.matchMedia && window.matchMedia('(display-mode: standalone)').matches) || window.navigator.standalone === true;
-            if (isIOS && !standalone) {
-                alert("Te iPhone/iPad njoftimet kërkojnë aplikacionin e instaluar:\n1) Hapeni faqen në Safari\n2) Share → 'Add to Home Screen'\n3) Hapeni nga ikona e re\n4) Kthehuni këtu dhe shtypni 'Aktivizo'.");
+                Toast.show("Njoftimet push kërkojnë HTTPS.", "error");
                 return false;
             }
 
             let step = "leja";
             try {
-                // ---- 1) Leja e njoftimeve ----
                 let permission = Notification.permission;
                 if (permission !== 'granted') {
                     permission = await Notification.requestPermission();
@@ -4684,21 +5273,17 @@
                 if (permission !== 'granted') {
                     this.updateUI();
                     if (permission === 'denied') {
-                        alert("Njoftimet janë të bllokuara për këtë faqe. Aktivizojini te cilësimet e shfletuesit (Site settings → Notifications → Allow), pastaj provoni përsëri.");
-                    } else {
-                        alert("Leja për njoftime nuk u dha. Provoni përsëri dhe shtypni 'Allow'.");
+                        Toast.show("Njoftimet janë të bllokuara. Aktivizojini te cilësimet e browser-it.", "error");
                     }
                     return false;
                 }
 
-                // ---- 2) Service Worker aktiv ----
                 step = "serviceWorker";
                 const reg = await this.getRegistration();
                 if (!reg || !reg.pushManager) {
-                    throw new Error("Service Worker nuk u aktivizua. Sigurohuni që skedari i ri sw.js është ngarkuar në faqe.");
+                    throw new Error("Service Worker nuk u aktivizua.");
                 }
 
-                // ---- 3) Abonimi push (VAPID) ----
                 step = "abonimi";
                 let subscription = await reg.pushManager.getSubscription();
                 if (!subscription) {
@@ -4708,17 +5293,15 @@
                     });
                 }
 
-                // ---- 4) Ruajtja te serveri (nëse serveri s'është ende gati, abonimi lokal MBIET AKTIV) ----
                 step = "serveri";
                 try { await this.saveSubscriptionToServer(subscription); }
-                catch(e) { console.error('Ruajtja e abonimit dështoi (serveri):', e); }
+                catch(e) { console.error('Ruajtja e abonimit dështoi:', e); }
 
-                this.updateUI(subscription); // abonimi ekziston -> butoni bëhet menjëherë "Çaktivizo"
+                this.updateUI(subscription); 
                 this.showLocalNotification("🔔 Njoftimet u aktivizuan", "Do të merrni lajme për porositë tuaja dhe ofertat e reja.");
                 return true;
             } catch (err) {
                 console.error('Push enable gabim @' + step + ':', err);
-                alert("Nuk u aktivizuan njoftimet.\nHapi: " + step + "\nArsyeja: " + (err && err.message ? err.message : String(err)));
                 this.updateUI();
                 return false;
             }
@@ -4736,7 +5319,8 @@
                     await sub.unsubscribe();
                 }
             } catch(e) {}
-            this.updateUI(null); // abonimi u hoq -> butoni kthehet menjëherë në "Aktivizo"
+            this.updateUI(null); 
+            Toast.show("Njoftimet u çaktivizuan.");
         },
 
         saveSubscriptionToServer: async function(subscription) {
@@ -4750,7 +5334,7 @@
                         userAgent: navigator.userAgent || ''
                     })
                 });
-            } catch(e) { console.error('Ruajtja e abonimit push dështoi:', e); }
+            } catch(e) { console.error('Ruajtja dështoi:', e); }
         },
 
         showLocalNotification: async function(title, body) {
@@ -4761,8 +5345,6 @@
             } catch(e) {}
         },
 
-        // Thirret pas checkout-it: lidh numrin e telefonit me abonimin push
-        // (që njoftimet e statusit të arrijnë pikërisht pajisjen e klientit)
         onCheckoutSuccess: function(phone, orderId) {
             this.savePhone(phone);
             this.getSubscription().then(sub => {
@@ -4771,14 +5353,13 @@
             this.showLocalNotification("✅ Porosia u pranua", "Porosia #" + orderId + " u dërgua me sukses! Do t'ju njoftojmë kur të konfirmohet.");
         },
 
-        // Thirret nga admini kur ndryshon statusin e një porosie
         sendOrderStatusPush: function(order) {
             if (!order || !order.customerPhone) return;
             const messages = {
-                "✅ E konfirmuar": { title: "Porosia u konfirmua ✅", body: "Porosia #" + order.id + " u konfirmua. Faleminderit për porosinë tuaj!" },
+                "✅ E konfirmuar": { title: "Porosia u konfirmua ✅", body: "Porosia #" + order.id + " u konfirmua. Faleminderit!" },
                 "🛠️ Në përpunim": { title: "Porosia po përgatitet 🛠️", body: "Porosia #" + order.id + " është duke u përgatitur me kujdes." },
                 "🚚 Në transport": { title: "Porosia është në rrugë 🚚", body: "Porosia #" + order.id + " është në transport — afër jush!" },
-                "📬 E dorëzuar": { title: "Porosia u dorëzua 📬", body: "Porosia #" + order.id + " u dorëzua. Jemi gati për ju!" },
+                "📬 E dorëzuar": { title: "Porosia u dorëzua 📬", body: "Porosia #" + order.id + " u dorëzua. Ju faleminderit!" },
                 "❌ E anuluar": { title: "Porosia u anulua ❌", body: "Porosia #" + order.id + " u anulua. Na kontaktoni për pyetje." },
                 "↩️ E kthyer": { title: "Porosia u kthye ↩️", body: "Porosia #" + order.id + " u kthye. Na kontaktoni për pyetje." }
             };
@@ -4798,7 +5379,6 @@
             }).catch(() => {});
         },
 
-        // Thirret nga admini kur publikon një ofertë/lajm të ri
         broadcastOfferPush: function(offer) {
             fetch('/api/push-notify', {
                 method: 'POST',
@@ -4812,13 +5392,10 @@
                 })
             })
             .then(r => r.json())
-            .then(d => { if (d && typeof d.sent === 'number') alert("📢 Njoftimi push u dërgua te " + d.sent + " pajisje."); })
+            .then(d => { if (d && typeof d.sent === 'number') Toast.show("Njoftimi u dërgua te " + d.sent + " pajisje."); })
             .catch(() => {});
         },
 
-        // Njofton klientin lokalisht kur admini publikon OFERTË/LAJM të ri.
-        // Punon edhe pa push-in e serverit: çdo hapje aplikacioni kontrollo nëse
-        // ka ofertë të re që kjo pajisje ska parë ende -> 1 njoftim për ofertën më të re.
         notifyNewOffers: function(offers) {
             try {
                 if (!this.isSupported() || Notification.permission !== 'granted') return;
@@ -4828,7 +5405,6 @@
                 let notifiedIds = savedNotified ? JSON.parse(savedNotified) : [];
                 if (!Array.isArray(notifiedIds)) notifiedIds = [];
 
-                // Hera e parë në këtë pajisje: MOS njofto ofertat ekzistuese — regjistroji si të njohura
                 if (localStorage.getItem(this.OFFERS_BASELINE_KEY) !== '1') {
                     notifiedIds = offers.map(o => String(o.id));
                     localStorage.setItem(this.OFFERS_NOTIFIED_KEY, JSON.stringify(notifiedIds));
@@ -4856,7 +5432,7 @@
                 btn.disabled = false;
                 btn.innerText = "Çaktivizo";
                 btn.className = "bg-[#121212] border border-[#222] text-gray-400 hover:text-white text-[10px] font-bold px-3.5 py-1.5 rounded-full transition-all cursor-pointer active:scale-95 uppercase tracking-wider";
-                statusEl.innerHTML = '<span class="text-green-400 font-bold">● Aktive</span> — Do të merrni njoftime për statusin e porosië dhe ofertat e reja.';
+                statusEl.innerHTML = '<span class="text-green-400 font-bold">● Aktive</span> — Do të merrni njoftime për statusin e porosisë dhe ofertat e reja.';
             };
             const setInactiveUI = () => {
                 btn.disabled = false;
@@ -4868,13 +5444,13 @@
                 btn.disabled = true;
                 btn.innerText = "Të bllokuara";
                 btn.className = "bg-[#2c2c2c] text-gray-500 text-[10px] font-bold px-3.5 py-1.5 rounded-full uppercase tracking-wider cursor-not-allowed";
-                statusEl.innerText = "Njoftimet janë bllokuar. Aktivizojini te cilësimet e kësaj faqjeje në shfletuesin tuaj.";
+                statusEl.innerText = "Njoftimet janë bllokuar. Aktivizojini te cilësimet e browserit tuaj.";
             };
             const setUnsupportedUI = () => {
                 btn.disabled = true;
                 btn.className = "bg-[#2c2c2c] text-gray-500 text-[10px] font-bold px-3.5 py-1.5 rounded-full uppercase tracking-wider cursor-not-allowed";
                 btn.innerText = "Jo e mbështetur";
-                statusEl.innerText = "Shfletuesi juaj nuk mbështet njoftime push. Te iPhone instaloni aplikacionin në ekranin kryesor (iOS 16.4+).";
+                statusEl.innerText = "Browseri juaj nuk mbështet njoftime push. Te iPhone instaloni aplikacionin në ekranin kryesor.";
             };
 
             if (!this.isSupported()) {
@@ -4886,15 +5462,12 @@
             let savedChoice = null;
             try { savedChoice = localStorage.getItem(this.ENABLED_KEY); } catch(e) {}
 
-            // 1) GJENDJE E MENJËHERSHME nga zgjedhja e RUAJTUR e klientit
-            //    (që butoni të shfaqet siç e la klienti edhe pas mbylljes/rindezjes së app-it)
             if (typeof knownSub === 'undefined') {
                 if (permission === 'denied') setBlockedUI();
                 else if (savedChoice === '1') setActiveUI();
                 else setInactiveUI();
             }
 
-            // 2) PËRBALLJIM me gjendjen reale të shfletuesit (abonimi push ekziston apo jo)
             const sub = (typeof knownSub !== 'undefined') ? knownSub : await this.getSubscription();
 
             if (permission === 'granted' && sub) {
@@ -4911,14 +5484,10 @@
 
         init: function() {
             this.updateUI();
-            // Re-synco abonimin me serverin (endpoint-et push skadojnë/ndryshojnë me kohë)
             this.getSubscription().then(sub => {
                 if (sub) this.saveSubscriptionToServer(sub);
             }).catch(() => {});
 
-            // Kur klienti KTHETET te aplikacioni (nga sfondi) — rifresko gjendjen e butonit
-            // dhe ri-synco abonimin, që njoftimet të vazhdojnë të arrijnë edhe pas
-            // ndryshimeve të endpoint-it nga shfletuesi.
             if (!this._visibilityHooked) {
                 this._visibilityHooked = true;
                 const selfRef = this;
@@ -4935,6 +5504,16 @@
     };
 
     window.onload = function() {
+        // Load cart on page load
+        try {
+            const storedCart = localStorage.getItem('laserdesign_cart');
+            if (storedCart) {
+                state.cart = JSON.parse(storedCart);
+            }
+        } catch(e) {
+            console.error("Cart load local error:", e);
+        }
+
         Cart.updateUI();
         Orders.render();
         InstallApp.init();
@@ -4943,5 +5522,43 @@
     };
 </script>
 
-<script>(function(){function c(){var b=a.contentDocument||a.contentWindow.document;if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'a1b41fd1c83fd0dc',t:'MTc4NDA2OTgyNA=='};var a=document.createElement('script');a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script><script>(function(){function c(){var b=a.contentDocument||a.contentWindow.document;if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'a1b4bf8b4ed2d0d3',t:'MTc4NDA3NjM2Ng=='};var a=document.createElement('script');a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script><script>(function(){function c(){var b=a.contentDocument||a.contentWindow.document;if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'a1fac94ddb07d0ec',t:'MTc4NDgxMDc2OQ=='};var a=document.createElement('script');a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>
+<script>(function(){function c(){var b=a.contentDocument||a.contentWindow.document;if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'a1b41fd1c83fd0dc',t:'MTc4NDA2OTgyNA=='};var a=document.createElement('script');a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script><script>(function(){function c(){var b=a.contentDocument||a.contentWindow.document;if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'a1b4bf8b4ed2d0d3',t:'MTc4NDA3NjM2Ng=='};var a=document.createElement('script');a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script><script>(function(){function c(){var b=a.contentDocument||a.contentWindow.document;if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'a1fac94ddb07d0ec',t:'MTc4NDgxMDc2OQ=='};var a=document.createElement('script');a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script>
+<div id="toast-container" class="fixed bottom-24 left-1/2 -translate-x-1/2 z-[200] flex flex-col gap-2 pointer-events-none w-full max-w-[340px] px-4"></div>
+
+<!-- MOBILE FILTER TRAY / DRAWER -->
+<div id="mobile-filter-drawer" class="fixed inset-0 z-[150] bg-black/80 hidden transition-opacity duration-300" onclick="App.closeMobileFilters()">
+    <div id="mobile-filter-sheet" class="absolute bottom-0 left-0 right-0 max-h-[85vh] bg-[#0c0c0c] border-t border-[#262626] rounded-t-3xl p-5 flex flex-col transform translate-y-full transition-transform duration-300 gap-6 overflow-y-auto no-scrollbar" onclick="event.stopPropagation()">
+        <div class="flex justify-between items-center border-b border-[#222] pb-3">
+            <h3 class="text-sm font-black uppercase tracking-wider text-[#dca76a]">Filtrat & Renditja</h3>
+            <button onclick="App.closeMobileFilters()" class="w-8 h-8 rounded-full bg-[#161616] border border-[#222] flex items-center justify-center text-xs"><i class="fa-solid fa-xmark"></i></button>
+        </div>
+
+        <!-- Price Filters -->
+        <div>
+            <h4 class="text-xs font-black uppercase tracking-wider text-gray-400 mb-3">Filtro sipas Çmimit</h4>
+            <div class="grid grid-cols-2 gap-2">
+                <button onclick="App.filterPrice('all')" class="mobile-pf bg-[#161616] text-[#dca76a] border border-[#dca76a] py-2.5 rounded-xl text-xs font-bold" id="mobile-pf-all">Të gjitha</button>
+                <button onclick="App.filterPrice('under25')" class="mobile-pf bg-[#121212] text-gray-400 border border-[#222] py-2.5 rounded-xl text-xs font-medium" id="mobile-pf-under25">Nën €25</button>
+                <button onclick="App.filterPrice('25to50')" class="mobile-pf bg-[#121212] text-gray-400 border border-[#222] py-2.5 rounded-xl text-xs font-medium" id="mobile-pf-25to50">€25 - €50</button>
+                <button onclick="App.filterPrice('50to100')" class="mobile-pf bg-[#121212] text-gray-400 border border-[#222] py-2.5 rounded-xl text-xs font-medium" id="mobile-pf-50to100">€50 - €100</button>
+                <button onclick="App.filterPrice('over100')" class="mobile-pf bg-[#121212] text-gray-400 border border-[#222] py-2.5 rounded-xl text-xs font-medium" id="mobile-pf-over100">Mbi €100</button>
+            </div>
+        </div>
+        
+        <!-- Sorting Filters -->
+        <div>
+            <h4 class="text-xs font-black uppercase tracking-wider text-gray-400 mb-3">Renditja</h4>
+            <div class="space-y-2">
+                <button onclick="App.sortProducts('featured')" class="mobile-sf w-full text-left bg-[#161616] text-[#dca76a] border border-[#dca76a] px-4 py-3 rounded-xl text-xs font-bold" id="mobile-sf-featured">Më të mira (Featured)</button>
+                <button onclick="App.sortProducts('newest')" class="mobile-sf w-full text-left bg-[#121212] text-gray-400 border border-[#222] px-4 py-3 rounded-xl text-xs font-medium" id="mobile-sf-newest">Më të Rejat</button>
+                <button onclick="App.sortProducts('price-asc')" class="mobile-sf w-full text-left bg-[#121212] text-gray-400 border border-[#222] px-4 py-3 rounded-xl text-xs font-medium" id="mobile-sf-price-asc">Çmimi: I ultë - I lartë</button>
+                <button onclick="App.sortProducts('price-desc')" class="mobile-sf w-full text-left bg-[#121212] text-gray-400 border border-[#222] px-4 py-3 rounded-xl text-xs font-medium" id="mobile-sf-price-desc">Çmimi: I lartë - I ultë</button>
+                <button onclick="App.sortProducts('top-rated')" class="mobile-sf w-full text-left bg-[#121212] text-gray-400 border border-[#222] px-4 py-3 rounded-xl text-xs font-medium" id="mobile-sf-top-rated">Më të Vlerësuarat</button>
+            </div>
+        </div>
+        
+        <button onclick="App.closeMobileFilters()" class="w-full bg-[#dca76a] hover:bg-[#c49257] text-black font-bold py-3.5 rounded-full text-xs uppercase tracking-wider active:scale-95 transition-all text-center">APLIKO FILTRAT</button>
+    </div>
+</div>
+<script>(function(){function c(){var b=a.contentDocument||(a.contentWindow&&a.contentWindow.document);if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'a204855cfefecd3b',t:'MTc4NDkxMjg0NA=='};var a=document.createElement('script');a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>
 </html>
