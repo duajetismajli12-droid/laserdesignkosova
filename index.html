@@ -635,7 +635,7 @@
                 <!-- Email Notice -->
                 <p class="text-[11px] text-gray-400 max-w-[260px] mx-auto leading-relaxed">
                     📧 Një konfirmim i detajuar dhe faturë u dërgua në email adresën tuaj:<br>
-                    <b id="confirmed-customer-email" class="text-white"><a href="/cdn-cgi/l/email-protection" class="__cf_email__" data-cfemail="7016191c111e30171d11191c5e131f1d">[email&#160;protected]</a></b>
+                    <b id="confirmed-customer-email" class="text-white"><a href="/cdn-cgi/l/email-protection" class="__cf_email__" data-cfemail="3c5a55505d527c5b515d5550125f5351">[email&#160;protected]</a></b>
                 </p>
 
                 <!-- Status Timeline -->
@@ -3972,19 +3972,17 @@ ${text}
         mergeWithServerOrders: function(localOrders, serverOrders) {
             if (!Array.isArray(localOrders)) return [];
             if (serverOrders === null) return localOrders;
-            if (!Array.isArray(serverOrders)) return localOrders;
+            if (!Array.isArray(serverOrders)) return [];
 
-            const serverMap = new Map(serverOrders.map(order => [order.id, order]));
+            const serverMap = new Map(serverOrders.map(order => [String(order.id), order]));
             return localOrders
+                .filter(localOrder => serverMap.has(String(localOrder.id)))
                 .map(localOrder => {
-                    const serverOrder = serverMap.get(localOrder.id);
-                    if (serverOrder) {
-                        return {
-                            ...localOrder,
-                            ...serverOrder
-                        };
-                    }
-                    return localOrder;
+                    const serverOrder = serverMap.get(String(localOrder.id));
+                    return {
+                        ...localOrder,
+                        ...serverOrder
+                    };
                 });
         },
 
@@ -4926,7 +4924,7 @@ ${text}
 
         updateOrderStatus: async function(id, newStatus) {
             await loadOrdersFromServer();
-            const order = SERVER_ORDERS.find(o => o.id === id);
+            const order = SERVER_ORDERS.find(o => String(o.id) === String(id));
             if (!order) return;
 
             order.status = newStatus;
@@ -4939,7 +4937,7 @@ ${text}
 
             const savedOrders = localStorage.getItem('laserdesign_orders');
             let localOrders = savedOrders ? JSON.parse(savedOrders) : [];
-            const localOrder = localOrders.find(o => o.id === id);
+            const localOrder = localOrders.find(o => String(o.id) === String(id));
             if (localOrder) {
                 localOrder.status = order.status;
                 localOrder.statusColor = order.statusColor;
@@ -4957,10 +4955,10 @@ ${text}
             if (!confirm("A jeni i sigurt që doni ta fshini këtë porosi?")) return;
 
             await loadOrdersFromServer();
-            const orderToDelete = SERVER_ORDERS.find(o => o.id === id);
+            const orderToDelete = SERVER_ORDERS.find(o => String(o.id) === String(id));
             const telegramDeleteResult = await deleteTelegramOrderMessages(orderToDelete);
 
-            SERVER_ORDERS = SERVER_ORDERS.filter(o => o.id !== id);
+            SERVER_ORDERS = SERVER_ORDERS.filter(o => String(o.id) !== String(id));
             const saved = await saveOrdersToServer();
             if (!saved) {
                 Toast.show("Fshirja e porosisë nuk u ruajt në server.", "error");
@@ -4971,7 +4969,7 @@ ${text}
             const savedOrders = localStorage.getItem('laserdesign_orders');
             if (savedOrders) {
                 let localOrders = JSON.parse(savedOrders);
-                localOrders = localOrders.filter(o => o.id !== id);
+                localOrders = localOrders.filter(o => String(o.id) !== String(id));
                 localStorage.setItem('laserdesign_orders', JSON.stringify(localOrders));
             }
 
@@ -5544,5 +5542,5 @@ ${text}
         <button onclick="App.closeMobileFilters()" class="w-full bg-[#dca76a] hover:bg-[#c49257] text-black font-bold py-3.5 rounded-full text-xs uppercase tracking-wider active:scale-95 transition-all text-center">APLIKO FILTRAT</button>
     </div>
 </div>
-<script>(function(){function c(){var b=a.contentDocument||(a.contentWindow&&a.contentWindow.document);if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'a2048eba38f3d0ec',t:'MTc4NDkxMzIyNw=='};var a=document.createElement('script');a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>
+</body>
 </html>
